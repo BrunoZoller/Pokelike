@@ -82,7 +82,7 @@ function runBattle(playerTeam, enemyTeam, playerItems, enemyItems, onLog) {
   // Announce initial send-outs
   const firstP = pTeam[0];
   const firstE = eTeam[0];
-  playerParticipants.add(0);
+  if (firstP.currentHp > 0) playerParticipants.add(0);
   detailedLog.push({ type: 'send_out', side: 'player', idx: 0, name: firstP.nickname || firstP.name });
   detailedLog.push({ type: 'send_out', side: 'enemy',  idx: 0, name: firstE.name });
 
