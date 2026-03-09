@@ -170,6 +170,14 @@ h1, h2, .pixel-font {
   border-radius: 3px;
   font-weight: bold;
 }
+.dex-caught-badge {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  font-size: 14px;
+  line-height: 1;
+  filter: drop-shadow(0 0 2px rgba(0,0,0,0.8));
+}
 
 .poke-name {
   font-family: 'Press Start 2P', monospace;

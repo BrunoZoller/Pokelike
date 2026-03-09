@@ -22,7 +22,7 @@ function renderHpBar(current, max) {
           <span class="hp-text">${Math.max(0,current)}/${max}</span>`;
 }
 
-function renderPokemonCard(pokemon, onClick, selected) {
+function renderPokemonCard(pokemon, onClick, selected, dexCaught = false) {
   const pct = pokemon.currentHp / pokemon.maxHp;
   const typeHtml = (pokemon.types || ['???']).map(t =>
     `<span class="type-badge type-${t.toLowerCase()}">${t}</span>`
@@ -32,6 +32,7 @@ function renderPokemonCard(pokemon, onClick, selected) {
       <img src="${pokemon.spriteUrl || ''}" alt="${pokemon.name}" class="poke-sprite${pokemon.isShiny?' shiny':''}"
            onerror="this.src='';this.style.display='none'">
       ${pokemon.isShiny ? '<span class="shiny-badge">★ Shiny</span>' : ''}
+      ${dexCaught ? '<span class="dex-caught-badge" title="Already in Pokédex">⚾</span>' : ''}
     </div>
     <div class="poke-name">${pokemon.nickname || pokemon.name}</div>
     <div class="poke-level">Lv. ${pokemon.level}</div>

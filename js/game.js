@@ -273,9 +273,11 @@ async function doCatchNode(node) {
   const instances = choices.map(sp => createInstance(sp, level));
 
   choicesEl.innerHTML = '';
+  const dex = getPokedex();
   for (const inst of instances) {
+    const caught = !!(dex[inst.speciesId]?.caught);
     const wrapper = document.createElement('div');
-    wrapper.innerHTML = renderPokemonCard(inst, true, false);
+    wrapper.innerHTML = renderPokemonCard(inst, true, false, caught);
     const card = wrapper.querySelector('.poke-card');
     card.style.cursor = 'pointer';
     card.setAttribute('role', 'button');
@@ -390,10 +392,11 @@ async function doShinyNode(node) {
 
   const shiny = createInstance(species, level, true);
 
+  const shinyCaught = !!(getShinyDex()[shiny.speciesId]);
   showScreen('shiny-screen');
   document.getElementById('shiny-content').innerHTML = `
     <div class="shiny-title">✨ A Shiny Pokemon appeared!</div>
-    ${renderPokemonCard(shiny, false, false)}
+    ${renderPokemonCard(shiny, false, false, shinyCaught)}
     <button id="btn-take-shiny" class="btn-primary">Take ${shiny.name}!</button>
   `;
   document.getElementById('btn-take-shiny').onclick = () => {
