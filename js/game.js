@@ -67,7 +67,7 @@ async function showStarterSelect() {
 }
 
 function selectStarter(pokemon) {
-  markPokedexCaught(pokemon.speciesId);
+  markPokedexCaught(pokemon.speciesId, pokemon.name, pokemon.types, pokemon.spriteUrl);
   state.team = [pokemon];
   state.starterSpeciesId = pokemon.speciesId;
   state.maxTeamSize = 1;
@@ -280,7 +280,7 @@ async function doCatchNode(node) {
 }
 
 function catchPokemon(pokemon, node) {
-  markPokedexCaught(pokemon.speciesId);
+  markPokedexCaught(pokemon.speciesId, pokemon.name, pokemon.types, pokemon.spriteUrl);
   if (state.team.length < 6) {
     state.team.push(pokemon);
     if (state.team.length > state.maxTeamSize) state.maxTeamSize = state.team.length;
@@ -374,7 +374,7 @@ async function doShinyNode(node) {
   `;
   document.getElementById('btn-take-shiny').onclick = () => {
     if (state.team.length < 6) {
-      markPokedexCaught(shiny.speciesId);
+      markPokedexCaught(shiny.speciesId, shiny.name, shiny.types, shiny.spriteUrl);
       markShinyDexCaught(shiny.speciesId, shiny.name, shiny.types, shiny.spriteUrl);
       state.team.push(shiny);
       if (state.team.length > state.maxTeamSize) state.maxTeamSize = state.team.length;

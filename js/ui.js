@@ -1223,7 +1223,7 @@ async function checkAndEvolveTeam() {
       pokemon.currentHp = Math.max(1, Math.floor(oldHpRatio * newMax));
     }
 
-    markPokedexCaught(pokemon.speciesId);
+    markPokedexCaught(pokemon.speciesId, pokemon.name, pokemon.types, pokemon.spriteUrl);
     if (pokemon.isShiny) markShinyDexCaught(pokemon.speciesId, pokemon.name, pokemon.types, pokemon.spriteUrl);
   }
 }
