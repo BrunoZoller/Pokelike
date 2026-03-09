@@ -1222,6 +1222,9 @@ async function checkAndEvolveTeam() {
       pokemon.maxHp     = newMax;
       pokemon.currentHp = Math.max(1, Math.floor(oldHpRatio * newMax));
     }
+
+    markPokedexCaught(pokemon.speciesId);
+    if (pokemon.isShiny) markShinyDexCaught(pokemon.speciesId, pokemon.name, pokemon.types, pokemon.spriteUrl);
   }
 }
 
