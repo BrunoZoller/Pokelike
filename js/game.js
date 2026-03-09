@@ -420,7 +420,8 @@ function runBattleScreen(enemyTeam, isBoss, onWin, onLose, enemyName = null, ene
       for (let i = 0; i < state.team.length; i++) {
         if (resultP[i]) state.team[i].currentHp = resultP[i].currentHp;
       }
-      const levelUps = applyLevelGain(state.team, state.items, playerParticipants);
+      const maxEnemyLevel = Math.max(...resultE.map(p => p.level));
+      const levelUps = applyLevelGain(state.team, state.items, playerParticipants, maxEnemyLevel);
       // Keep Skip active for level-up animation too
       skipBtn.disabled = false;
       skipBtn.textContent = 'Skip';

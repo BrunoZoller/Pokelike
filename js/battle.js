@@ -249,8 +249,8 @@ function getLevelGain(items) {
 
 // Applies level gains and returns an array of level-up events for animation.
 // Each entry: { idx, pokemon, oldLevel, newLevel, preHp }
-function applyLevelGain(team, items, participantIdxs) {
-  const gain = getLevelGain(items);
+function applyLevelGain(team, items, participantIdxs, maxEnemyLevel = 0) {
+  const baseGain = getLevelGain(items);
   const levelUps = [];
 
   for (let i = 0; i < team.length; i++) {
@@ -258,6 +258,8 @@ function applyLevelGain(team, items, participantIdxs) {
     const getsXp = p.currentHp > 0 || (participantIdxs && participantIdxs.has(i));
     if (!getsXp) continue;
 
+    const overleveled = maxEnemyLevel > 0 && p.level > maxEnemyLevel + 5;
+    const gain = overleveled ? 1 : baseGain;
     const oldLevel = p.level;
     const newLevel = Math.min(100, oldLevel + gain);
     if (newLevel === oldLevel) continue; // already at cap
