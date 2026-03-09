@@ -21,13 +21,13 @@ async function initGame() {
   document.getElementById('btn-new-run').addEventListener('click', () => startNewRun(false));
 
   const hardBtn = document.getElementById('btn-hard-run');
-  const hardWrap = document.getElementById('btn-hard-run-wrap');
+  const hardHint = document.getElementById('hard-mode-hint');
   if (isPokedexComplete()) {
     hardBtn.disabled = false;
     hardBtn.textContent = '💀 Hard Mode';
-    hardWrap.title = 'Every fight grants exactly 1 level';
+    hardHint.textContent = 'Every fight grants exactly 1 level';
   } else {
-    hardWrap.title = 'Complete the Pokédex to unlock Hard Mode';
+    hardHint.textContent = 'Complete the Pokédex to unlock';
   }
   hardBtn.addEventListener('click', () => startNewRun(true));
 }
