@@ -11,17 +11,26 @@ let state = {
   trainer: 'boy',
   starterSpeciesId: null,
   maxTeamSize: 1,
+  hardMode: false,
 };
 
 // ---- Initialization ----
 
 async function initGame() {
   showScreen('title-screen');
-  document.getElementById('btn-new-run').addEventListener('click', startNewRun);
+  document.getElementById('btn-new-run').addEventListener('click', () => startNewRun(false));
+
+  const hardBtn = document.getElementById('btn-hard-run');
+  if (isPokedexComplete()) {
+    hardBtn.disabled = false;
+    hardBtn.textContent = '💀 Hard Mode';
+    hardBtn.title = 'Every fight grants exactly 1 level';
+  }
+  hardBtn.addEventListener('click', () => startNewRun(true));
 }
 
-async function startNewRun() {
-  state = { currentMap: 0, currentNode: null, team: [], items: [], badges: 0, map: null, eliteIndex: 0, trainer: 'boy', starterSpeciesId: null, maxTeamSize: 1 };
+async function startNewRun(hardMode = false) {
+  state = { currentMap: 0, currentNode: null, team: [], items: [], badges: 0, map: null, eliteIndex: 0, trainer: 'boy', starterSpeciesId: null, maxTeamSize: 1, hardMode };
   await showTrainerSelect();
 }
 
@@ -434,7 +443,7 @@ function runBattleScreen(enemyTeam, isBoss, onWin, onLose, enemyName = null, ene
         if (resultP[i]) state.team[i].currentHp = resultP[i].currentHp;
       }
       const maxEnemyLevel = Math.max(...resultE.map(p => p.level));
-      const levelUps = applyLevelGain(state.team, state.items, playerParticipants, maxEnemyLevel);
+      const levelUps = applyLevelGain(state.team, state.hardMode ? [] : state.items, playerParticipants, maxEnemyLevel, state.hardMode);
       // Keep Skip active for level-up animation too
       skipBtn.disabled = false;
       skipBtn.textContent = 'Skip';

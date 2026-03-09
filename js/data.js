@@ -329,33 +329,36 @@ async function getSpeciesPool() {
   return _speciesPool;
 }
 
+// All catchable Gen 1 IDs by BST bucket (module-level so other code can reference them)
+const GEN1_BST_APPROX = {
+  low:      [10,11,13,14,16,17,19,20,21,23,27,29,32,41,46,48,52,54,56,60,
+             69,72,74,79,81,84,86,96,98,100,102,108,111,116,118,120,129,133],
+  midLow:   [25,30,33,35,37,39,43,50,58,61,63,66,73,77,83,92,95,96,104,109,
+             113,114,116,120,122,123,126,127,128,138,140],
+  mid:      [26,36,42,49,51,64,67,70,75,82,85,93,97,101,103,105,107,110,119,
+             121,124,125,130,137,139,141],
+  midHigh:  [40,44,55,62,76,80,87,88,89,90,91,99,106,115,117,131,
+             132,137,142,143,144,145,146],
+  high:     [3,6,9,12,15,18,22,24,28,31,34,38,45,47,53,57,59,
+             65,68,71,76,78,80,89,94,112,121,130,142,143,149],
+  veryHigh: [6,9,65,68,94,112,130,131,143,144,145,146,147,148,149,150,151],
+};
+
+const ALL_CATCHABLE_IDS = new Set(Object.values(GEN1_BST_APPROX).flat());
+
+function isPokedexComplete() {
+  const dex = getPokedex();
+  const caughtIds = new Set(Object.values(dex).filter(e => e.caught).map(e => e.id));
+  for (const id of ALL_CATCHABLE_IDS) {
+    if (!caughtIds.has(id)) return false;
+  }
+  return true;
+}
+
 // Get 3 random pokemon ids from the right BST bucket for a given mapIndex
 async function getCatchChoices(mapIndex) {
   const range = MAP_BST_RANGES[Math.min(mapIndex, MAP_BST_RANGES.length - 1)];
   const pool = await getSpeciesPool();
-
-  // We'll sample random IDs from Gen 1 (1-151) and beyond, but use BST filtering on fetched data
-  // For efficiency, use a predefined set of Gen 1 pokemon IDs by rough BST
-  const GEN1_BST_APPROX = {
-    // low BST: 200-310 (unevolved basics)
-    low: [10,11,13,14,16,17,19,20,21,23,27,29,32,41,46,48,52,54,56,60,
-          69,72,74,79,81,84,86,96,98,100,102,108,111,116,118,120,
-          129,133],
-    // mid-low: 310-390 (mid-stage / slightly evolved)
-    midLow: [25,30,33,35,37,39,43,50,58,61,63,66,73,77,83,92,95,96,104,109,
-             113,114,116,120,122,123,126,127,128,138,140],
-    // mid: 380-450 (second evolutions, strong basics)
-    mid: [26,36,42,49,51,64,67,70,75,82,85,93,97,101,103,105,107,110,119,
-          121,124,125,130,137,139,141],
-    // mid-high: 440-500 (mostly final evolutions)
-    midHigh: [40,44,55,62,76,80,87,88,89,90,91,99,106,115,117,131,
-              132,137,142,143,144,145,146],
-    // high: 490-530 (powerful fully evolved)
-    high: [3,6,9,12,15,18,22,24,28,31,34,38,45,47,53,57,59,
-           65,68,71,76,78,80,89,94,112,121,130,142,143,149],
-    // very high: 530+ (pseudo-legendaries, legendaries)
-    veryHigh: [6,9,65,68,94,112,130,131,143,144,145,146,147,148,149,150,151]
-  };
 
   let bucket;
   if (range.min >= 530) bucket = GEN1_BST_APPROX.veryHigh;
@@ -569,13 +572,15 @@ function markPokedexSeen(id, name, types, spriteUrl) {
   }
 }
 
-function markPokedexCaught(id) {
+function markPokedexCaught(id, name, types, spriteUrl) {
   if (!id) return;
   const dex = getPokedex();
-  if (!dex[id] || !dex[id].caught) {
-    dex[id] = { ...(dex[id] || { id }), caught: true };
-    localStorage.setItem('poke_dex', JSON.stringify(dex));
-  }
+  dex[id] = { ...(dex[id] || {}), id, caught: true,
+    name:      name      || dex[id]?.name,
+    types:     types     || dex[id]?.types,
+    spriteUrl: spriteUrl || dex[id]?.spriteUrl,
+  };
+  localStorage.setItem('poke_dex', JSON.stringify(dex));
 }
 
 function getShinyDex() {
