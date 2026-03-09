@@ -275,6 +275,26 @@ h1, h2, .pixel-font {
   opacity: 1;
 }
 
+/* ---- Map Node Tooltip ---- */
+#map-node-tooltip {
+  position: fixed;
+  pointer-events: none;
+  background: #1e1e32;
+  border: 1px solid var(--accent);
+  color: var(--text);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  line-height: 1.6;
+  padding: 6px 12px;
+  border-radius: 6px;
+  white-space: nowrap;
+  z-index: 200;
+  opacity: 0;
+  transition: opacity 0.1s;
+  transform: translate(14px, -50%);
+}
+#map-node-tooltip.visible { opacity: 1; }
+
 /* ---- Map Screen ---- */
 #map-screen { gap: 12px; }
 .map-header {

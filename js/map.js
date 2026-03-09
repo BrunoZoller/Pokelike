@@ -185,6 +185,29 @@ function advanceFromNode(map, nodeId) {
 }
 
 // Rendering — top-to-bottom layout
+const _mapTooltip = (() => {
+  let el = null;
+  return {
+    show(label, x, y) {
+      if (!el) el = document.getElementById('map-node-tooltip');
+      if (!el) return;
+      el.textContent = label;
+      el.style.left = x + 'px';
+      el.style.top = y + 'px';
+      el.classList.add('visible');
+    },
+    move(x, y) {
+      if (!el) return;
+      el.style.left = x + 'px';
+      el.style.top = y + 'px';
+    },
+    hide() {
+      if (!el) el = document.getElementById('map-node-tooltip');
+      if (el) el.classList.remove('visible');
+    },
+  };
+})();
+
 function renderMap(map, container, onNodeClick) {
   container.innerHTML = '';
   const W = container.clientWidth || 600;
@@ -263,8 +286,10 @@ function renderMap(map, container, onNodeClick) {
       circle.appendChild(anim);
     }
 
-    const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
-    title.textContent = getNodeLabel(node);
+    const label = getNodeLabel(node);
+    g.addEventListener('mouseenter', e => _mapTooltip.show(label, e.clientX, e.clientY));
+    g.addEventListener('mousemove',  e => _mapTooltip.move(e.clientX, e.clientY));
+    g.addEventListener('mouseleave', () => _mapTooltip.hide());
 
     const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     text.setAttribute('text-anchor', 'middle');
@@ -273,7 +298,6 @@ function renderMap(map, container, onNodeClick) {
     text.setAttribute('fill', isInaccessible ? '#aaa' : '#fff');
     text.textContent = node.visited ? '✓' : getNodeIcon(node);
 
-    g.appendChild(title);
     g.appendChild(circle);
     g.appendChild(text);
 
