@@ -28,7 +28,8 @@ function calcDamage(attacker, defender, move, items) {
   if (hasItem(items, 'air_balloon') && moveType.toLowerCase() === 'ground') damage = 0;
 
   const rng = 0.85 + Math.random() * 0.15;
-  damage = Math.max(1, Math.floor(damage * rng));
+  damage = Math.floor(damage * rng);
+  if (typeEff > 0) damage = Math.max(1, damage);
 
   return { damage, typeEff, moveType };
 }

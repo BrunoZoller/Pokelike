@@ -14,7 +14,7 @@ const TYPE_CHART = {
   Psychic:  { Normal:1, Fire:1, Water:1, Electric:1, Grass:1, Ice:1, Fighting:2, Poison:2, Ground:1, Flying:1, Psychic:0.5, Bug:1, Rock:1, Ghost:0, Dragon:1 },
   Bug:      { Normal:1, Fire:0.5, Water:1, Electric:1, Grass:2, Ice:1, Fighting:0.5, Poison:0.5, Ground:1, Flying:0.5, Psychic:2, Bug:1, Rock:1, Ghost:0.5, Dragon:1 },
   Rock:     { Normal:1, Fire:2, Water:1, Electric:1, Grass:1, Ice:2, Fighting:0.5, Poison:1, Ground:0.5, Flying:2, Psychic:1, Bug:2, Rock:1, Ghost:1, Dragon:1 },
-  Ghost:    { Normal:0, Fire:1, Water:1, Electric:1, Grass:1, Ice:1, Fighting:0, Poison:1, Ground:1, Flying:1, Psychic:0, Bug:1, Rock:1, Ghost:2, Dragon:1 },
+  Ghost:    { Normal:0, Fire:1, Water:1, Electric:1, Grass:1, Ice:1, Fighting:0, Poison:1, Ground:1, Flying:1, Psychic:2, Bug:1, Rock:1, Ghost:2, Dragon:1 },
   Dragon:   { Normal:1, Fire:1, Water:1, Electric:1, Grass:1, Ice:1, Fighting:1, Poison:1, Ground:1, Flying:1, Psychic:1, Bug:1, Rock:1, Ghost:1, Dragon:2 },
 };
 
@@ -540,7 +540,9 @@ const ACHIEVEMENTS = [
   { id: 'starter_1', name: 'Grass Champion',  desc: 'Beat the game starting with Bulbasaur',  icon: '🌱' },
   { id: 'starter_4', name: 'Fire Champion',   desc: 'Beat the game starting with Charmander', icon: '🔥' },
   { id: 'starter_7', name: 'Water Champion',  desc: 'Beat the game starting with Squirtle',   icon: '🌊' },
-  { id: 'solo_run',  name: 'One is Enough',   desc: 'Beat the game with only 1 Pokemon on your team', icon: '⭐' },
+  { id: 'solo_run',    name: 'One is Enough',   desc: 'Beat the game with only 1 Pokemon on your team', icon: '⭐' },
+  { id: 'pokedex_complete', name: 'Gotta Catch \'Em All', desc: 'Complete the regular Pokédex',  icon: '📖' },
+  { id: 'shinydex_complete', name: 'Shiny Hunter',         desc: 'Complete the Shiny Pokédex',    icon: '✨' },
 ];
 
 function getUnlockedAchievements() {
@@ -586,6 +588,15 @@ function markPokedexCaught(id, name, types, spriteUrl) {
 function getShinyDex() {
   try { return JSON.parse(localStorage.getItem('poke_shiny_dex') || '{}'); }
   catch { return {}; }
+}
+
+function isShinyDexComplete() {
+  const dex = getShinyDex();
+  const caughtIds = new Set(Object.values(dex).map(e => e.id));
+  for (const id of ALL_CATCHABLE_IDS) {
+    if (!caughtIds.has(id)) return false;
+  }
+  return true;
 }
 
 function markShinyDexCaught(id, name, types, shinySpriteUrl) {

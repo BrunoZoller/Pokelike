@@ -288,8 +288,20 @@ async function doCatchNode(node) {
   };
 }
 
+function checkDexAchievements() {
+  if (isPokedexComplete()) {
+    const ach = unlockAchievement('pokedex_complete');
+    if (ach) showAchievementToast(ach);
+  }
+  if (isShinyDexComplete()) {
+    const ach = unlockAchievement('shinydex_complete');
+    if (ach) showAchievementToast(ach);
+  }
+}
+
 function catchPokemon(pokemon, node) {
   markPokedexCaught(pokemon.speciesId, pokemon.name, pokemon.types, pokemon.spriteUrl);
+  checkDexAchievements();
   if (state.team.length < 6) {
     state.team.push(pokemon);
     if (state.team.length > state.maxTeamSize) state.maxTeamSize = state.team.length;
@@ -385,6 +397,7 @@ async function doShinyNode(node) {
     if (state.team.length < 6) {
       markPokedexCaught(shiny.speciesId, shiny.name, shiny.types, shiny.spriteUrl);
       markShinyDexCaught(shiny.speciesId, shiny.name, shiny.types, shiny.spriteUrl);
+      checkDexAchievements();
       state.team.push(shiny);
       if (state.team.length > state.maxTeamSize) state.maxTeamSize = state.team.length;
       advanceFromNode(state.map, node.id);
