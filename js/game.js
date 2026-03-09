@@ -80,6 +80,13 @@ function startMap(mapIndex) {
   state.currentMap = mapIndex;
   state.map = generateMap(mapIndex);
 
+  // Full heal between arenas (skip the very first map)
+  if (mapIndex > 0) {
+    for (const p of state.team) {
+      p.currentHp = p.maxHp;
+    }
+  }
+
   const startNode = state.map.nodes['n0_0'];
   state.currentNode = startNode;
 
