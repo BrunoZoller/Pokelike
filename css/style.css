@@ -1,0 +1,1094 @@
+/* style.css - Pokemon Roguelike Dark Theme */
+
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0a14;
+  --bg2: #12121f;
+  --bg3: #1a1a2e;
+  --border: #2a2a4a;
+  --accent: #6c63ff;
+  --accent2: #ff6584;
+  --text: #e0e0f0;
+  --text-dim: #7070a0;
+  --green: #4caf50;
+  --orange: #ff9800;
+  --red: #f44336;
+  --gold: #ffd700;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: monospace, 'Courier New';
+  font-size: 14px;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+h1, h2, .pixel-font {
+  font-family: 'Press Start 2P', monospace;
+  line-height: 1.6;
+}
+
+/* ---- Screens ---- */
+.screen {
+  display: none;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 16px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+.screen.active { display: flex; }
+
+/* ---- Title Screen ---- */
+#title-screen {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 24px;
+}
+.game-logo {
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(16px, 4vw, 36px);
+  color: var(--gold);
+  text-shadow: 0 0 20px var(--gold), 0 0 40px rgba(255,215,0,0.4);
+  letter-spacing: 2px;
+  line-height: 1.4;
+}
+.game-subtitle {
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(8px, 2vw, 12px);
+  color: var(--accent);
+  margin-top: -8px;
+}
+
+/* ---- Buttons ---- */
+.btn-primary {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 14px 32px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  letter-spacing: 1px;
+  transition: all 0.15s;
+  text-transform: uppercase;
+}
+.btn-primary:hover { background: #8c7fff; transform: translateY(-2px); box-shadow: 0 4px 16px rgba(108,99,255,0.5); }
+.btn-primary:active { transform: translateY(0); }
+.btn-primary:disabled { background: #333; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  padding: 10px 20px;
+  font-family: monospace;
+  font-size: 13px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+.btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ---- Starter Screen ---- */
+#starter-screen {
+  gap: 20px;
+}
+#starter-screen h2 {
+  font-size: clamp(10px, 2.5vw, 16px);
+  color: var(--gold);
+  text-align: center;
+}
+#starter-choices {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* ---- Pokemon Cards ---- */
+.poke-card {
+  background: var(--bg3);
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  width: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+  position: relative;
+}
+.poke-card[role="button"], .poke-card[tabindex] {
+  cursor: pointer;
+}
+.poke-card[role="button"]:hover, .poke-card[tabindex]:hover {
+  border-color: var(--accent);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(108,99,255,0.3);
+}
+.poke-card.selected {
+  border-color: var(--gold);
+  box-shadow: 0 0 16px rgba(255,215,0,0.4);
+}
+
+.poke-sprite-wrap { position: relative; width: 96px; height: 96px; }
+.poke-sprite {
+  width: 96px;
+  height: 96px;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 2px 8px rgba(108,99,255,0.4));
+}
+.poke-sprite.shiny { filter: drop-shadow(0 0 12px gold); }
+.shiny-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: var(--gold);
+  color: #000;
+  font-size: 9px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-weight: bold;
+}
+
+.poke-name {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  color: var(--text);
+  text-align: center;
+}
+.poke-level { font-size: 12px; color: var(--text-dim); }
+.poke-types { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
+.poke-stats { font-size: 10px; color: var(--text-dim); text-align: center; line-height: 1.6; }
+
+/* Type badges */
+.type-badge {
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.type-normal   { background:#a8a878; color:#000; }
+.type-fire     { background:#f08030; color:#000; }
+.type-water    { background:#6890f0; color:#000; }
+.type-electric { background:#f8d030; color:#000; }
+.type-grass    { background:#78c850; color:#000; }
+.type-ice      { background:#98d8d8; color:#000; }
+.type-fighting { background:#c03028; color:#fff; }
+.type-poison   { background:#a040a0; color:#fff; }
+.type-ground   { background:#e0c068; color:#000; }
+.type-flying   { background:#a890f0; color:#000; }
+.type-psychic  { background:#f85888; color:#fff; }
+.type-bug      { background:#a8b820; color:#000; }
+.type-rock     { background:#b8a038; color:#000; }
+.type-ghost    { background:#705898; color:#fff; }
+.type-dragon   { background:#7038f8; color:#fff; }
+.type-dark     { background:#705848; color:#fff; }
+.type-steel    { background:#b8b8d0; color:#000; }
+.type-fairy    { background:#ee99ac; color:#000; }
+
+/* HP Bars */
+.hp-bar-bg {
+  width: 100%;
+  height: 8px;
+  background: #333;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.hp-bar-bg.sm { height: 5px; }
+.hp-bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+.hp-text { font-size: 11px; color: var(--text-dim); }
+.poke-hp { width: 100%; display: flex; flex-direction: column; gap: 2px; }
+
+/* ---- Team / Item Bars ---- */
+.hud-bars {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  padding: 8px;
+  background: var(--bg2);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+#team-bar { display: flex; gap: 8px; flex-wrap: wrap; }
+.screen-team-bar {
+  display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+  margin-top: 16px; padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.team-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 64px;
+}
+.team-sprite { width: 40px; height: 40px; image-rendering: pixelated; }
+.team-slot-name { font-size: 9px; color: var(--text-dim); text-align: center; overflow: hidden; max-width: 64px; white-space: nowrap; text-overflow: ellipsis; }
+.team-slot-lv { font-size: 9px; color: var(--accent); }
+
+#item-bar { display: flex; gap: 6px; flex-wrap: wrap; }
+.item-badge {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: help;
+  position: relative;
+}
+.item-badge::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1e1e32;
+  border: 1px solid var(--accent);
+  color: var(--text);
+  font-size: 10px;
+  font-family: 'Press Start 2P', monospace;
+  line-height: 1.6;
+  padding: 6px 10px;
+  border-radius: 6px;
+  white-space: normal;
+  width: 180px;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 100;
+}
+.item-badge:hover::after {
+  opacity: 1;
+}
+
+/* ---- Map Screen ---- */
+#map-screen { gap: 12px; }
+.map-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  background: var(--bg2);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  font-size: 12px;
+}
+#map-info { font-family: 'Press Start 2P', monospace; font-size: 9px; color: var(--gold); }
+#badge-count { color: var(--text-dim); font-size: 11px; }
+
+#map-container {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  flex: 1;
+  min-height: 300px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Map legend */
+.map-legend {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.legend-item { display: flex; align-items: center; gap: 4px; }
+.legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+
+/* ---- Battle Screen ---- */
+#battle-screen { gap: 12px; }
+.battle-header { text-align: center; }
+.battle-header h2 { font-size: clamp(10px, 2.5vw, 16px); color: var(--accent2); }
+.battle-header p { color: var(--text-dim); font-size: 12px; }
+
+.battle-field {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.battle-side {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.battle-side-label {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.battle-pokemon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px;
+  background: var(--bg3);
+  border-radius: 6px;
+}
+.battle-pokemon.fainted { opacity: 0.3; }
+.battle-sprite { width: 64px; height: 64px; image-rendering: pixelated; }
+.battle-poke-name { font-size: 11px; font-weight: bold; }
+
+.battle-controls {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+  padding: 8px;
+}
+
+#battle-log {
+  background: #080812;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  height: 180px;
+  overflow-y: auto;
+  font-family: monospace;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.log-entry { padding: 1px 0; }
+.log-player { color: #90caf9; }
+.log-enemy  { color: #ef9a9a; }
+.log-item   { color: #ffe082; }
+.log-faint  { color: #ce93d8; font-weight: bold; }
+.log-win    { color: var(--green); font-family: 'Press Start 2P', monospace; font-size: 10px; margin-top: 6px; }
+.log-lose   { color: var(--red); font-family: 'Press Start 2P', monospace; font-size: 10px; margin-top: 6px; }
+
+/* ---- Catch Screen ---- */
+#catch-screen { gap: 16px; }
+#catch-screen h2 { font-size: clamp(10px, 2.5vw, 14px); color: var(--green); text-align: center; }
+#catch-choices {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* ---- Item Screen ---- */
+#item-screen { gap: 16px; }
+#item-screen h2 { font-size: clamp(10px, 2.5vw, 14px); color: var(--accent); text-align: center; }
+#item-choices {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.item-card {
+  background: var(--bg3);
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  width: 220px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.item-card:hover { border-color: var(--accent); transform: translateY(-4px); box-shadow: 0 8px 24px rgba(108,99,255,0.3); }
+.item-icon { font-size: 36px; margin-bottom: 8px; }
+.item-name { font-family: 'Press Start 2P', monospace; font-size: 10px; color: var(--text); margin-bottom: 8px; }
+.item-desc { font-size: 12px; color: var(--text-dim); line-height: 1.6; }
+
+/* ---- Swap Screen ---- */
+#swap-screen { gap: 16px; }
+#swap-screen h2 { font-size: clamp(10px, 2.5vw, 14px); color: var(--accent2); text-align: center; }
+.swap-prompt { text-align: center; color: var(--text-dim); font-size: 13px; }
+#swap-choices { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+/* ---- Shiny Screen ---- */
+#shiny-screen { align-items: center; justify-content: center; gap: 20px; text-align: center; }
+.shiny-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(10px, 2.5vw, 14px);
+  color: var(--gold);
+  text-shadow: 0 0 20px var(--gold);
+  animation: shimmer 1s ease-in-out infinite alternate;
+}
+@keyframes shimmer { from { text-shadow: 0 0 10px gold; } to { text-shadow: 0 0 30px gold, 0 0 60px orange; } }
+#shiny-content { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+
+/* ---- Badge Screen ---- */
+#badge-screen { align-items: center; justify-content: center; gap: 20px; text-align: center; }
+.badge-icon { font-size: 64px; animation: bounce 0.5s ease-in-out infinite alternate; }
+@keyframes bounce { from { transform: scale(1); } to { transform: scale(1.1); } }
+#badge-msg { font-family: 'Press Start 2P', monospace; font-size: clamp(10px,2.5vw,14px); color: var(--gold); }
+#badge-leader { font-size: 16px; color: var(--text); }
+#badge-count-display { color: var(--text-dim); font-size: 14px; }
+
+/* ---- Transition Screen ---- */
+#transition-screen {
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  text-align: center;
+  background: radial-gradient(circle, var(--bg3) 0%, var(--bg) 70%);
+}
+#transition-msg { font-family: 'Press Start 2P', monospace; font-size: clamp(10px,2.5vw,16px); color: var(--green); }
+#transition-sub { color: var(--text-dim); font-size: 14px; }
+
+/* ---- Game Over Screen ---- */
+#gameover-screen {
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  text-align: center;
+  background: radial-gradient(circle, #2a0000 0%, var(--bg) 70%);
+}
+.gameover-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(16px,4vw,32px);
+  color: var(--red);
+  text-shadow: 0 0 20px var(--red);
+}
+#gameover-badges { color: var(--text-dim); font-size: 14px; }
+#gameover-team { color: var(--text-dim); font-size: 12px; max-width: 500px; }
+
+/* ---- Win Screen ---- */
+#win-screen {
+  align-items: center;
+  gap: 20px;
+  text-align: center;
+  padding-bottom: 40px;
+}
+.win-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(12px,3vw,24px);
+  color: var(--gold);
+  text-shadow: 0 0 30px var(--gold);
+  animation: shimmer 1.5s ease-in-out infinite alternate;
+}
+#win-team { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+
+/* ---- Loading ---- */
+.loading {
+  color: var(--text-dim);
+  font-size: 12px;
+  padding: 20px;
+  text-align: center;
+  animation: pulse 1s ease-in-out infinite alternate;
+}
+@keyframes pulse { from { opacity: 0.5; } to { opacity: 1; } }
+
+/* ---- Responsive ---- */
+@media (max-width: 600px) {
+  .battle-field { grid-template-columns: 1fr; }
+  .poke-card { width: 150px; }
+  #battle-log { height: 140px; }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+/* ---- Battle Animations ---- */
+
+/* Attacker highlight pulse */
+.battle-pokemon.attacking {
+  animation: attacker-pulse 0.3s ease-in-out;
+}
+@keyframes attacker-pulse {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.08); filter: brightness(1.4); }
+  100% { transform: scale(1); }
+}
+
+/* ---- Per-type hit animations ---- */
+
+/* Normal — simple white flash */
+.battle-pokemon.hit-normal { animation: hit-normal 0.35s ease-out; }
+@keyframes hit-normal {
+  0%   { filter: brightness(1); }
+  25%  { filter: brightness(3) saturate(0); }
+  100% { filter: brightness(1); }
+}
+
+/* Fire — orange/red flicker with upward glow */
+.battle-pokemon.hit-fire { animation: hit-fire 0.55s ease-out; }
+@keyframes hit-fire {
+  0%   { filter: brightness(1); transform: scale(1); }
+  15%  { filter: brightness(3) drop-shadow(0 -6px 14px #ff6600) drop-shadow(0 -12px 24px #ff3300); transform: scale(1.06); }
+  35%  { filter: brightness(2.2) drop-shadow(0 -4px 10px #ff9900) drop-shadow(0 -8px 18px #ff5500); transform: scale(1.03); }
+  65%  { filter: brightness(1.6) drop-shadow(0 -2px 6px #ffaa00); transform: scale(1.01); }
+  100% { filter: brightness(1); transform: scale(1); }
+}
+
+/* Water — blue ripple + squeeze */
+.battle-pokemon.hit-water { animation: hit-water 0.5s ease-out; }
+@keyframes hit-water {
+  0%   { filter: brightness(1); transform: scale(1); }
+  20%  { filter: brightness(2) drop-shadow(0 0 16px #4488ff) drop-shadow(0 0 30px #99ccff); transform: scaleX(0.88) scaleY(1.08); }
+  45%  { filter: brightness(1.7) drop-shadow(0 0 10px #6699ff); transform: scaleX(1.05) scaleY(0.96); }
+  70%  { filter: brightness(1.3) drop-shadow(0 0 6px #88aaff); transform: scale(1.01); }
+  100% { filter: brightness(1); transform: scale(1); }
+}
+
+/* Electric — yellow strobe + horizontal jitter */
+.battle-pokemon.hit-electric { animation: hit-electric 0.45s ease-out; }
+@keyframes hit-electric {
+  0%   { filter: brightness(1); transform: translateX(0); }
+  8%   { filter: brightness(5) drop-shadow(0 0 18px #ffff00) drop-shadow(0 0 35px #ffffff); transform: translateX(5px); }
+  16%  { filter: brightness(1.2); transform: translateX(-5px); }
+  24%  { filter: brightness(4.5) drop-shadow(0 0 14px #ffee00) drop-shadow(0 0 28px #ffffaa); transform: translateX(4px); }
+  32%  { filter: brightness(1); transform: translateX(-3px); }
+  45%  { filter: brightness(3) drop-shadow(0 0 10px #ffcc00); transform: translateX(2px); }
+  60%  { filter: brightness(1.5) drop-shadow(0 0 5px #ffdd44); transform: translateX(0); }
+  100% { filter: brightness(1); transform: translateX(0); }
+}
+
+/* Grass — green pulse + sway */
+.battle-pokemon.hit-grass { animation: hit-grass 0.55s ease-out; }
+@keyframes hit-grass {
+  0%   { filter: brightness(1); transform: rotate(0deg); }
+  20%  { filter: brightness(2.2) drop-shadow(0 0 14px #44cc44) drop-shadow(0 0 28px #22aa22); transform: rotate(-5deg) scale(1.05); }
+  40%  { filter: brightness(1.8) drop-shadow(0 0 10px #66dd44); transform: rotate(4deg) scale(1.02); }
+  65%  { filter: brightness(1.4) drop-shadow(0 0 6px #88ee66); transform: rotate(-2deg); }
+  100% { filter: brightness(1); transform: rotate(0deg) scale(1); }
+}
+
+/* Ice — cyan freeze + scale out */
+.battle-pokemon.hit-ice { animation: hit-ice 0.5s ease-out; }
+@keyframes hit-ice {
+  0%   { filter: brightness(1); transform: scale(1); }
+  15%  { filter: brightness(2.5) drop-shadow(0 0 16px #aaeeff) drop-shadow(0 0 32px #ffffff) saturate(0.3); transform: scale(1.07); }
+  40%  { filter: brightness(2) drop-shadow(0 0 12px #88ddff) saturate(0.5); transform: scale(1.03); }
+  70%  { filter: brightness(1.4) drop-shadow(0 0 6px #aaccff); transform: scale(1.01); }
+  100% { filter: brightness(1) saturate(1); transform: scale(1); }
+}
+
+/* Fighting — red impact + slam down */
+.battle-pokemon.hit-fighting { animation: hit-fighting 0.4s ease-out; }
+@keyframes hit-fighting {
+  0%   { filter: brightness(1); transform: translate(0, 0); }
+  12%  { filter: brightness(3) drop-shadow(0 0 14px #cc2222) drop-shadow(4px 4px 8px #ff4444); transform: translate(-6px, 4px); }
+  24%  { filter: brightness(2.5) drop-shadow(0 0 10px #dd3333); transform: translate(5px, -3px); }
+  40%  { filter: brightness(1.8) drop-shadow(0 0 6px #ee5555); transform: translate(-3px, 2px); }
+  65%  { filter: brightness(1.3); transform: translate(0, 0); }
+  100% { filter: brightness(1); transform: translate(0, 0); }
+}
+
+/* Poison — purple bubbling pulse */
+.battle-pokemon.hit-poison { animation: hit-poison 0.6s ease-out; }
+@keyframes hit-poison {
+  0%   { filter: brightness(1); transform: scale(1); }
+  20%  { filter: brightness(2) drop-shadow(0 0 16px #aa44cc) drop-shadow(0 0 28px #cc66ff); transform: scale(0.94); }
+  40%  { filter: brightness(1.8) drop-shadow(0 0 12px #993dbb); transform: scale(1.04); }
+  60%  { filter: brightness(1.5) drop-shadow(0 0 8px #bb55dd); transform: scale(0.97); }
+  80%  { filter: brightness(1.2) drop-shadow(0 0 5px #aa44cc); transform: scale(1.01); }
+  100% { filter: brightness(1); transform: scale(1); }
+}
+
+/* Ground — brown shake + drop */
+.battle-pokemon.hit-ground { animation: hit-ground 0.5s ease-out; }
+@keyframes hit-ground {
+  0%   { filter: brightness(1); transform: translate(0, 0); }
+  10%  { transform: translate(0, -4px); }
+  20%  { filter: brightness(2.2) drop-shadow(0 6px 14px #cc8833) drop-shadow(-3px 4px 8px #aa6622); transform: translate(0, 8px); }
+  35%  { filter: brightness(1.8) drop-shadow(0 4px 10px #dd9944); transform: translate(0, -3px); }
+  55%  { filter: brightness(1.4) drop-shadow(0 2px 6px #cc8833); transform: translate(0, 2px); }
+  100% { filter: brightness(1); transform: translate(0, 0); }
+}
+
+/* Flying — sky blue lift + fade */
+.battle-pokemon.hit-flying { animation: hit-flying 0.5s ease-out; }
+@keyframes hit-flying {
+  0%   { filter: brightness(1); transform: translateY(0); }
+  25%  { filter: brightness(2.2) drop-shadow(0 -8px 16px #aabbff) drop-shadow(0 -4px 24px #ddeeff); transform: translateY(-8px); }
+  50%  { filter: brightness(1.7) drop-shadow(0 -4px 10px #99aaee); transform: translateY(-4px); }
+  75%  { filter: brightness(1.3) drop-shadow(0 -2px 6px #aabbff); transform: translateY(-2px); }
+  100% { filter: brightness(1); transform: translateY(0); }
+}
+
+/* Psychic — pink spinning halo */
+.battle-pokemon.hit-psychic { animation: hit-psychic 0.6s ease-out; }
+@keyframes hit-psychic {
+  0%   { filter: brightness(1); transform: scale(1) rotate(0deg); }
+  20%  { filter: brightness(2.5) drop-shadow(0 0 18px #ff44aa) drop-shadow(0 0 35px #ff88cc); transform: scale(1.05) rotate(8deg); }
+  40%  { filter: brightness(2) drop-shadow(0 0 14px #ee3399); transform: scale(0.97) rotate(-6deg); }
+  60%  { filter: brightness(1.6) drop-shadow(0 0 9px #ff55bb); transform: scale(1.02) rotate(3deg); }
+  100% { filter: brightness(1); transform: scale(1) rotate(0deg); }
+}
+
+/* Bug — yellow-green flash */
+.battle-pokemon.hit-bug { animation: hit-bug 0.4s ease-out; }
+@keyframes hit-bug {
+  0%   { filter: brightness(1); }
+  20%  { filter: brightness(2.5) drop-shadow(0 0 14px #88bb00) drop-shadow(0 0 26px #aadd00); transform: scale(1.04); }
+  50%  { filter: brightness(1.8) drop-shadow(0 0 8px #99cc11); transform: scale(1.01); }
+  100% { filter: brightness(1); transform: scale(1); }
+}
+
+/* Rock — grey burst + shake */
+.battle-pokemon.hit-rock { animation: hit-rock 0.45s ease-out; }
+@keyframes hit-rock {
+  0%   { filter: brightness(1); transform: translate(0, 0); }
+  15%  { filter: brightness(2.5) drop-shadow(3px 3px 10px #887755) drop-shadow(-3px -3px 10px #aa9966) saturate(0.6); transform: translate(-5px, -3px); }
+  30%  { filter: brightness(2) saturate(0.7); transform: translate(4px, 3px); }
+  50%  { filter: brightness(1.6) drop-shadow(0 0 6px #aa9966) saturate(0.8); transform: translate(-2px, -1px); }
+  100% { filter: brightness(1) saturate(1); transform: translate(0, 0); }
+}
+
+/* Ghost — purple fade-in/out flicker */
+.battle-pokemon.hit-ghost { animation: hit-ghost 0.6s ease-out; }
+@keyframes hit-ghost {
+  0%   { filter: brightness(1) opacity(1); }
+  20%  { filter: brightness(0.4) drop-shadow(0 0 18px #7755aa) drop-shadow(0 0 35px #aa77ff) opacity(0.6); transform: scale(1.06); }
+  40%  { filter: brightness(1.8) drop-shadow(0 0 14px #9966bb) opacity(0.9); transform: scale(0.96); }
+  60%  { filter: brightness(0.7) drop-shadow(0 0 10px #8855aa) opacity(0.75); transform: scale(1.03); }
+  100% { filter: brightness(1) opacity(1); transform: scale(1); }
+}
+
+/* Dragon — purple-blue shimmer */
+.battle-pokemon.hit-dragon { animation: hit-dragon 0.55s ease-out; }
+@keyframes hit-dragon {
+  0%   { filter: brightness(1) hue-rotate(0deg); transform: scale(1); }
+  20%  { filter: brightness(2.5) drop-shadow(0 0 18px #7722ee) drop-shadow(0 0 35px #4400cc) hue-rotate(30deg); transform: scale(1.07); }
+  45%  { filter: brightness(2) drop-shadow(0 0 12px #9944ff) hue-rotate(-15deg); transform: scale(1.03); }
+  70%  { filter: brightness(1.5) drop-shadow(0 0 7px #8833ee) hue-rotate(10deg); transform: scale(1.01); }
+  100% { filter: brightness(1) hue-rotate(0deg); transform: scale(1); }
+}
+
+/* Dark — shadow invert flash */
+.battle-pokemon.hit-dark { animation: hit-dark 0.45s ease-out; }
+@keyframes hit-dark {
+  0%   { filter: brightness(1); }
+  20%  { filter: brightness(0.2) drop-shadow(0 0 16px #330022) invert(0.4); transform: scale(1.04); }
+  45%  { filter: brightness(0.5) drop-shadow(0 0 10px #553344); transform: scale(0.97); }
+  100% { filter: brightness(1); transform: scale(1); }
+}
+
+/* Steel — silver metallic flash */
+.battle-pokemon.hit-steel { animation: hit-steel 0.4s ease-out; }
+@keyframes hit-steel {
+  0%   { filter: brightness(1); }
+  20%  { filter: brightness(3.5) saturate(0) drop-shadow(0 0 16px #ccddee) drop-shadow(0 0 30px #ffffff); transform: scale(1.05); }
+  50%  { filter: brightness(2) saturate(0.3) drop-shadow(0 0 8px #aabbcc); transform: scale(1.01); }
+  100% { filter: brightness(1) saturate(1); transform: scale(1); }
+}
+
+/* Fairy — pink sparkle pulse */
+.battle-pokemon.hit-fairy { animation: hit-fairy 0.55s ease-out; }
+@keyframes hit-fairy {
+  0%   { filter: brightness(1); transform: scale(1); }
+  20%  { filter: brightness(2.5) drop-shadow(0 0 16px #ff88cc) drop-shadow(0 0 32px #ffaade); transform: scale(1.07) rotate(3deg); }
+  40%  { filter: brightness(2) drop-shadow(0 0 12px #ff66bb); transform: scale(0.96) rotate(-2deg); }
+  65%  { filter: brightness(1.5) drop-shadow(0 0 7px #ff88cc); transform: scale(1.02) rotate(1deg); }
+  100% { filter: brightness(1); transform: scale(1) rotate(0deg); }
+}
+
+/* ---- Trainer Select Screen ---- */
+#trainer-screen {
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+}
+#trainer-screen h2 {
+  font-size: clamp(10px, 2.5vw, 16px);
+  color: var(--gold);
+  text-align: center;
+}
+#trainer-choices {
+  display: flex;
+  gap: 40px;
+  justify-content: center;
+}
+.trainer-card {
+  background: var(--bg3);
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  padding: 28px 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.trainer-card:hover, .trainer-card:focus {
+  border-color: var(--accent);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(108,99,255,0.3);
+  outline: none;
+}
+.trainer-icon-wrap img {
+  display: block;
+  width: 80px;
+  height: 80px;
+  image-rendering: pixelated;
+}
+.trainer-label {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 11px;
+}
+
+/* ---- Battle Trainer Icons ---- */
+.battle-trainer {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 6px;
+}
+.trainer-sprite-img { image-rendering: pixelated; }
+.battle-trainer img {
+  width: 56px;
+  height: 56px;
+  image-rendering: pixelated;
+  opacity: 0.9;
+}
+
+/* Active pokemon highlight (1v1 current fighter) */
+.battle-pokemon.active-pokemon {
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 10px rgba(108,99,255,0.4);
+}
+
+/* ---- Map Notification Banner ---- */
+.map-notification {
+  position: fixed;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #006666;
+  color: #fff;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  padding: 12px 24px;
+  border-radius: 6px;
+  border: 2px solid #00aaaa;
+  box-shadow: 0 4px 20px rgba(0,170,170,0.4);
+  z-index: 100;
+  transition: opacity 0.5s;
+  pointer-events: none;
+}
+
+/* ---- Level-Up Animation ---- */
+.battle-pokemon {
+  position: relative;
+}
+
+.battle-pokemon.level-up {
+  animation: level-up-glow 0.9s ease-out;
+}
+
+@keyframes level-up-glow {
+  0%   { filter: brightness(1); }
+  30%  { filter: brightness(2) drop-shadow(0 0 10px #ffd700); }
+  70%  { filter: brightness(1.5) drop-shadow(0 0 6px #ffd700); }
+  100% { filter: brightness(1); }
+}
+
+.level-up-text {
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #ffd700;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  font-weight: bold;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: level-up-float 0.9s ease-out forwards;
+  text-shadow: 0 0 6px #ffd700, 1px 1px 0 #000;
+  z-index: 10;
+}
+
+@keyframes level-up-float {
+  0%   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-28px); }
+}
+
+/* ---- Team bar reordering ---- */
+.team-slot-selected {
+  outline: 2px solid #ffd700;
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+  background: rgba(255, 215, 0, 0.08);
+}
+
+/* ---- Achievement Toast ---- */
+.achievement-toast {
+  position: fixed;
+  bottom: 24px;
+  right: -360px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #1a1a2e;
+  border: 2px solid #ffd700;
+  border-radius: 8px;
+  padding: 12px 16px;
+  box-shadow: 0 4px 20px rgba(255, 215, 0, 0.3);
+  z-index: 500;
+  transition: right 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  max-width: 320px;
+}
+.achievement-toast.visible { right: 20px; }
+.ach-toast-icon { font-size: 28px; }
+.ach-toast-label {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  color: #ffd700;
+  margin-bottom: 4px;
+}
+.ach-toast-name {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  color: #fff;
+}
+
+/* ---- Achievements Modal ---- */
+#achievements-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.ach-modal-box {
+  background: #1a1a2e;
+  border: 2px solid var(--accent);
+  border-radius: 10px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.ach-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid #333;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  color: #ffd700;
+}
+.ach-modal-close {
+  background: none;
+  border: 1px solid #555;
+  color: #aaa;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+.ach-modal-close:hover { color: #fff; border-color: #fff; }
+.ach-modal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+  padding: 14px;
+  overflow-y: auto;
+}
+.ach-card {
+  background: #0d0d1a;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 12px 10px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.ach-card.unlocked {
+  border-color: #ffd700;
+  box-shadow: 0 0 8px rgba(255,215,0,0.15);
+}
+.ach-card.locked { opacity: 0.45; }
+.ach-icon { font-size: 24px; }
+.ach-name {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  color: #eee;
+  line-height: 1.5;
+}
+.ach-desc {
+  font-size: 10px;
+  color: #888;
+  line-height: 1.4;
+}
+.ach-card.unlocked .ach-desc { color: #aaa; }
+
+/* Small icon button for map header */
+.btn-icon-sm {
+  background: none;
+  border: 1px solid #444;
+  color: #ccc;
+  cursor: pointer;
+  padding: 4px 7px;
+  border-radius: 4px;
+  font-size: 14px;
+  line-height: 1;
+}
+.btn-icon-sm:hover { border-color: #ffd700; }
+
+/* ---- Pokedex Modal ---- */
+#pokedex-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.dex-modal-box {
+  background: #1a1a2e;
+  border: 2px solid var(--accent);
+  border-radius: 10px;
+  width: 100%;
+  max-width: 580px;
+  max-height: 82vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.dex-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #333;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  color: #e04040;
+  gap: 8px;
+}
+.dex-counts { color: #aaa; font-size: 9px; }
+.dex-filter-bar {
+  display: flex;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid #222;
+}
+.dex-filter-btn {
+  background: #0d0d1a;
+  border: 1px solid #444;
+  color: #aaa;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.dex-filter-btn.active { border-color: #e04040; color: #e04040; }
+.dex-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 8px;
+  padding: 12px;
+  overflow-y: auto;
+}
+.dex-card {
+  background: #0d0d1a;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 8px 6px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.dex-card.dex-caught { border-color: #e04040; }
+.dex-num { font-size: 9px; color: #666; font-family: 'Press Start 2P', monospace; }
+.dex-sprite { width: 56px; height: 56px; image-rendering: pixelated; }
+.dex-name { font-family: 'Press Start 2P', monospace; font-size: 7px; color: #eee; }
+.dex-types { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; margin-top: 2px; }
+.dex-types .type-badge { font-size: 7px; padding: 1px 4px; }
+.dex-caught-badge { font-size: 8px; color: #e04040; margin-top: 2px; }
+.dex-empty { color: #666; font-size: 11px; text-align: center; padding: 40px; grid-column: 1/-1; }
+
+/* Pokedex silhouette for uncaught Pokemon */
+.dex-silhouette {
+  filter: brightness(0);
+}
+.dex-unknown-name {
+  color: #555;
+}
+.dex-unknown {
+  opacity: 0.6;
+}
+
+/* ---- Pokedex Tabs ---- */
+.dex-tabs {
+  display: flex;
+  gap: 4px;
+}
+.dex-tab {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  padding: 5px 10px;
+  border-radius: 4px 4px 0 0;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.dex-tab.active {
+  background: var(--bg2);
+  border-bottom-color: var(--bg2);
+  color: var(--text);
+}
+.dex-tab[data-tab="shiny"].active {
+  color: #ffe066;
+  border-color: #c8a000;
+  border-bottom-color: var(--bg2);
+}
+
+/* ---- Shiny Dex ---- */
+#shiny-dex-modal {
+  position: fixed; inset: 0; z-index: 300;
+  background: rgba(0,0,0,0.82);
+  display: flex; align-items: center; justify-content: center;
+}
+.shiny-dex-box {
+  border-color: #c8a000 !important;
+  box-shadow: 0 0 24px rgba(255,210,0,0.3) !important;
+}
+.shiny-dex-box .dex-modal-header {
+  border-bottom-color: #c8a000;
+  color: #ffe066;
+}
+.shiny-dex-card {
+  border-color: #c8a000 !important;
+  background: linear-gradient(160deg, #1a1600, #1a1a2e) !important;
+  position: relative;
+}
+.shiny-star {
+  font-size: 13px;
+  color: #ffe066;
+  text-shadow: 0 0 8px gold;
+  margin-top: 2px;
+}

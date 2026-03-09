@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pokemon Roguelike</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ===== TITLE SCREEN ===== -->
+<div id="title-screen" class="screen">
+  <div class="game-logo">POKEMON<br>ROGUELIKE</div>
+  <div class="game-subtitle">Slay the Spire meets Kanto</div>
+  <button id="btn-new-run" class="btn-primary">New Run</button>
+  <div style="display:flex;gap:8px;margin-top:8px;">
+    <button onclick="openPokedexModal()" class="btn-secondary">📖 Pokédex</button>
+    <button onclick="openAchievementsModal()" class="btn-secondary">🏆 Achievements</button>
+  </div>
+  <p style="color:var(--text-dim);font-size:11px;margin-top:8px;">Requires internet for Pokemon sprites</p>
+</div>
+
+<!-- ===== TRAINER SELECT ===== -->
+<div id="trainer-screen" class="screen">
+  <h2>Who are you?</h2>
+  <div id="trainer-choices">
+    <div class="trainer-card" id="trainer-boy" role="button" tabindex="0">
+      <div class="trainer-icon-wrap"></div>
+      <div class="trainer-label" style="color:#cc1111">BOY</div>
+    </div>
+    <div class="trainer-card" id="trainer-girl" role="button" tabindex="0">
+      <div class="trainer-icon-wrap"></div>
+      <div class="trainer-label" style="color:#33aa33">GIRL</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== STARTER SELECT ===== -->
+<div id="starter-screen" class="screen">
+  <h2>Choose Your Starter!</h2>
+  <div id="starter-choices"></div>
+</div>
+
+<!-- ===== MAP SCREEN ===== -->
+<div id="map-screen" class="screen">
+  <div class="map-header">
+    <div id="map-info"></div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div id="badge-count">Badges: 0/8</div>
+      <button onclick="openPokedexModal()" class="btn-icon-sm" title="Pokédex">📖</button>
+      <button onclick="openAchievementsModal()" class="btn-icon-sm" title="Achievements">🏆</button>
+    </div>
+  </div>
+
+  <div class="hud-bars">
+    <div style="flex:1">
+      <div style="font-size:10px;color:var(--text-dim);margin-bottom:4px;font-family:'Press Start 2P',monospace;">TEAM</div>
+      <div id="team-bar"></div>
+    </div>
+    <div style="flex:1">
+      <div style="font-size:10px;color:var(--text-dim);margin-bottom:4px;font-family:'Press Start 2P',monospace;">ITEMS</div>
+      <div id="item-bar"></div>
+    </div>
+  </div>
+
+  <div id="map-container" style="flex:1;min-height:320px;"></div>
+
+  <div class="map-legend">
+    <span class="legend-item"><span class="legend-dot" style="background:#6a2a2a"></span> Battle</span>
+    <span class="legend-item"><span class="legend-dot" style="background:#2a6a2a"></span> Catch</span>
+    <span class="legend-item"><span class="legend-dot" style="background:#2a4a6a"></span> Item</span>
+    <span class="legend-item"><span class="legend-dot" style="background:#6a4a2a"></span> ?</span>
+    <span class="legend-item"><span class="legend-dot" style="background:#006666"></span> Heal</span>
+    <span class="legend-item"><span class="legend-dot" style="background:#8a2a8a"></span> Boss</span>
+  </div>
+</div>
+
+<!-- ===== BATTLE SCREEN ===== -->
+<div id="battle-screen" class="screen">
+  <div class="battle-header">
+    <h2 id="battle-title">Wild Battle!</h2>
+    <p id="battle-subtitle"></p>
+  </div>
+
+  <div class="battle-field">
+    <div class="battle-side">
+      <div class="battle-trainer" id="player-trainer-icon"></div>
+      <div class="battle-side-label">Your Team</div>
+      <div id="player-side"></div>
+    </div>
+    <div class="battle-side">
+      <div class="battle-trainer" id="enemy-trainer-icon"></div>
+      <div class="battle-side-label">Enemy</div>
+      <div id="enemy-side"></div>
+    </div>
+  </div>
+
+  <div id="battle-log"></div>
+
+  <div class="battle-controls">
+    <button id="btn-auto-battle" class="btn-primary">Skip</button>
+    <button id="btn-continue-battle" class="btn-primary" style="display:none">Continue</button>
+  </div>
+</div>
+
+<!-- ===== CATCH SCREEN ===== -->
+<div id="catch-screen" class="screen">
+  <h2>⬟ Wild Pokemon Appeared!</h2>
+  <p style="text-align:center;color:var(--text-dim);font-size:12px;">Choose one Pokemon to add to your team</p>
+  <div id="catch-choices"></div>
+  <div style="text-align:center;margin-top:12px;">
+    <button id="btn-skip-catch" class="btn-secondary">Skip (flee)</button>
+  </div>
+  <div id="catch-team-bar" class="screen-team-bar"></div>
+</div>
+
+<!-- ===== ITEM SCREEN ===== -->
+<div id="item-screen" class="screen">
+  <h2>✦ Item Found!</h2>
+  <p style="text-align:center;color:var(--text-dim);font-size:12px;">Choose one item to keep</p>
+  <div id="item-choices"></div>
+  <div style="text-align:center;margin-top:12px;">
+    <button id="btn-skip-item" class="btn-secondary">Skip</button>
+  </div>
+  <div id="item-team-bar" class="screen-team-bar"></div>
+</div>
+
+<!-- ===== SWAP SCREEN ===== -->
+<div id="swap-screen" class="screen">
+  <h2>Team Full!</h2>
+  <div id="swap-choices"></div>
+  <div style="text-align:center;margin-top:12px;">
+    <button id="btn-cancel-swap" class="btn-secondary">Keep team as-is</button>
+  </div>
+</div>
+
+<!-- ===== SHINY SCREEN ===== -->
+<div id="shiny-screen" class="screen">
+  <div id="shiny-content"></div>
+</div>
+
+<!-- ===== BADGE SCREEN ===== -->
+<div id="badge-screen" class="screen">
+  <div class="badge-icon">🏅</div>
+  <div id="badge-msg">Badge Earned!</div>
+  <div id="badge-leader"></div>
+  <div id="badge-count-display">Badges: 0/8</div>
+  <button id="btn-next-map" class="btn-primary">Next Map →</button>
+</div>
+
+<!-- ===== TRANSITION SCREEN ===== -->
+<div id="transition-screen" class="screen">
+  <div id="transition-msg"></div>
+  <div id="transition-sub"></div>
+</div>
+
+<!-- ===== GAME OVER ===== -->
+<div id="gameover-screen" class="screen">
+  <div class="gameover-title">GAME OVER</div>
+  <div id="gameover-badges"></div>
+  <div id="gameover-team"></div>
+  <button id="btn-retry" class="btn-primary">Try Again</button>
+</div>
+
+<!-- ===== WIN SCREEN ===== -->
+<div id="win-screen" class="screen">
+  <div class="win-title">YOU ARE THE<br>CHAMPION!</div>
+  <p style="color:var(--text-dim);">Congratulations! You defeated the Elite Four!</p>
+  <div id="win-team"></div>
+  <button id="btn-play-again" class="btn-primary">Play Again</button>
+</div>
+
+<!-- ===== EVOLUTION OVERLAY ===== -->
+<div id="evo-overlay" style="display:none;position:fixed;inset:0;z-index:200;background:#000;
+     align-items:center;justify-content:center;flex-direction:column;gap:20px;">
+  <div id="evo-msg" style="font-family:'Press Start 2P',monospace;font-size:11px;color:#fff;
+       text-align:center;line-height:1.8;max-width:280px;padding:0 16px;"></div>
+  <img id="evo-sprite" style="width:96px;height:96px;image-rendering:pixelated;">
+</div>
+
+<!-- ===== EEVEE CHOICE OVERLAY ===== -->
+<div id="eevee-choice-overlay" style="display:none;position:fixed;inset:0;z-index:201;background:rgba(0,0,0,0.88);
+     align-items:center;justify-content:center;flex-direction:column;gap:18px;">
+  <div style="font-family:'Press Start 2P',monospace;font-size:10px;color:#fff;text-align:center;line-height:1.8;">
+    Eevee is evolving!<br>Choose its evolution:
+  </div>
+  <div id="eevee-choices" style="display:flex;gap:20px;"></div>
+</div>
+
+<!-- Attack animation canvas (fixed over viewport) -->
+<canvas id="battle-anim-canvas" style="position:fixed;inset:0;pointer-events:none;z-index:150;display:none;"></canvas>
+
+<!-- Scripts (order matters) -->
+<script src="js/data.js"></script>
+<script src="js/map.js"></script>
+<script src="js/battle.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
