@@ -174,8 +174,8 @@ h1, h2, .pixel-font {
   position: absolute;
   top: -4px;
   left: -4px;
-  font-size: 14px;
-  line-height: 1;
+  width: 20px;
+  height: 20px;
   filter: drop-shadow(0 0 2px rgba(0,0,0,0.8));
 }
 

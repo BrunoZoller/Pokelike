@@ -32,7 +32,7 @@ function renderPokemonCard(pokemon, onClick, selected, dexCaught = false) {
       <img src="${pokemon.spriteUrl || ''}" alt="${pokemon.name}" class="poke-sprite${pokemon.isShiny?' shiny':''}"
            onerror="this.src='';this.style.display='none'">
       ${pokemon.isShiny ? '<span class="shiny-badge">★ Shiny</span>' : ''}
-      ${dexCaught ? '<span class="dex-caught-badge" title="Already in Pokédex">⚾</span>' : ''}
+      ${dexCaught ? '<img class="dex-caught-badge" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" alt="Caught" title="Already in Pokédex">' : ''}
     </div>
     <div class="poke-name">${pokemon.nickname || pokemon.name}</div>
     <div class="poke-level">Lv. ${pokemon.level}</div>
