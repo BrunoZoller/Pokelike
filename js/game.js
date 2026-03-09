@@ -25,6 +25,8 @@ async function initGame() {
     hardBtn.disabled = false;
     hardBtn.textContent = '💀 Hard Mode';
     hardBtn.title = 'Every fight grants exactly 1 level';
+  } else {
+    hardBtn.title = 'Complete the Pokédex to unlock Hard Mode';
   }
   hardBtn.addEventListener('click', () => startNewRun(true));
 }
@@ -499,11 +501,7 @@ function showBadgeScreen(leader) {
 }
 
 function showGameOver() {
-  showScreen('gameover-screen');
-  document.getElementById('gameover-badges').textContent = `Badges earned: ${state.badges}/8`;
-  document.getElementById('gameover-team').innerHTML = state.team.map(p =>
-    `<span>${p.nickname||p.name} Lv${p.level}</span>`).join(', ');
-  document.getElementById('btn-retry').onclick = startNewRun;
+  initGame();
 }
 
 function showWinScreen() {
