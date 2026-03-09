@@ -244,14 +244,14 @@ function renderMap(map, container, onNodeClick) {
     const isInaccessible = !node.accessible && !node.visited;
 
     g.style.cursor = isClickable ? 'pointer' : 'default';
-    if (isInaccessible) g.style.opacity = '0.55';
+    if (isInaccessible) g.style.opacity = '0.7';
     if (node.visited) g.style.opacity = '0.35';
 
     const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     const r = node.type === NODE_TYPES.BOSS ? 22 : 18;
     circle.setAttribute('r', r);
-    circle.setAttribute('fill', isInaccessible ? '#1e1e2e' : getNodeColor(node));
-    circle.setAttribute('stroke', isClickable ? '#fff' : (isInaccessible ? '#333' : '#555'));
+    circle.setAttribute('fill', getNodeColor(node));
+    circle.setAttribute('stroke', isClickable ? '#fff' : (isInaccessible ? '#555' : '#555'));
     circle.setAttribute('stroke-width', isClickable ? '3' : '1');
 
     if (isClickable) {
@@ -263,13 +263,17 @@ function renderMap(map, container, onNodeClick) {
       circle.appendChild(anim);
     }
 
+    const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+    title.textContent = getNodeLabel(node);
+
     const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     text.setAttribute('text-anchor', 'middle');
     text.setAttribute('dominant-baseline', 'central');
     text.setAttribute('font-size', '14');
-    text.setAttribute('fill', isInaccessible ? '#444' : '#fff');
+    text.setAttribute('fill', isInaccessible ? '#aaa' : '#fff');
     text.textContent = node.visited ? '✓' : getNodeIcon(node);
 
+    g.appendChild(title);
     g.appendChild(circle);
     g.appendChild(text);
 
@@ -309,4 +313,18 @@ function getNodeIcon(node) {
     [NODE_TYPES.POKECENTER]: '+',
   };
   return icons[node.type] || '●';
+}
+
+function getNodeLabel(node) {
+  if (node.visited) return 'Visited';
+  const labels = {
+    [NODE_TYPES.START]:      'Start',
+    [NODE_TYPES.BATTLE]:     'Battle',
+    [NODE_TYPES.CATCH]:      'Catch Pokemon',
+    [NODE_TYPES.ITEM]:       'Item',
+    [NODE_TYPES.QUESTION]:   'Quiz',
+    [NODE_TYPES.BOSS]:       'Boss Battle',
+    [NODE_TYPES.POKECENTER]: 'Pokemon Center',
+  };
+  return labels[node.type] || node.type;
 }
