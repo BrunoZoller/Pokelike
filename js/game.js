@@ -153,9 +153,17 @@ function resolveQuestionMark() {
 
 // ---- Node Handlers ----
 
+// Returns a level scaled to the node's layer (layer 1 = map min, layer 6 = map max).
+function getLevelForNode(node) {
+  const [minL, maxL] = MAP_LEVEL_RANGES[state.currentMap];
+  const t = Math.min(1, Math.max(0, (node.layer - 1) / 5)); // 0.0 at layer 1, 1.0 at layer 6
+  const base = Math.round(minL + t * (maxL - minL));
+  const spread = Math.max(1, Math.round((maxL - minL) / 8));
+  return Math.min(maxL, Math.max(minL, base + Math.floor(Math.random() * spread)));
+}
+
 async function doBattleNode(node) {
-  const range = MAP_LEVEL_RANGES[state.currentMap];
-  const level = range[0] + Math.floor(Math.random() * (range[1] - range[0]));
+  const level = getLevelForNode(node);
   const choices = await getCatchChoices(state.currentMap);
   const enemySpecies = choices[Math.floor(Math.random() * choices.length)];
   if (!enemySpecies) {
@@ -241,8 +249,7 @@ async function doCatchNode(node) {
   choicesEl.innerHTML = '<div class="loading">Finding Pokemon...</div>';
 
   const choices = await getCatchChoices(state.currentMap);
-  const range = MAP_LEVEL_RANGES[state.currentMap];
-  const level = range[0] + Math.floor(Math.random() * (range[1] - range[0]));
+  const level = getLevelForNode(node);
 
   const instances = choices.map(sp => createInstance(sp, level));
 
@@ -346,8 +353,7 @@ function doPokeCenterNode(node) {
 
 async function doShinyNode(node) {
   const choices = await getCatchChoices(state.currentMap);
-  const range = MAP_LEVEL_RANGES[state.currentMap];
-  const level = range[0] + Math.floor(Math.random() * (range[1] - range[0]));
+  const level = getLevelForNode(node);
   const species = choices[0];
   if (!species) { advanceFromNode(state.map, node.id); showMapScreen(); return; }
 
