@@ -250,8 +250,8 @@ function renderMap(map, container, onNodeClick) {
     const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     const r = node.type === NODE_TYPES.BOSS ? 22 : 18;
     circle.setAttribute('r', r);
-    circle.setAttribute('fill', getNodeColor(node));
-    circle.setAttribute('stroke', isClickable ? '#fff' : (isInaccessible ? '#555' : '#555'));
+    circle.setAttribute('fill', isInaccessible ? '#2a2a3a' : getNodeColor(node));
+    circle.setAttribute('stroke', isClickable ? '#fff' : (isInaccessible ? '#444' : '#555'));
     circle.setAttribute('stroke-width', isClickable ? '3' : '1');
 
     if (isClickable) {
