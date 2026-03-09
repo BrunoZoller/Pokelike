@@ -346,7 +346,7 @@ function getNodeLabel(node) {
     [NODE_TYPES.BATTLE]:     'Battle',
     [NODE_TYPES.CATCH]:      'Catch Pokemon',
     [NODE_TYPES.ITEM]:       'Item',
-    [NODE_TYPES.QUESTION]:   'Quiz',
+    [NODE_TYPES.QUESTION]:   'Random Event',
     [NODE_TYPES.BOSS]:       'Boss Battle',
     [NODE_TYPES.POKECENTER]: 'Pokemon Center',
   };
