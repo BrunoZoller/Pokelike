@@ -1847,7 +1847,6 @@ async function animateBattleVisually(detailedLog, pTeamInit, eTeamInit) {
       if (attackerEl) attackerEl.classList.remove('attacking');
 
       // Hit flash + SFX on target while HP bar animates
-      if (typeof GameAudio !== 'undefined') GameAudio.sfxHit(event.moveType);
       if (targetEl) targetEl.classList.add(hitClass);
       if (event.crit && targetEl) {
         targetEl.classList.add('crit-flash');
@@ -1987,7 +1986,6 @@ async function playEvoAnimation(pokemon, evoData) {
   spriteEl.style.filter = 'brightness(0) invert(1)'; // white silhouette
   overlay.style.background = '#111';
   overlay.style.display = 'flex';
-  if (typeof GameAudio !== 'undefined') GameAudio.sfxEvolution();
 
   let skipped = false;
   const skipResolve = new Promise(r => {
@@ -2120,7 +2118,6 @@ async function animateLevelUp(levelUps) {
     }
 
     // Golden glow + floating "Lv X!" text
-    if (typeof GameAudio !== 'undefined') GameAudio.sfxLevelUp();
     el.classList.add('level-up');
     const lvText = document.createElement('div');
     lvText.className = 'level-up-text';
