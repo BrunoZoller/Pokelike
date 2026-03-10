@@ -166,7 +166,9 @@ function resolveQuestionMark() {
   if (r < 0.4) return NODE_TYPES.BATTLE;
   if (r < 0.6) return NODE_TYPES.CATCH;
   if (r < 0.8) return NODE_TYPES.ITEM;
-  if (r < 0.9) return 'shiny';
+  // Hard mode win reward: shiny chance doubled (10% → 20%)
+  const shinyThreshold = hasHardModeWin() ? 0.8 : 0.9;
+  if (r < shinyThreshold) return 'shiny';
   return 'mega';
 }
 
@@ -183,7 +185,24 @@ function getLevelForNode(node) {
 
 async function doBattleNode(node) {
   const level = getLevelForNode(node);
-  const choices = await getCatchChoices(state.currentMap);
+  let choices = await getCatchChoices(state.currentMap);
+
+  // On the first layer of the first map, exclude enemies super effective against the starter
+  if (state.currentMap === 0 && node.layer === 1 && state.team.length > 0) {
+    const starterTypes = state.team[0].types || [];
+    const isSafe = sp => !(sp.types || []).some(et =>
+      starterTypes.some(st => (TYPE_CHART[et]?.[st] || 1) >= 2)
+    );
+    const safe = choices.filter(isSafe);
+    if (safe.length > 0) {
+      choices = safe;
+    } else {
+      // Fallback: Eevee (Normal type, never super effective)
+      const eevee = await fetchPokemonById(133);
+      if (eevee) choices = [eevee];
+    }
+  }
+
   const enemySpecies = choices[Math.floor(Math.random() * choices.length)];
   if (!enemySpecies) {
     advanceFromNode(state.map, node.id);
@@ -528,6 +547,12 @@ function showWinScreen() {
   if (state.maxTeamSize === 1) {
     const ach = unlockAchievement('solo_run');
     if (ach) setTimeout(() => showAchievementToast(ach), 1400);
+  }
+
+  // Hard mode win achievement
+  if (state.hardMode) {
+    const ach = unlockAchievement('hard_mode_win');
+    if (ach) setTimeout(() => showAchievementToast(ach), 2200);
   }
 }
 

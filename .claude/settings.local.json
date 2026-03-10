@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:pokeapi.co)",
+      "WebFetch(domain:pokemondb.net)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:www.serebii.net)",
+      "Bash(node:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(\"C:/Users/firep/Documents/claude/css/style.css\":*)",
+      "Bash(git:*)",
+      "WebFetch(domain:play.pokemonshowdown.com)"
+    ]
+  }
+}

@@ -1,9 +1,10 @@
 // battle.js - Auto-battle engine (1v1: active pokemon only)
 
-function calcDamage(attacker, defender, move, items) {
+function calcDamage(attacker, defender, move, items, defItems = []) {
   const lvl = attacker.level;
-  const atk = getEffectiveStat(attacker, 'atk', items);
-  const def = getEffectiveStat(defender, 'def', items);
+  const isSpecial = (attacker.baseStats?.special || 0) >= (attacker.baseStats?.atk || 0);
+  const atk = getEffectiveStat(attacker, isSpecial ? 'special' : 'atk', items);
+  const def = getEffectiveStat(defender, isSpecial ? 'spdef' : 'def', defItems);
   const power = move.power || 40;
   const moveType = move.type || 'Normal';
 
@@ -21,33 +22,62 @@ function calcDamage(attacker, defender, move, items) {
   if (typeBoostItem) damage = Math.floor(damage * 1.5);
 
   if (hasItem(items, 'life_orb'))    damage = Math.floor(damage * 1.3);
-  if (hasItem(items, 'choice_band')) damage = Math.floor(damage * 1.5);
-  if (hasItem(items, 'scope_lens') && Math.random() < 0.2) damage = Math.floor(damage * 1.5);
-  if (hasItem(items, 'razor_claw')  && Math.random() < 0.4) damage = Math.floor(damage * 1.5);
+
+  // Physical/special split items
+  if (isSpecial) {
+    if (hasItem(items, 'wise_glasses'))  damage = Math.floor(damage * 1.2);
+    if (hasItem(items, 'choice_specs'))  damage = Math.floor(damage * 1.4);
+    if (hasItem(items, 'choice_band'))   damage = Math.floor(damage * 0.7);
+    if (hasItem(items, 'muscle_band'))   damage = damage; // no effect on special
+  } else {
+    if (hasItem(items, 'muscle_band'))   damage = Math.floor(damage * 1.2);
+    if (hasItem(items, 'choice_band'))   damage = Math.floor(damage * 1.4);
+    if (hasItem(items, 'choice_specs'))  damage = Math.floor(damage * 0.7);
+    if (hasItem(items, 'wise_glasses'))  damage = damage; // no effect on physical
+  }
+
+  // Adaptability Band: +50% if team has ≤2 unique types
+  if (hasItem(items, 'adaptability_band')) {
+    const uniqueTypes = new Set((typeof state !== 'undefined' ? state.team : []).flatMap(p => p.types || []));
+    if (uniqueTypes.size <= 2) damage = Math.floor(damage * 1.5);
+  }
+
   if (hasItem(items, 'expert_belt') && typeEff >= 2) damage = Math.floor(damage * 1.2);
   if (hasItem(items, 'air_balloon') && moveType.toLowerCase() === 'ground') damage = 0;
+
+  // Crit chance: 6.25% base, +20% with scope_lens or razor_claw
+  let critChance = 0.0625;
+  if (hasItem(items, 'scope_lens')) critChance = 0.20;
+  if (hasItem(items, 'razor_claw')) critChance = 0.20;
+  const crit = Math.random() < critChance;
+  if (crit) damage = Math.floor(damage * 1.5);
 
   const rng = 0.85 + Math.random() * 0.15;
   damage = Math.max(1, Math.floor(damage * rng));
 
-  return { damage, typeEff, moveType };
+  return { damage, typeEff, moveType, crit };
 }
 
 function getEffectiveStat(pokemon, stat, items) {
-  let val = pokemon.baseStats ? pokemon.baseStats[stat] || 50 : 50;
+  // spdef falls back to special for Gen 1 hardcoded teams that don't have it
+  const rawStat = stat === 'spdef'
+    ? (pokemon.baseStats?.spdef ?? pokemon.baseStats?.special ?? 50)
+    : (pokemon.baseStats?.[stat] ?? 50);
+  let val = rawStat || 50;
   val = Math.floor(val * pokemon.level / 50) + 5;
 
   if (stat === 'def') {
-    if (hasItem(items, 'choice_band'))  val = Math.floor(val * 0.75);
+    if (hasItem(items, 'eviolite'))     val = Math.floor(val * 1.5);
+    if (hasItem(items, 'assault_vest')) val = Math.floor(val * 1.5);
+  }
+  if (stat === 'special' || stat === 'spdef') {
     if (hasItem(items, 'eviolite'))     val = Math.floor(val * 1.5);
     if (hasItem(items, 'assault_vest')) val = Math.floor(val * 1.5);
   }
   if (stat === 'atk') {
-    if (hasItem(items, 'choice_band'))  val = Math.floor(val * 1.5);
     if (hasItem(items, 'choice_scarf')) val = Math.floor(val * 0.75);
   }
   if (stat === 'speed') {
-    if (hasItem(items, 'macho_brace'))  val = Math.floor(val * 0.75);
     if (hasItem(items, 'choice_scarf')) val = Math.floor(val * 1.5);
   }
   return Math.max(1, val);
@@ -126,9 +156,10 @@ function runBattle(playerTeam, enemyTeam, playerItems, enemyItems, onLog) {
     for (const { attacker, aIdx, side, target, tIdx, tSide } of turns) {
       if (attacker.currentHp <= 0 || target.currentHp <= 0) continue;
 
-      const move = getBestMove(attacker.types || ['Normal']);
+      const move = getBestMove(attacker.types || ['Normal'], attacker.baseStats);
       const attackerItems = side === 'player' ? playerItems : enemyItems;
-      const { damage, typeEff, moveType } = calcDamage(attacker, target, move, attackerItems);
+      const defenderItems = side === 'player' ? enemyItems : playerItems;
+      const { damage, typeEff, moveType, crit } = calcDamage(attacker, target, move, attackerItems, defenderItems);
 
       const targetPreHp = target.currentHp;
       target.currentHp = Math.max(0, target.currentHp - damage);
@@ -152,7 +183,7 @@ function runBattle(playerTeam, enemyTeam, playerItems, enemyItems, onLog) {
       detailedLog.push({
         type: 'attack', side, attackerIdx: aIdx, attackerName: aName,
         targetSide: tSide, targetIdx: tIdx, targetName: tName,
-        moveName: move.name, moveType, damage, typeEff,
+        moveName: move.name, moveType, damage, typeEff, crit, isSpecial: move.isSpecial,
         attackerHpAfter: attacker.currentHp, targetHpAfter: target.currentHp,
       });
 
@@ -239,11 +270,7 @@ function runBattle(playerTeam, enemyTeam, playerItems, enemyItems, onLog) {
 }
 
 function getLevelGain(items) {
-  let macho = hasItem(items, 'macho_brace') ? 1 : 0;
-  let lucky = hasItem(items, 'lucky_egg') ? 1 : 0;
-  if (macho && lucky) return 5;
-  if (macho) return 4;
-  if (lucky) return 3;
+  if (hasItem(items, 'lucky_egg')) return 3;
   return 2;
 }
 

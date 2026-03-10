@@ -27,6 +27,10 @@ function renderPokemonCard(pokemon, onClick, selected, dexCaught = false) {
   const typeHtml = (pokemon.types || ['???']).map(t =>
     `<span class="type-badge type-${t.toLowerCase()}">${t}</span>`
   ).join('');
+  const move = getMoveForPokemon(pokemon);
+  const catClass = move.isSpecial ? 'move-cat-special' : 'move-cat-physical';
+  const catLabel = move.isSpecial ? 'Special' : 'Physical';
+  const moveTypeClass = move.type ? `type-${move.type.toLowerCase()}` : '';
   return `<div class="poke-card${selected?' selected':''}" ${onClick?`role="button" tabindex="0"`:''}">
     <div class="poke-sprite-wrap">
       <img src="${pokemon.spriteUrl || ''}" alt="${pokemon.name}" class="poke-sprite${pokemon.isShiny?' shiny':''}"
@@ -39,10 +43,50 @@ function renderPokemonCard(pokemon, onClick, selected, dexCaught = false) {
     <div class="poke-types">${typeHtml}</div>
     <div class="poke-stats">
       HP: ${pokemon.baseStats.hp} | ATK: ${pokemon.baseStats.atk} | DEF: ${pokemon.baseStats.def}<br>
-      SPD: ${pokemon.baseStats.speed} | SP: ${pokemon.baseStats.special}
+      SPD: ${pokemon.baseStats.speed} | SP.ATK: ${pokemon.baseStats.special ?? '—'} | SP.DEF: ${pokemon.baseStats.spdef ?? pokemon.baseStats.special ?? '—'}
     </div>
     <div class="poke-hp">${renderHpBar(pokemon.currentHp, pokemon.maxHp)}</div>
+    <div class="poke-move">
+      <div class="move-name">${move.name}</div>
+      <div class="move-header">
+        <span class="move-cat-badge ${catClass}">${catLabel}</span>
+        <span class="type-badge ${moveTypeClass}">${move.type}</span>
+      </div>
+    </div>
   </div>`;
+}
+
+// ---- Team hover card popup ----
+function showTeamHoverCard(pokemon, anchorEl) {
+  const popup = document.getElementById('team-hover-card');
+  if (!popup) return;
+  popup.innerHTML = renderPokemonCard(pokemon, false, false);
+  popup.style.display = 'block';
+
+  const rect = anchorEl.getBoundingClientRect();
+  const popupW = popup.offsetWidth || 200;
+  const popupH = popup.offsetHeight || 300;
+
+  // Prefer below, fall back to above
+  let top = rect.bottom + 6;
+  if (top + popupH > window.innerHeight - 8) top = rect.top - popupH - 6;
+
+  // Clamp horizontally
+  let left = rect.left;
+  if (left + popupW > window.innerWidth - 8) left = window.innerWidth - popupW - 8;
+  if (left < 8) left = 8;
+
+  popup.style.left = left + 'px';
+  popup.style.top  = top + 'px';
+}
+
+function hideTeamHoverCard() {
+  const popup = document.getElementById('team-hover-card');
+  if (popup) popup.style.display = 'none';
+}
+
+function getMoveForPokemon(pokemon) {
+  return getBestMove(pokemon.types || ['Normal'], pokemon.baseStats);
 }
 
 let _teamBarSelected = null;
@@ -63,6 +107,8 @@ function renderTeamBar(team, el) {
       <div class="team-slot-name">${p.nickname||p.name}</div>
       <div class="team-slot-lv">Lv${p.level}</div>
       <div class="hp-bar-bg sm"><div class="hp-bar-fill" style="width:${Math.floor(pct*100)}%;background:${color}"></div></div>`;
+    slot.addEventListener('mouseenter', () => showTeamHoverCard(p, slot));
+    slot.addEventListener('mouseleave', () => hideTeamHoverCard());
     if (isMain) {
       slot.addEventListener('click', () => {
         if (_teamBarSelected === null) {
@@ -171,48 +217,866 @@ function animateHpBar(containerEl, fromHp, toHp, maxHp, duration = 250) {
 
 // ─── Attack particle animations ──────────────────────────────────────────────
 
-function playAttackAnimation(moveType, attackerEl, targetEl) {
-  const canvas = document.getElementById('battle-anim-canvas');
-  if (!canvas || skipBattleAnimation) return Promise.resolve();
-  const ctx = canvas.getContext('2d');
+// ---- Move Animations ----
 
+const TYPE_COLORS_RGB = {
+  normal:'200,200,200', fire:'255,120,30', water:'60,140,255',
+  electric:'255,220,0', grass:'50,200,50', ice:'150,220,255',
+  fighting:'220,60,30', poison:'160,60,220', ground:'180,140,60',
+  flying:'130,180,255', psychic:'255,80,180', bug:'100,200,50',
+  rock:'160,130,80', ghost:'100,60,180', dragon:'60,80,220',
+};
+
+function animCanvas(attackerEl, targetEl) {
+  const canvas = document.getElementById('battle-anim-canvas');
+  if (!canvas || skipBattleAnimation) return null;
   canvas.width  = window.innerWidth;
   canvas.height = window.innerHeight;
   canvas.style.display = 'block';
-
+  const ctx = canvas.getContext('2d');
   const aR = attackerEl.getBoundingClientRect();
   const tR = targetEl.getBoundingClientRect();
-  const from = { x: aR.left + aR.width / 2,  y: aR.top  + aR.height / 2 };
-  const to   = { x: tR.left + tR.width  / 2,  y: tR.top  + tR.height / 2 };
+  const from = { x: aR.left + aR.width/2,  y: aR.top  + aR.height/2 };
+  const to   = { x: tR.left + tR.width/2,  y: tR.top  + tR.height/2 };
+  return { canvas, ctx, from, to };
+}
 
-  const type = (moveType || 'normal').toLowerCase();
-  const particles = buildParticles(type, from, to);
-  const duration  = type === 'electric' ? 550 : type === 'psychic' ? 700 : 650;
-
+function runCanvas(canvas, ctx, duration, drawFn) {
   return new Promise(resolve => {
     const start = performance.now();
-
     function frame(now) {
-      const elapsed = Math.max(0, now - start); // guard Firefox time-quantization jitter
-      const t = Math.min(elapsed / duration, 1);
+      const t = Math.min((now - start) / duration, 1);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      let anyAlive = false;
-      for (const p of particles) {
-        p.tick(elapsed);
-        if (p.alive) { p.draw(ctx); anyAlive = true; }
-      }
-
-      if (t < 1 || anyAlive) {
-        requestAnimationFrame(frame);
-      } else {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        canvas.style.display = 'none';
-        resolve();
-      }
+      drawFn(ctx, t);
+      if (t < 1) requestAnimationFrame(frame);
+      else { ctx.clearRect(0, 0, canvas.width, canvas.height); canvas.style.display = 'none'; resolve(); }
     }
     requestAnimationFrame(frame);
   });
+}
+
+function runParticleCanvas(canvas, ctx, particles, duration) {
+  return new Promise(resolve => {
+    const start = performance.now();
+    function frame(now) {
+      const elapsed = now - start;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      let anyAlive = false;
+      for (const p of particles) { p.tick(elapsed); if (p.alive) { p.draw(ctx); anyAlive = true; } }
+      if (elapsed < duration || anyAlive) requestAnimationFrame(frame);
+      else { ctx.clearRect(0, 0, canvas.width, canvas.height); canvas.style.display = 'none'; resolve(); }
+    }
+    requestAnimationFrame(frame);
+  });
+}
+
+// --- Physical move animations ---
+
+function animBodySlam(canvas, ctx, from, to) {
+  return runCanvas(canvas, ctx, 400, (ctx, t) => {
+    // Rush streak
+    if (t < 0.4) {
+      const st = t / 0.4;
+      const ex = lerp(from.x, to.x, st), ey = lerp(from.y, to.y, st);
+      const g = ctx.createLinearGradient(from.x, from.y, ex, ey);
+      g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(255,255,255,0.7)');
+      ctx.beginPath(); ctx.moveTo(from.x, from.y); ctx.lineTo(ex, ey);
+      ctx.strokeStyle = g; ctx.lineWidth = 8; ctx.stroke();
+    } else {
+      // Squish oval impact
+      const it = (t - 0.4) / 0.6;
+      const a = 1 - it;
+      ctx.save(); ctx.translate(to.x, to.y);
+      ctx.scale(1 + it * 0.8, 1 - it * 0.5);
+      ctx.beginPath(); ctx.arc(0, 0, 30 * (1 - it * 0.3), 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(220,220,220,${a * 0.5})`; ctx.fill();
+      ctx.strokeStyle = `rgba(255,255,255,${a})`; ctx.lineWidth = 3; ctx.stroke();
+      ctx.restore();
+      // Stars
+      for (let i = 0; i < 6; i++) {
+        const ang = (i / 6) * Math.PI * 2; const r = it * 40;
+        ctx.beginPath(); ctx.arc(to.x + Math.cos(ang)*r, to.y + Math.sin(ang)*r, 3*(1-it), 0, Math.PI*2);
+        ctx.fillStyle = `rgba(255,255,255,${a})`; ctx.fill();
+      }
+    }
+  });
+}
+
+function animFirePunch(canvas, ctx, from, to) {
+  return runCanvas(canvas, ctx, 380, (ctx, t) => {
+    if (t < 0.35) {
+      const st = t / 0.35;
+      const ex = lerp(from.x, to.x, st), ey = lerp(from.y, to.y, st);
+      // Fiery fist trail
+      for (let i = 0; i < 5; i++) {
+        const bt = Math.max(0, st - i*0.06);
+        const bx = lerp(from.x, to.x, bt), by = lerp(from.y, to.y, bt);
+        const a = (1 - i/5) * st;
+        ctx.beginPath(); ctx.arc(bx, by, 8 - i, 0, Math.PI*2);
+        ctx.fillStyle = `rgba(255,${120-i*20},0,${a})`; ctx.fill();
+      }
+    } else {
+      const it = (t - 0.35) / 0.65;
+      const a = 1 - it;
+      // Fire burst
+      for (let i = 0; i < 8; i++) {
+        const ang = (i/8)*Math.PI*2; const r = it * 55;
+        const px = to.x + Math.cos(ang)*r, py = to.y + Math.sin(ang)*r;
+        const g = ctx.createRadialGradient(px, py, 0, px, py, 12*(1-it*0.5));
+        g.addColorStop(0, `rgba(255,240,100,${a})`);
+        g.addColorStop(0.5, `rgba(255,120,0,${a*0.8})`);
+        g.addColorStop(1, `rgba(200,30,0,0)`);
+        ctx.beginPath(); ctx.arc(px, py, 12*(1-it*0.5), 0, Math.PI*2);
+        ctx.fillStyle = g; ctx.fill();
+      }
+      ctx.beginPath(); ctx.arc(to.x, to.y, 25*(1-it*0.7), 0, Math.PI*2);
+      ctx.fillStyle = `rgba(255,200,50,${a*0.6})`; ctx.fill();
+    }
+  });
+}
+
+function animWaterfall(canvas, ctx, from, to) {
+  return runCanvas(canvas, ctx, 500, (ctx, t) => {
+    if (t < 0.5) {
+      // Water column falling from above onto target
+      const st = t / 0.5;
+      const startY = to.y - 100;
+      const curY = lerp(startY, to.y, st);
+      const w = 20 + st * 10;
+      const g = ctx.createLinearGradient(to.x, startY, to.x, curY);
+      g.addColorStop(0, 'rgba(200,230,255,0.9)');
+      g.addColorStop(0.6, 'rgba(100,180,255,0.7)');
+      g.addColorStop(1, 'rgba(60,140,255,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(to.x - w/2, startY, w, curY - startY);
+      // Foam at the falling tip
+      ctx.beginPath(); ctx.ellipse(to.x, curY, w/2+5, 8, 0, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(220,240,255,${st*0.9})`; ctx.fill();
+    } else {
+      const it = (t - 0.5) / 0.5;
+      const a = 1 - it;
+      // Splash at target
+      for (let i = 0; i < 8; i++) {
+        const ang = (i/8)*Math.PI*2 - Math.PI/2; const r = it * 45;
+        ctx.beginPath(); ctx.moveTo(to.x, to.y);
+        ctx.lineTo(to.x + Math.cos(ang)*r, to.y + Math.sin(ang)*r*0.7);
+        ctx.strokeStyle = `rgba(100,180,255,${a})`; ctx.lineWidth = 3; ctx.stroke();
+      }
+      ctx.beginPath(); ctx.ellipse(to.x, to.y, it*35, it*15, 0, 0, Math.PI*2);
+      ctx.strokeStyle = `rgba(60,140,255,${a})`; ctx.lineWidth = 2; ctx.stroke();
+    }
+  });
+}
+
+function animThunderPunch(canvas, ctx, from, to) {
+  return runCanvas(canvas, ctx, 350, (ctx, t) => {
+    if (t < 0.35) {
+      const st = t / 0.35;
+      const ex = lerp(from.x, to.x, st), ey = lerp(from.y, to.y, st);
+      // Electric trail
+      const segs = 8; const pts = [{x:from.x,y:from.y}];
+      for (let i=1; i<segs; i++) {
+        const bt = i/segs * st;
+        pts.push({x:lerp(from.x,to.x,bt)+rnd(-8,8), y:lerp(from.y,to.y,bt)+rnd(-8,8)});
+      }
+      pts.push({x:ex,y:ey});
+      ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y);
+      for (const p of pts.slice(1)) ctx.lineTo(p.x, p.y);
+      ctx.strokeStyle = `rgba(255,240,50,${st*0.9})`; ctx.lineWidth = 3;
+      ctx.shadowColor='rgba(255,255,0,0.8)'; ctx.shadowBlur=10; ctx.stroke(); ctx.shadowBlur=0;
+    } else {
+      const it = (t-0.35)/0.65; const a = 1-it;
+      // Star burst
+      for (let i=0; i<8; i++) {
+        const ang = i/8*Math.PI*2; const r = it*50;
+        ctx.beginPath(); ctx.moveTo(to.x,to.y); ctx.lineTo(to.x+Math.cos(ang)*r, to.y+Math.sin(ang)*r);
+        ctx.strokeStyle=`rgba(255,255,100,${a})`; ctx.lineWidth=2+a*2; ctx.stroke();
+      }
+      ctx.beginPath(); ctx.arc(to.x,to.y,20*(1-it),0,Math.PI*2);
+      ctx.fillStyle=`rgba(255,255,200,${a*0.7})`; ctx.fill();
+    }
+  });
+}
+
+function animRazorLeaf(canvas, ctx, from, to) {
+  // 3 leaves flying to target in spread
+  const leaves = [-15, 0, 15].map(offset => ({
+    ox: offset, oy: rnd(-5,5),
+    alive: true, age: 0,
+    tick(ms) { this.age = ms; this.alive = ms < 500; },
+    draw(ctx) {
+      const t = Math.min(this.age/500, 1);
+      const px = lerp(from.x, to.x+this.ox, t);
+      const py = lerp(from.y, to.y+this.oy, t) - Math.sin(t*Math.PI)*20;
+      const ang = Math.atan2(to.y+this.oy-from.y, to.x+this.ox-from.x) + Math.sin(t*Math.PI*4)*0.3;
+      const a = t < 0.8 ? 1 : 1-(t-0.8)/0.2;
+      ctx.save(); ctx.translate(px,py); ctx.rotate(ang);
+      ctx.beginPath();
+      ctx.ellipse(0,0,10,4,0,0,Math.PI*2);
+      ctx.fillStyle=`rgba(80,200,40,${a})`; ctx.fill();
+      ctx.beginPath(); ctx.moveTo(-10,0); ctx.lineTo(10,0);
+      ctx.strokeStyle=`rgba(40,120,20,${a})`; ctx.lineWidth=1; ctx.stroke();
+      ctx.restore();
+    }
+  }));
+  return runParticleCanvas(canvas, ctx, leaves, 520);
+}
+
+function animIcePunch(canvas, ctx, from, to) {
+  return runCanvas(canvas, ctx, 380, (ctx, t) => {
+    if (t < 0.35) {
+      const st = t/0.35;
+      const ex=lerp(from.x,to.x,st), ey=lerp(from.y,to.y,st);
+      const g=ctx.createLinearGradient(from.x,from.y,ex,ey);
+      g.addColorStop(0,'rgba(150,220,255,0)'); g.addColorStop(1,'rgba(200,240,255,0.8)');
+      ctx.beginPath(); ctx.moveTo(from.x,from.y); ctx.lineTo(ex,ey);
+      ctx.strokeStyle=g; ctx.lineWidth=6; ctx.stroke();
+    } else {
+      const it=(t-0.35)/0.65; const a=1-it;
+      // Ice crystal shards
+      for (let i=0; i<8; i++) {
+        const ang=i/8*Math.PI*2; const r=it*45;
+        const px=to.x+Math.cos(ang)*r, py=to.y+Math.sin(ang)*r;
+        ctx.save(); ctx.translate(px,py); ctx.rotate(ang);
+        ctx.beginPath(); ctx.moveTo(0,-6*(1-it*0.5)); ctx.lineTo(4,0); ctx.lineTo(0,6*(1-it*0.5)); ctx.lineTo(-4,0); ctx.closePath();
+        ctx.fillStyle=`rgba(180,230,255,${a})`; ctx.fill();
+        ctx.restore();
+      }
+      ctx.beginPath(); ctx.arc(to.x,to.y,20*(1-it*0.5),0,Math.PI*2);
+      ctx.strokeStyle=`rgba(200,240,255,${a})`; ctx.lineWidth=2; ctx.stroke();
+    }
+  });
+}
+
+function animCloseConbat(canvas, ctx, from, to) {
+  // 3 rapid hits
+  return runCanvas(canvas, ctx, 450, (ctx, t) => {
+    const hit = Math.floor(t * 3); // 0,1,2
+    const ht = (t * 3) % 1;
+    const a = ht < 0.5 ? ht*2 : 2-ht*2;
+    const offsets = [{x:-12,y:-8},{x:12,y:0},{x:0,y:10}];
+    const o = offsets[Math.min(hit,2)];
+    ctx.beginPath(); ctx.arc(to.x+o.x, to.y+o.y, 18*a, 0, Math.PI*2);
+    ctx.fillStyle=`rgba(220,60,30,${a*0.6})`; ctx.fill();
+    // Impact lines
+    for (let i=0; i<4; i++) {
+      const ang=i/4*Math.PI*2; const r=a*25;
+      ctx.beginPath(); ctx.moveTo(to.x+o.x, to.y+o.y);
+      ctx.lineTo(to.x+o.x+Math.cos(ang)*r, to.y+o.y+Math.sin(ang)*r);
+      ctx.strokeStyle=`rgba(255,200,100,${a})`; ctx.lineWidth=2; ctx.stroke();
+    }
+  });
+}
+
+function animPoisonJab(canvas, ctx, from, to) {
+  return runCanvas(canvas, ctx, 380, (ctx, t) => {
+    if (t < 0.4) {
+      const st=t/0.4;
+      const ex=lerp(from.x,to.x,st), ey=lerp(from.y,to.y,st);
+      const g=ctx.createLinearGradient(from.x,from.y,ex,ey);
+      g.addColorStop(0,'rgba(160,60,220,0)'); g.addColorStop(1,'rgba(200,100,255,0.8)');
+      ctx.beginPath(); ctx.moveTo(from.x,from.y); ctx.lineTo(ex,ey);
+      ctx.strokeStyle=g; ctx.lineWidth=5; ctx.stroke();
+    } else {
+      const it=(t-0.4)/0.6; const a=1-it;
+      // Spike
+      const sLen=40*(1-it*0.7);
+      ctx.beginPath(); ctx.moveTo(to.x, to.y-sLen); ctx.lineTo(to.x+8,to.y+10); ctx.lineTo(to.x-8,to.y+10); ctx.closePath();
+      ctx.fillStyle=`rgba(160,60,220,${a*0.8})`; ctx.fill();
+      ctx.strokeStyle=`rgba(220,100,255,${a})`; ctx.lineWidth=1.5; ctx.stroke();
+      // Poison drips
+      for(let i=0;i<4;i++){
+        ctx.beginPath(); ctx.arc(to.x+rnd(-15,15),to.y+it*20+i*8,3*(1-it),0,Math.PI*2);
+        ctx.fillStyle=`rgba(160,60,220,${a*0.7})`; ctx.fill();
+      }
+    }
+  });
+}
+
+function animEarthquake(canvas, ctx, from, to) {
+  // Ground shockwave rings spreading from attacker through target
+  return runCanvas(canvas, ctx, 700, (ctx, t) => {
+    const rgb='180,140,60';
+    // Three rings spreading out
+    for(let r=0;r<3;r++) {
+      const rt = Math.max(0, t - r*0.15);
+      if(rt<=0) continue;
+      const radius = rt * 120;
+      const a = Math.max(0, 1-rt)*0.7;
+      ctx.beginPath(); ctx.ellipse(from.x, from.y+20, radius, radius*0.3, 0, 0, Math.PI*2);
+      ctx.strokeStyle=`rgba(${rgb},${a})`; ctx.lineWidth=3-r; ctx.stroke();
+    }
+    // Ground crack at target
+    if(t>0.3) {
+      const ct=(t-0.3)/0.7; const a=Math.min(ct*2,1)*(1-ct*0.5);
+      ctx.beginPath(); ctx.moveTo(to.x-30*ct,to.y+15); ctx.lineTo(to.x,to.y);ctx.lineTo(to.x+25*ct,to.y+12);
+      ctx.strokeStyle=`rgba(120,90,30,${a})`; ctx.lineWidth=3; ctx.stroke();
+      // Debris
+      for(let i=0;i<5;i++){
+        const ang=-Math.PI/2+rnd(-0.8,0.8); const r=ct*30+i*5;
+        ctx.beginPath(); ctx.arc(to.x+Math.cos(ang)*r, to.y+Math.sin(ang)*r-ct*15, 3, 0, Math.PI*2);
+        ctx.fillStyle=`rgba(160,120,50,${a})`; ctx.fill();
+      }
+    }
+  });
+}
+
+function animAerialAce(canvas, ctx, from, to) {
+  return runCanvas(canvas, ctx, 300, (ctx, t) => {
+    if(t<0.5) {
+      // Lightning fast streak
+      const st=t/0.5;
+      ctx.beginPath(); ctx.moveTo(from.x,from.y);
+      ctx.lineTo(lerp(from.x,to.x,st), lerp(from.y,to.y,st));
+      ctx.strokeStyle=`rgba(255,255,255,${st*0.9})`; ctx.lineWidth=4; ctx.stroke();
+    } else {
+      // Three parallel slashes at target
+      const it=(t-0.5)/0.5; const a=1-it;
+      const ang=Math.atan2(to.y-from.y,to.x-from.x)+Math.PI/2;
+      for(let i=-1;i<=1;i++){
+        const ox=Math.cos(ang)*i*8, oy=Math.sin(ang)*i*8;
+        const d=Math.atan2(to.y-from.y,to.x-from.x);
+        ctx.beginPath();
+        ctx.moveTo(to.x+ox+Math.cos(d)*-20, to.y+oy+Math.sin(d)*-20);
+        ctx.lineTo(to.x+ox+Math.cos(d)*20, to.y+oy+Math.sin(d)*20);
+        ctx.strokeStyle=`rgba(255,255,255,${a})`; ctx.lineWidth=2; ctx.stroke();
+      }
+    }
+  });
+}
+
+function animZenHeadbut(canvas, ctx, from, to) {
+  return runCanvas(canvas, ctx, 420, (ctx, t) => {
+    if(t<0.45) {
+      // Pink aura charging then rushing
+      const st=t/0.45;
+      // Glow at attacker fading out
+      const ga=Math.max(0,1-st*1.5);
+      ctx.beginPath(); ctx.arc(from.x,from.y,20+st*5,0,Math.PI*2);
+      ctx.fillStyle=`rgba(255,80,180,${ga*0.4})`; ctx.fill();
+      // Rush streak
+      const ex=lerp(from.x,to.x,st*0.8), ey=lerp(from.y,to.y,st*0.8);
+      const g=ctx.createLinearGradient(from.x,from.y,ex,ey);
+      g.addColorStop(0,'rgba(255,80,180,0)'); g.addColorStop(1,`rgba(255,80,180,${st*0.8})`);
+      ctx.beginPath(); ctx.moveTo(from.x,from.y); ctx.lineTo(ex,ey);
+      ctx.strokeStyle=g; ctx.lineWidth=7; ctx.stroke();
+    } else {
+      const it=(t-0.45)/0.55; const a=1-it;
+      // Pink ring expansion
+      ctx.beginPath(); ctx.arc(to.x,to.y,it*50,0,Math.PI*2);
+      ctx.strokeStyle=`rgba(255,80,180,${a})`; ctx.lineWidth=4; ctx.stroke();
+      ctx.beginPath(); ctx.arc(to.x,to.y,it*30,0,Math.PI*2);
+      ctx.strokeStyle=`rgba(255,150,220,${a*0.6})`; ctx.lineWidth=2; ctx.stroke();
+    }
+  });
+}
+
+function animXScissor(canvas, ctx, from, to) {
+  return runCanvas(canvas, ctx, 350, (ctx, t) => {
+    if(t<0.4) {
+      const st=t/0.4;
+      const ex=lerp(from.x,to.x,st), ey=lerp(from.y,to.y,st);
+      const g=ctx.createLinearGradient(from.x,from.y,ex,ey);
+      g.addColorStop(0,'rgba(100,200,50,0)'); g.addColorStop(1,'rgba(100,200,50,0.8)');
+      ctx.beginPath(); ctx.moveTo(from.x,from.y); ctx.lineTo(ex,ey);
+      ctx.strokeStyle=g; ctx.lineWidth=5; ctx.stroke();
+    } else {
+      const it=(t-0.4)/0.6; const a=1-it;
+      // X slash marks
+      const s=30*(1-it*0.3);
+      ctx.lineWidth=3; ctx.strokeStyle=`rgba(80,200,40,${a})`;
+      ctx.beginPath(); ctx.moveTo(to.x-s,to.y-s); ctx.lineTo(to.x+s,to.y+s); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(to.x+s,to.y-s); ctx.lineTo(to.x-s,to.y+s); ctx.stroke();
+      ctx.strokeStyle=`rgba(200,255,100,${a*0.5})`;
+      ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(to.x-s+2,to.y-s); ctx.lineTo(to.x+s+2,to.y+s); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(to.x+s+2,to.y-s); ctx.lineTo(to.x-s+2,to.y+s); ctx.stroke();
+    }
+  });
+}
+
+function animRockSlide(canvas, ctx, from, to) {
+  // 3 rocks falling from above target
+  const rocks = [
+    {ox:-20, delay:0,   size:12},
+    {ox: 15, delay:60,  size:10},
+    {ox:-5,  delay:120, size:14},
+  ].map(r => ({
+    ...r, alive:true, age:0,
+    tick(ms){this.age=ms; this.alive=ms<600;},
+    draw(ctx){
+      const t=Math.max(0,(this.age-this.delay)/400);
+      if(t<=0) return;
+      const py=lerp(to.y-120, to.y, Math.min(t,1));
+      const a=t<0.9?1:(1-t)/0.1;
+      ctx.save(); ctx.translate(to.x+this.ox, py);
+      ctx.rotate(t*2);
+      ctx.beginPath();
+      ctx.moveTo(0,-this.size); ctx.lineTo(this.size*0.7,this.size*0.5);
+      ctx.lineTo(-this.size*0.7,this.size*0.5); ctx.closePath();
+      ctx.fillStyle=`rgba(160,130,80,${a})`; ctx.fill();
+      ctx.strokeStyle=`rgba(120,90,50,${a})`; ctx.lineWidth=1.5; ctx.stroke();
+      ctx.restore();
+      // Impact dust
+      if(t>=1){
+        const dt=Math.min(this.age-this.delay-400,200)/200;
+        for(let i=0;i<4;i++){
+          ctx.beginPath(); ctx.arc(to.x+this.ox+rnd(-15,15), to.y+rnd(0,10), 4*(1-dt), 0, Math.PI*2);
+          ctx.fillStyle=`rgba(160,130,80,${(1-dt)*0.6})`; ctx.fill();
+        }
+      }
+    }
+  }));
+  return runParticleCanvas(canvas, ctx, rocks, 650);
+}
+
+function animShadowClaw(canvas, ctx, from, to) {
+  return runCanvas(canvas, ctx, 380, (ctx, t) => {
+    if(t<0.4) {
+      const st=t/0.4;
+      const ex=lerp(from.x,to.x,st), ey=lerp(from.y,to.y,st);
+      const g=ctx.createLinearGradient(from.x,from.y,ex,ey);
+      g.addColorStop(0,'rgba(100,60,180,0)'); g.addColorStop(1,'rgba(160,100,255,0.7)');
+      ctx.beginPath(); ctx.moveTo(from.x,from.y); ctx.lineTo(ex,ey);
+      ctx.strokeStyle=g; ctx.lineWidth=5; ctx.stroke();
+    } else {
+      const it=(t-0.4)/0.6; const a=1-it;
+      // 3 curved claw marks
+      const s=35*(1-it*0.2);
+      for(let i=0;i<3;i++){
+        const oy=(i-1)*14;
+        ctx.beginPath();
+        ctx.moveTo(to.x-s, to.y+oy-s*0.3);
+        ctx.quadraticCurveTo(to.x, to.y+oy, to.x+s, to.y+oy+s*0.3);
+        ctx.strokeStyle=`rgba(${i===1?'180,120,255':'120,60,200'},${a})`; ctx.lineWidth=2.5; ctx.stroke();
+      }
+      // Dark aura
+      ctx.beginPath(); ctx.arc(to.x,to.y,25*(1-it),0,Math.PI*2);
+      ctx.fillStyle=`rgba(60,0,120,${a*0.3})`; ctx.fill();
+    }
+  });
+}
+
+function animDragonClaw(canvas, ctx, from, to) {
+  return runCanvas(canvas, ctx, 400, (ctx, t) => {
+    if(t<0.4) {
+      const st=t/0.4;
+      const ex=lerp(from.x,to.x,st), ey=lerp(from.y,to.y,st);
+      const g=ctx.createLinearGradient(from.x,from.y,ex,ey);
+      g.addColorStop(0,'rgba(60,80,220,0)'); g.addColorStop(1,'rgba(100,140,255,0.9)');
+      ctx.beginPath(); ctx.moveTo(from.x,from.y); ctx.lineTo(ex,ey);
+      ctx.strokeStyle=g; ctx.lineWidth=7; ctx.stroke();
+      ctx.shadowColor='rgba(80,100,255,0.8)'; ctx.shadowBlur=12; ctx.stroke(); ctx.shadowBlur=0;
+    } else {
+      const it=(t-0.4)/0.6; const a=1-it;
+      const s=40*(1-it*0.2);
+      // 3 diagonal dragon claw marks
+      for(let i=0;i<3;i++){
+        const oy=(i-1)*12; const ox=(i-1)*5;
+        ctx.beginPath();
+        ctx.moveTo(to.x-s+ox,to.y+oy-s*0.5);
+        ctx.lineTo(to.x+ox,to.y+oy);
+        ctx.lineTo(to.x+s*0.6+ox,to.y+oy+s*0.4);
+        ctx.strokeStyle=`rgba(80,120,255,${a})`; ctx.lineWidth=2.5;
+        ctx.shadowColor='rgba(60,80,220,0.6)'; ctx.shadowBlur=6; ctx.stroke(); ctx.shadowBlur=0;
+      }
+      ctx.beginPath(); ctx.arc(to.x,to.y,30*(1-it),0,Math.PI*2);
+      ctx.fillStyle=`rgba(60,80,220,${a*0.2})`; ctx.fill();
+    }
+  });
+}
+
+// --- Special move animations ---
+
+function animHyperVoice(canvas, ctx, from, to) {
+  // Sound wave rings traveling from attacker to target
+  return runCanvas(canvas, ctx, 600, (ctx, t) => {
+    const dx=to.x-from.x, dy=to.y-from.y;
+    const dist=Math.hypot(dx,dy);
+    for(let w=0;w<3;w++) {
+      const wt=Math.max(0,t-w*0.15);
+      if(wt<=0) continue;
+      const progress=wt;
+      const cx=from.x+dx*progress, cy=from.y+dy*progress;
+      const r=20+wt*10;
+      const a=Math.max(0,(1-wt)*0.8);
+      ctx.beginPath(); ctx.ellipse(cx,cy,r,r*0.6,Math.atan2(dy,dx),0,Math.PI*2);
+      ctx.strokeStyle=`rgba(220,220,220,${a})`; ctx.lineWidth=2+a*2; ctx.stroke();
+    }
+  });
+}
+
+function animSolarBeam(canvas, ctx, from, to) {
+  // Phase 1: charge up (golden orb at attacker) | Phase 2: beam fires
+  return runCanvas(canvas, ctx, 800, (ctx, t) => {
+    if(t<0.5) {
+      // Charge orb
+      const ct=t/0.5;
+      const r=5+ct*20;
+      const g=ctx.createRadialGradient(from.x,from.y,0,from.x,from.y,r);
+      g.addColorStop(0,'rgba(255,255,200,0.9)');
+      g.addColorStop(0.5,'rgba(255,220,0,0.7)');
+      g.addColorStop(1,'rgba(255,180,0,0)');
+      ctx.beginPath(); ctx.arc(from.x,from.y,r,0,Math.PI*2);
+      ctx.fillStyle=g; ctx.fill();
+      // Particles gathering
+      for(let i=0;i<8;i++){
+        const ang=i/8*Math.PI*2+t*3; const r2=30*(1-ct);
+        const px=from.x+Math.cos(ang)*r2, py=from.y+Math.sin(ang)*r2;
+        ctx.beginPath(); ctx.arc(px,py,2,0,Math.PI*2);
+        ctx.fillStyle=`rgba(255,220,50,${ct})`; ctx.fill();
+      }
+    } else {
+      // Fire beam
+      const bt=(t-0.5)/0.5;
+      const ang=Math.atan2(to.y-from.y,to.x-from.x);
+      const bLen=bt*Math.hypot(to.x-from.x,to.y-from.y);
+      const bW=12-bt*4;
+      ctx.save(); ctx.translate(from.x,from.y); ctx.rotate(ang);
+      // Outer glow
+      const g=ctx.createLinearGradient(0,0,bLen,0);
+      g.addColorStop(0,'rgba(255,255,200,0.9)');
+      g.addColorStop(0.7,'rgba(255,220,0,0.7)');
+      g.addColorStop(1,'rgba(255,200,0,0)');
+      ctx.fillStyle=g;
+      ctx.fillRect(0,-bW,bLen,bW*2);
+      // Core
+      ctx.fillStyle=`rgba(255,255,240,0.95)`;
+      ctx.fillRect(0,-bW/3,bLen,bW/1.5);
+      ctx.restore();
+    }
+  });
+}
+
+function animAuraSphere(canvas, ctx, from, to) {
+  // Pulsing blue orb traveling from attacker to target
+  const dx=to.x-from.x, dy=to.y-from.y;
+  return runCanvas(canvas, ctx, 550, (ctx, t) => {
+    const px=from.x+dx*t, py=from.y+dy*t;
+    // Outer aura
+    const r=16+Math.sin(t*Math.PI*6)*3;
+    const g=ctx.createRadialGradient(px,py,0,px,py,r*1.8);
+    g.addColorStop(0,'rgba(100,160,255,0.9)');
+    g.addColorStop(0.5,'rgba(60,100,220,0.5)');
+    g.addColorStop(1,'rgba(40,60,200,0)');
+    ctx.beginPath(); ctx.arc(px,py,r*1.8,0,Math.PI*2);
+    ctx.fillStyle=g; ctx.fill();
+    // Core
+    ctx.beginPath(); ctx.arc(px,py,r*0.6,0,Math.PI*2);
+    ctx.fillStyle='rgba(200,230,255,0.95)'; ctx.fill();
+    // Trail
+    const tLen=Math.min(t,0.3);
+    for(let i=0;i<5;i++){
+      const tr=i/5*tLen;
+      const tx=from.x+dx*(t-tr), ty=from.y+dy*(t-tr);
+      const ta=(1-i/5)*0.4;
+      ctx.beginPath(); ctx.arc(tx,ty,r*(1-i/5)*0.5,0,Math.PI*2);
+      ctx.fillStyle=`rgba(80,130,255,${ta})`; ctx.fill();
+    }
+    // Impact at end
+    if(t>0.85) {
+      const it=(t-0.85)/0.15;
+      ctx.beginPath(); ctx.arc(to.x,to.y,it*40,0,Math.PI*2);
+      ctx.strokeStyle=`rgba(100,160,255,${1-it})`; ctx.lineWidth=3; ctx.stroke();
+    }
+  });
+}
+
+function animSludgeBomb(canvas, ctx, from, to) {
+  const dx=to.x-from.x, dy=to.y-from.y;
+  return runCanvas(canvas, ctx, 550, (ctx, t) => {
+    if(t<0.65) {
+      // Blob arc trajectory
+      const bt=t/0.65;
+      const px=from.x+dx*bt, py=from.y+dy*bt - Math.sin(bt*Math.PI)*50;
+      // Wobbling blob
+      ctx.save(); ctx.translate(px,py);
+      const wobble=Math.sin(bt*Math.PI*8)*0.15;
+      ctx.scale(1+wobble, 1-wobble);
+      const g=ctx.createRadialGradient(0,0,0,0,0,14);
+      g.addColorStop(0,'rgba(180,80,240,0.9)');
+      g.addColorStop(0.6,'rgba(140,50,200,0.8)');
+      g.addColorStop(1,'rgba(100,20,160,0)');
+      ctx.beginPath(); ctx.arc(0,0,14,0,Math.PI*2);
+      ctx.fillStyle=g; ctx.fill();
+      ctx.restore();
+      // Drip trail
+      for(let i=1;i<4;i++){
+        const tr=i*0.06; const tbt=Math.max(0,bt-tr);
+        const tx=from.x+dx*tbt, ty=from.y+dy*tbt-Math.sin(tbt*Math.PI)*50;
+        ctx.beginPath(); ctx.arc(tx,ty,6-i,0,Math.PI*2);
+        ctx.fillStyle=`rgba(160,60,220,${0.5-i*0.1})`; ctx.fill();
+      }
+    } else {
+      // Splatter
+      const it=(t-0.65)/0.35; const a=1-it;
+      for(let i=0;i<8;i++){
+        const ang=i/8*Math.PI*2; const r=it*40;
+        ctx.beginPath(); ctx.ellipse(to.x+Math.cos(ang)*r, to.y+Math.sin(ang)*r*0.6, 5*(1-it*0.5), 3*(1-it*0.5), ang, 0, Math.PI*2);
+        ctx.fillStyle=`rgba(160,60,220,${a*0.8})`; ctx.fill();
+      }
+      ctx.beginPath(); ctx.arc(to.x,to.y,20*(1-it*0.5),0,Math.PI*2);
+      ctx.fillStyle=`rgba(140,50,200,${a*0.4})`; ctx.fill();
+    }
+  });
+}
+
+function animEarthPower(canvas, ctx, from, to) {
+  return runCanvas(canvas, ctx, 650, (ctx, t) => {
+    // Ground cracks at target
+    const rgb='180,140,60';
+    if(t>0.1) {
+      const ct=Math.min((t-0.1)/0.4,1);
+      // Radiating cracks
+      for(let i=0;i<6;i++){
+        const ang=i/6*Math.PI*2; const len=ct*35;
+        ctx.beginPath(); ctx.moveTo(to.x,to.y+10);
+        ctx.lineTo(to.x+Math.cos(ang)*len, to.y+10+Math.sin(ang)*len*0.5);
+        ctx.strokeStyle=`rgba(${rgb},${ct*0.8})`; ctx.lineWidth=2; ctx.stroke();
+      }
+    }
+    // Earth pillars erupting
+    if(t>0.3) {
+      const pt=(t-0.3)/0.4;
+      const pProgress=Math.min(pt,1);
+      const pA=pt>0.7?(1-(pt-0.7)/0.3):1;
+      // Center pillar
+      const pH=50*pProgress;
+      const g=ctx.createLinearGradient(to.x,to.y+10,to.x,to.y+10-pH);
+      g.addColorStop(0,`rgba(${rgb},0)`);
+      g.addColorStop(0.3,`rgba(${rgb},0.8)`);
+      g.addColorStop(1,`rgba(200,180,80,${pA*0.9})`);
+      ctx.fillStyle=g;
+      ctx.fillRect(to.x-8,to.y+10-pH,16,pH);
+      // Side pillars
+      for(let s=-1;s<=1;s+=2){
+        const sH=pH*0.7;
+        const sg=ctx.createLinearGradient(to.x+s*20,to.y+10,to.x+s*20,to.y+10-sH);
+        sg.addColorStop(0,`rgba(${rgb},0)`); sg.addColorStop(1,`rgba(${rgb},${pA*0.7})`);
+        ctx.fillStyle=sg; ctx.fillRect(to.x+s*20-5,to.y+10-sH,10,sH);
+      }
+    }
+  });
+}
+
+function animAirSlash(canvas, ctx, from, to) {
+  const dx=to.x-from.x, dy=to.y-from.y;
+  const ang=Math.atan2(dy,dx);
+  return runCanvas(canvas, ctx, 450, (ctx, t) => {
+    if(t<0.6) {
+      // Crescent shape traveling
+      const bt=t/0.6;
+      const px=from.x+dx*bt, py=from.y+dy*bt;
+      ctx.save(); ctx.translate(px,py); ctx.rotate(ang);
+      ctx.beginPath();
+      ctx.arc(0,0,18,0.4*Math.PI,1.6*Math.PI);
+      ctx.arc(0,-5,14,1.6*Math.PI,0.4*Math.PI,true);
+      ctx.closePath();
+      ctx.fillStyle=`rgba(130,200,255,${bt*0.8})`;
+      ctx.strokeStyle=`rgba(200,240,255,${bt})`;
+      ctx.lineWidth=2; ctx.fill(); ctx.stroke();
+      ctx.restore();
+    } else {
+      const it=(t-0.6)/0.4; const a=1-it;
+      // Slash at target
+      ctx.save(); ctx.translate(to.x,to.y); ctx.rotate(ang);
+      for(let i=-1;i<=1;i++){
+        ctx.beginPath();
+        ctx.moveTo(-25, i*8); ctx.lineTo(25, i*8);
+        ctx.strokeStyle=`rgba(180,230,255,${a})`; ctx.lineWidth=2; ctx.stroke();
+      }
+      ctx.restore();
+    }
+  });
+}
+
+function animBugBuzz(canvas, ctx, from, to) {
+  const dx=to.x-from.x, dy=to.y-from.y;
+  return runCanvas(canvas, ctx, 600, (ctx, t) => {
+    // Vibration rings spreading from attacker, reaching target
+    for(let w=0;w<4;w++){
+      const wt=Math.max(0,t-w*0.12);
+      if(wt<=0) continue;
+      const px=from.x+dx*Math.min(wt,1), py=from.y+dy*Math.min(wt,1);
+      const r=8+wt*15;
+      const a=Math.max(0,(1-wt)*0.7);
+      ctx.beginPath(); ctx.arc(px,py,r,0,Math.PI*2);
+      ctx.strokeStyle=`rgba(100,200,50,${a})`; ctx.lineWidth=2; ctx.stroke();
+      ctx.beginPath(); ctx.arc(px,py,r*0.6,0,Math.PI*2);
+      ctx.strokeStyle=`rgba(150,220,80,${a*0.5})`; ctx.lineWidth=1; ctx.stroke();
+    }
+  });
+}
+
+function animPowerGem(canvas, ctx, from, to) {
+  // Gem shards converging at target from different directions
+  const shards = Array.from({length:6}, (_, i) => {
+    const ang=i/6*Math.PI*2;
+    const startR=80;
+    return {
+      startX:to.x+Math.cos(ang)*startR, startY:to.y+Math.sin(ang)*startR,
+      alive:true, age:0,
+      tick(ms){this.age=ms; this.alive=ms<550;},
+      draw(ctx){
+        const t=Math.min(this.age/400,1);
+        const px=lerp(this.startX,to.x,t), py=lerp(this.startY,to.y,t);
+        const a=t<0.8?1:1-(t-0.8)/0.2;
+        ctx.save(); ctx.translate(px,py); ctx.rotate(this.age*0.01);
+        ctx.beginPath();
+        ctx.moveTo(0,-8); ctx.lineTo(5,0); ctx.lineTo(0,8); ctx.lineTo(-5,0); ctx.closePath();
+        ctx.fillStyle=`rgba(220,200,255,${a})`;
+        ctx.strokeStyle=`rgba(255,255,255,${a})`; ctx.lineWidth=1;
+        ctx.fill(); ctx.stroke();
+        ctx.restore();
+        // Impact flash
+        if(t>=1){
+          const dt=Math.min((this.age-400)/150,1);
+          ctx.beginPath(); ctx.arc(to.x,to.y,dt*25*(1-dt)*4,0,Math.PI*2);
+          ctx.fillStyle=`rgba(255,255,255,${(1-dt)*0.5})`; ctx.fill();
+        }
+      }
+    };
+  });
+  return runParticleCanvas(canvas, ctx, shards, 580);
+}
+
+function animShadowBall(canvas, ctx, from, to) {
+  const dx=to.x-from.x, dy=to.y-from.y;
+  return runCanvas(canvas, ctx, 650, (ctx, t) => {
+    const px=from.x+dx*t, py=from.y+dy*t;
+    // Dark swirling orb
+    const r=14+Math.sin(t*Math.PI*5)*2;
+    const g=ctx.createRadialGradient(px,py,0,px,py,r*2);
+    g.addColorStop(0,'rgba(60,0,100,0.9)');
+    g.addColorStop(0.4,'rgba(100,20,160,0.7)');
+    g.addColorStop(1,'rgba(60,0,120,0)');
+    ctx.beginPath(); ctx.arc(px,py,r*2,0,Math.PI*2);
+    ctx.fillStyle=g; ctx.fill();
+    // Dark core
+    ctx.beginPath(); ctx.arc(px,py,r*0.7,0,Math.PI*2);
+    ctx.fillStyle='rgba(20,0,40,0.95)'; ctx.fill();
+    // Void trail
+    for(let i=1;i<=4;i++){
+      const tr=i*0.05;
+      const tx=from.x+dx*(t-tr), ty=from.y+dy*(t-tr);
+      if(t-tr<0) continue;
+      ctx.beginPath(); ctx.arc(tx,ty,r*(1-i/5),0,Math.PI*2);
+      ctx.fillStyle=`rgba(80,20,140,${0.3-i*0.06})`; ctx.fill();
+    }
+    // Impact
+    if(t>0.85){
+      const it=(t-0.85)/0.15;
+      ctx.beginPath(); ctx.arc(to.x,to.y,it*35,0,Math.PI*2);
+      ctx.fillStyle=`rgba(40,0,80,${(1-it)*0.5})`; ctx.fill();
+    }
+  });
+}
+
+function animDragonPulse(canvas, ctx, from, to) {
+  const dx=to.x-from.x, dy=to.y-from.y;
+  const dist=Math.hypot(dx,dy);
+  const ang=Math.atan2(dy,dx);
+  return runCanvas(canvas, ctx, 600, (ctx, t) => {
+    // Dragon-shaped energy wave
+    const progress=t;
+    const cx=from.x+dx*progress, cy=from.y+dy*progress;
+    // Main wave
+    ctx.save(); ctx.translate(cx,cy); ctx.rotate(ang);
+    const wW=12+Math.sin(t*Math.PI*3)*4;
+    const g=ctx.createRadialGradient(0,0,0,0,0,wW*2);
+    g.addColorStop(0,'rgba(80,200,255,0.9)');
+    g.addColorStop(0.5,'rgba(60,80,220,0.6)');
+    g.addColorStop(1,'rgba(40,60,200,0)');
+    ctx.beginPath(); ctx.arc(0,0,wW*2,0,Math.PI*2);
+    ctx.fillStyle=g; ctx.fill();
+    // Dragon scales pattern
+    for(let s=-2;s<=2;s++){
+      ctx.beginPath(); ctx.ellipse(s*8,-wW*0.3,4,wW*0.6,0,0,Math.PI*2);
+      ctx.fillStyle=`rgba(100,200,255,0.4)`; ctx.fill();
+    }
+    ctx.restore();
+    // Teal trail
+    for(let i=1;i<=5;i++){
+      const tr=i*0.06; const tp=Math.max(0,t-tr);
+      const tx=from.x+dx*tp, ty=from.y+dy*tp;
+      ctx.beginPath(); ctx.arc(tx,ty,8*(1-i/6),0,Math.PI*2);
+      ctx.fillStyle=`rgba(60,180,220,${0.4-i*0.07})`; ctx.fill();
+    }
+    if(t>0.85){
+      const it=(t-0.85)/0.15;
+      ctx.beginPath(); ctx.arc(to.x,to.y,it*40,0,Math.PI*2);
+      ctx.strokeStyle=`rgba(60,120,255,${1-it})`; ctx.lineWidth=3; ctx.stroke();
+    }
+  });
+}
+
+function playAttackAnimation(moveType, attackerEl, targetEl, isSpecial = true, moveName = '') {
+  if (!attackerEl || !targetEl || skipBattleAnimation) return Promise.resolve();
+  const ac = animCanvas(attackerEl, targetEl);
+  if (!ac) return Promise.resolve();
+  const { canvas, ctx, from, to } = ac;
+
+  if (!isSpecial) {
+    // Physical move animations
+    switch(moveName) {
+      case 'Body Slam':    return animBodySlam(canvas, ctx, from, to);
+      case 'Fire Punch':   return animFirePunch(canvas, ctx, from, to);
+      case 'Waterfall':    return animWaterfall(canvas, ctx, from, to);
+      case 'Thunder Punch':return animThunderPunch(canvas, ctx, from, to);
+      case 'Razor Leaf':   return runParticleCanvas(canvas, ctx, buildParticles('grass', from, to), 650);
+      case 'Ice Punch':    return animIcePunch(canvas, ctx, from, to);
+      case 'Close Combat': return animCloseConbat(canvas, ctx, from, to);
+      case 'Poison Jab':   return animPoisonJab(canvas, ctx, from, to);
+      case 'Earthquake':   return animEarthquake(canvas, ctx, from, to);
+      case 'Aerial Ace':   return animAerialAce(canvas, ctx, from, to);
+      case 'Zen Headbutt': return animZenHeadbut(canvas, ctx, from, to);
+      case 'X-Scissor':    return animXScissor(canvas, ctx, from, to);
+      case 'Rock Slide':   return animRockSlide(canvas, ctx, from, to);
+      case 'Shadow Claw':  return animShadowClaw(canvas, ctx, from, to);
+      case 'Dragon Claw':  return animDragonClaw(canvas, ctx, from, to);
+      default: {
+        // Generic physical fallback
+        const rgb = TYPE_COLORS_RGB[moveType.toLowerCase()] || '200,200,200';
+        return runCanvas(canvas, ctx, 350, (ctx, t) => {
+          if(t<0.4){
+            const st=t/0.4; const ex=lerp(from.x,to.x,st), ey=lerp(from.y,to.y,st);
+            const g=ctx.createLinearGradient(from.x,from.y,ex,ey);
+            g.addColorStop(0,`rgba(${rgb},0)`); g.addColorStop(1,`rgba(${rgb},0.8)`);
+            ctx.beginPath(); ctx.moveTo(from.x,from.y); ctx.lineTo(ex,ey);
+            ctx.strokeStyle=g; ctx.lineWidth=6; ctx.lineCap='round'; ctx.stroke();
+          } else {
+            const it=(t-0.4)/0.6; const a=1-it;
+            for(let r=0;r<3;r++){
+              ctx.beginPath(); ctx.arc(to.x,to.y,it*40*(r+1)/3,0,Math.PI*2);
+              ctx.strokeStyle=`rgba(${rgb},${a*0.8/(r+1)})`; ctx.lineWidth=3-r; ctx.stroke();
+            }
+          }
+        });
+      }
+    }
+  } else {
+    // Special move animations
+    switch(moveName) {
+      case 'Hyper Voice':  return animHyperVoice(canvas, ctx, from, to);
+      case 'Magical Leaf': return animRazorLeaf(canvas, ctx, from, to);
+      // Surf, Thunderbolt use the existing buildParticles animations (water/electric are great)
+      case 'Aura Sphere':  return animAuraSphere(canvas, ctx, from, to);
+      case 'Sludge Bomb':  return animSludgeBomb(canvas, ctx, from, to);
+      case 'Earth Power':  return animEarthPower(canvas, ctx, from, to);
+      case 'Air Slash':    return animAirSlash(canvas, ctx, from, to);
+      case 'Bug Buzz':     return animBugBuzz(canvas, ctx, from, to);
+      case 'Power Gem':    return animPowerGem(canvas, ctx, from, to);
+      case 'Shadow Ball':  return animShadowBall(canvas, ctx, from, to);
+      case 'Dragon Pulse': return animDragonPulse(canvas, ctx, from, to);
+      default: {
+        // Use existing buildParticles for remaining special moves (Flamethrower, Surf, Thunderbolt, Ice Beam, Psychic)
+        const type = (moveType || 'normal').toLowerCase();
+        const particles = buildParticles(type, from, to);
+        const duration = type === 'electric' ? 550 : type === 'psychic' ? 700 : 650;
+        return runParticleCanvas(canvas, ctx, particles, duration);
+      }
+    }
+  }
 }
 
 /* ── particle factories ── */
@@ -976,7 +1840,7 @@ async function animateBattleVisually(detailedLog, pTeamInit, eTeamInit) {
 
       // Play canvas projectile animation concurrently with attacker pulse
       if (attackerEl && targetEl) {
-        await playAttackAnimation(event.moveType, attackerEl, targetEl);
+        await playAttackAnimation(event.moveType, attackerEl, targetEl, event.isSpecial, event.moveName);
       } else {
         await sleep(220);
       }
@@ -985,6 +1849,14 @@ async function animateBattleVisually(detailedLog, pTeamInit, eTeamInit) {
       // Hit flash + SFX on target while HP bar animates
       if (typeof GameAudio !== 'undefined') GameAudio.sfxHit(event.moveType);
       if (targetEl) targetEl.classList.add(hitClass);
+      if (event.crit && targetEl) {
+        targetEl.classList.add('crit-flash');
+        const popup = document.createElement('div');
+        popup.className = 'crit-popup';
+        popup.textContent = 'Critical!';
+        targetEl.appendChild(popup);
+        setTimeout(() => popup.remove(), 800);
+      }
       if (targetEl) {
         const targetHpTrack = event.side === 'player' ? eHp : pHp;
         const prev = targetHpTrack[event.targetIdx].current;
@@ -994,11 +1866,13 @@ async function animateBattleVisually(detailedLog, pTeamInit, eTeamInit) {
 
       await sleep(300);
       if (targetEl) targetEl.classList.remove(hitClass);
+      if (targetEl) targetEl.classList.remove('crit-flash');
 
       let effText = '';
       if (event.typeEff >= 2) effText = ' Super effective!';
       else if (event.typeEff === 0) effText = ' No effect!';
       else if (event.typeEff < 1) effText = ' Not very effective...';
+      if (event.crit) effText += ' Critical hit!';
 
       const sideLabel = event.side === 'player' ? '' : '(enemy) ';
       addLogEntry(

@@ -188,6 +188,47 @@ h1, h2, .pixel-font {
 .poke-level { font-size: 12px; color: var(--text-dim); }
 .poke-types { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
 .poke-stats { font-size: 10px; color: var(--text-dim); text-align: center; line-height: 1.6; }
+.poke-move {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 8px 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.move-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.move-name {
+  font-size: 9px;
+  color: var(--text);
+  font-family: 'Press Start 2P', monospace;
+}
+.move-cat-badge {
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.move-cat-physical { background: #c03028; color: #fff; }
+.move-cat-special  { background: #7038f8; color: #fff; }
+.move-desc {
+  font-size: 8px;
+  color: var(--text-dim);
+  text-align: center;
+  line-height: 1.6;
+  font-family: monospace;
+}
 
 /* Type badges */
 .type-badge {
@@ -314,6 +355,18 @@ h1, h2, .pixel-font {
 }
 #map-node-tooltip.visible { opacity: 1; }
 
+#team-hover-card {
+  position: fixed;
+  z-index: 500;
+  pointer-events: none;
+  display: none;
+  width: 200px;
+}
+#team-hover-card .poke-card {
+  margin: 0;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+}
+
 /* ---- Map Screen ---- */
 #map-screen { gap: 12px; }
 .map-header {
@@ -385,6 +438,7 @@ h1, h2, .pixel-font {
   padding: 8px;
   background: var(--bg3);
   border-radius: 6px;
+  position: relative;
 }
 .battle-pokemon.fainted { opacity: 0.3; }
 .battle-sprite { width: 64px; height: 64px; image-rendering: pixelated; }
@@ -557,6 +611,33 @@ h1, h2, .pixel-font {
 }
 
 /* ---- Per-type hit animations ---- */
+
+/* Crit — gold burst flash */
+.battle-pokemon.crit-flash { animation: crit-flash 0.5s ease-out; }
+@keyframes crit-flash {
+  0%   { filter: brightness(1); }
+  20%  { filter: brightness(4) sepia(1) saturate(5) hue-rotate(10deg); transform: scale(1.12); }
+  60%  { filter: brightness(2) sepia(1) saturate(3); transform: scale(0.95); }
+  100% { filter: brightness(1); transform: scale(1); }
+}
+.crit-popup {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--gold);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  font-weight: bold;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: crit-popup 0.8s ease-out forwards;
+  z-index: 10;
+}
+@keyframes crit-popup {
+  0%   { opacity: 1; transform: translateX(-50%) translateY(0);    }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-32px); }
+}
 
 /* Normal — simple white flash */
 .battle-pokemon.hit-normal { animation: hit-normal 0.35s ease-out; }
