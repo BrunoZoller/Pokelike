@@ -120,7 +120,16 @@ function showMapScreen() {
       : `<span>Map ${state.currentMap+1}: vs <b>${leader.name}</b> (${leader.type})</span><span>Levels ${range[0]}–${range[1]}</span>`;
   }
   const badgeEl = document.getElementById('badge-count');
-  if (badgeEl) badgeEl.textContent = `Badges: ${state.badges}/8`;
+  if (badgeEl) {
+    const BASE = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/';
+    badgeEl.innerHTML = Array.from({ length: 8 }, (_, i) => {
+      const earned = i < state.badges;
+      const label = GYM_LEADERS[i].badge;
+      return earned
+        ? `<img src="${BASE}${i + 1}.png" alt="${label}" title="${label}" class="badge-icon-img">`
+        : `<span class="badge-icon-empty" title="${label}"></span>`;
+    }).join('');
+  }
   const winsEl = document.getElementById('elite-wins-count');
   if (winsEl) winsEl.textContent = `Wins: ${getEliteWins()}`;
 

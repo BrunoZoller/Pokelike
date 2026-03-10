@@ -391,7 +391,9 @@ h1, h2, .pixel-font {
   font-size: 12px;
 }
 #map-info { font-family: 'Press Start 2P', monospace; font-size: 9px; color: var(--gold); }
-#badge-count { color: var(--text-dim); font-size: 11px; }
+#badge-count { display: flex; align-items: center; gap: 3px; }
+.badge-icon-img { width: 22px; height: 22px; image-rendering: pixelated; }
+.badge-icon-empty { display: inline-block; width: 22px; height: 22px; border-radius: 50%; border: 1px dashed var(--border); opacity: 0.3; }
 
 #map-container {
   background: var(--bg2);
