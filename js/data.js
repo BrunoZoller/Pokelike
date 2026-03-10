@@ -70,7 +70,9 @@ const MOVE_POOL = {
               special:  {name:'Dragon Pulse', power:85,  desc:'Fires a shockwave of draconic energy.'} },
 };
 
-function getBestMove(types, baseStats) {
+function getBestMove(types, baseStats, speciesId) {
+  if (speciesId === 129) return { name: 'Splash',   power: 0, type: 'Normal', isSpecial: false, noDamage: true };
+  if (speciesId === 63)  return { name: 'Teleport', power: 0, type: 'Normal', isSpecial: false, noDamage: true };
   const isSpecial = (baseStats?.special || 0) >= (baseStats?.atk || 0);
   for (const t of types) {
     const cap = t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
@@ -574,6 +576,8 @@ const ACHIEVEMENTS = [
   { id: 'gym_6', name: 'Volcano Victor',    desc: 'Defeat Blaine for the first time',         icon: '🌋' },
   { id: 'gym_7', name: 'Earth Shaker',      desc: 'Defeat Giovanni for the first time',       icon: '🌍' },
   { id: 'elite_four', name: 'Pokemon Master', desc: 'Defeat the Elite Four & Champion',       icon: '👑' },
+  { id: 'elite_10',   name: 'Champion League',   desc: 'Defeat the Elite Four 10 times',      icon: '🏆' },
+  { id: 'elite_100',  name: 'Immortal Champion', desc: 'Defeat the Elite Four 100 times',     icon: '💎' },
   { id: 'starter_1', name: 'Grass Champion',  desc: 'Beat the game starting with Bulbasaur',  icon: '🌱' },
   { id: 'starter_4', name: 'Fire Champion',   desc: 'Beat the game starting with Charmander', icon: '🔥' },
   { id: 'starter_7', name: 'Water Champion',  desc: 'Beat the game starting with Squirtle',   icon: '🌊' },
@@ -630,6 +634,16 @@ function getShinyDex() {
 
 function hasHardModeWin() {
   return getUnlockedAchievements().has('hard_mode_win');
+}
+
+function getEliteWins() {
+  return parseInt(localStorage.getItem('poke_elite_wins') || '0', 10);
+}
+
+function incrementEliteWins() {
+  const wins = getEliteWins() + 1;
+  localStorage.setItem('poke_elite_wins', String(wins));
+  return wins;
 }
 
 function isShinyDexComplete() {

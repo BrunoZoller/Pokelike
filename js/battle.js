@@ -147,6 +147,11 @@ function runBattle(playerTeam, enemyTeam, playerItems, enemyItems, onLog) {
     const pSpeed = getEffectiveStat(pActive, 'speed', playerItems);
     const eSpeed = getEffectiveStat(eActive, 'speed', enemyItems);
 
+    // If both active Pokemon can only use noDamage moves, force Struggle to break the stalemate
+    const pMove = getBestMove(pActive.types || ['Normal'], pActive.baseStats, pActive.speciesId);
+    const eMove = getBestMove(eActive.types || ['Normal'], eActive.baseStats, eActive.speciesId);
+    const bothUseless = pMove.noDamage && eMove.noDamage;
+
     const turns = pSpeed >= eSpeed
       ? [{ attacker: pActive, aIdx: pIdx, side: 'player', target: eActive, tIdx: eIdx, tSide: 'enemy' },
          { attacker: eActive, aIdx: eIdx, side: 'enemy',  target: pActive, tIdx: pIdx, tSide: 'player' }]
@@ -156,9 +161,31 @@ function runBattle(playerTeam, enemyTeam, playerItems, enemyItems, onLog) {
     for (const { attacker, aIdx, side, target, tIdx, tSide } of turns) {
       if (attacker.currentHp <= 0 || target.currentHp <= 0) continue;
 
-      const move = getBestMove(attacker.types || ['Normal'], attacker.baseStats);
+      let move = getBestMove(attacker.types || ['Normal'], attacker.baseStats, attacker.speciesId);
+      // If both sides are stuck with useless moves, force Struggle on both
+      if (bothUseless) {
+        move = { name: 'Struggle', power: 50, type: 'Normal', isSpecial: false };
+      }
+      // If the attacker's best move has no effect on the target, use Struggle (typeless)
+      if (!move.noDamage && getTypeEffectiveness(move.type, target.types || ['Normal']) === 0) {
+        move = { name: 'Struggle', power: 50, type: 'Normal', isSpecial: false };
+      }
       const attackerItems = side === 'player' ? playerItems : enemyItems;
       const defenderItems = side === 'player' ? enemyItems : playerItems;
+
+      if (move.noDamage) {
+        const aName = attacker.nickname || attacker.name;
+        addLog(`${side === 'player' ? '' : '(enemy) '}${aName} used ${move.name}! But nothing happened!`,
+               side === 'player' ? 'log-player' : 'log-enemy');
+        detailedLog.push({
+          type: 'attack', side, attackerIdx: aIdx, attackerName: aName,
+          targetSide: tSide, targetIdx: tIdx, targetName: target.nickname || target.name,
+          moveName: move.name, moveType: move.type, damage: 0, typeEff: 1, crit: false, isSpecial: false,
+          attackerHpAfter: attacker.currentHp, targetHpAfter: target.currentHp,
+        });
+        continue;
+      }
+
       const { damage, typeEff, moveType, crit } = calcDamage(attacker, target, move, attackerItems, defenderItems);
 
       const targetPreHp = target.currentHp;

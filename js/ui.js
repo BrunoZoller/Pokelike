@@ -451,11 +451,11 @@ function animIcePunch(canvas, ctx, from, to) {
 function animCloseConbat(canvas, ctx, from, to) {
   // 3 rapid hits
   return runCanvas(canvas, ctx, 450, (ctx, t) => {
-    const hit = Math.floor(t * 3); // 0,1,2
+    const hit = Math.min(Math.floor(t * 3), 2); // clamp to 0,1,2
     const ht = (t * 3) % 1;
     const a = ht < 0.5 ? ht*2 : 2-ht*2;
     const offsets = [{x:-12,y:-8},{x:12,y:0},{x:0,y:10}];
-    const o = offsets[Math.min(hit,2)];
+    const o = offsets[hit] || offsets[2];
     ctx.beginPath(); ctx.arc(to.x+o.x, to.y+o.y, 18*a, 0, Math.PI*2);
     ctx.fillStyle=`rgba(220,60,30,${a*0.6})`; ctx.fill();
     // Impact lines
@@ -1010,11 +1010,75 @@ function animDragonPulse(canvas, ctx, from, to) {
   });
 }
 
+function animSplash(canvas, ctx, from, to) {
+  // Water droplets arc up from the attacker and fall back down
+  return runCanvas(canvas, ctx, 700, (ctx, t) => {
+    const drops = [
+      { ox: -18, delay: 0.0, height: 55 },
+      { ox:   0, delay: 0.1, height: 75 },
+      { ox:  18, delay: 0.2, height: 55 },
+      { ox:  -9, delay: 0.3, height: 40 },
+      { ox:   9, delay: 0.35, height: 40 },
+    ];
+    for (const d of drops) {
+      const lt = Math.max(0, (t - d.delay) / (1 - d.delay));
+      if (lt <= 0) continue;
+      const a = lt < 0.8 ? 1 : 1 - (lt - 0.8) / 0.2;
+      // parabolic arc: up then down
+      const x = from.x + d.ox;
+      const y = from.y - Math.sin(lt * Math.PI) * d.height;
+      ctx.beginPath();
+      ctx.arc(x, y, 5 * (1 - lt * 0.4), 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(80,160,255,${a * 0.85})`;
+      ctx.fill();
+      // small ripple at the bottom when drop falls back
+      if (lt > 0.7) {
+        const rt = (lt - 0.7) / 0.3;
+        ctx.beginPath();
+        ctx.arc(x, from.y, rt * 14, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(80,200,255,${(1 - rt) * 0.5})`;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+    }
+  });
+}
+
+function animTeleport(canvas, ctx, from, to) {
+  // Expanding psychic rings burst from the attacker, then a quick flash
+  return runCanvas(canvas, ctx, 500, (ctx, t) => {
+    // Three rings expanding outward
+    for (let i = 0; i < 3; i++) {
+      const delay = i * 0.12;
+      const rt = Math.max(0, (t - delay) / (1 - delay));
+      const a = (1 - rt) * 0.8;
+      if (a <= 0) continue;
+      ctx.beginPath();
+      ctx.arc(from.x, from.y, rt * 45 * (1 + i * 0.25), 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(200,120,255,${a})`;
+      ctx.lineWidth = 3 - i * 0.8;
+      ctx.stroke();
+    }
+    // Central flash that peaks at t=0.25 then fades
+    const flash = t < 0.25 ? t / 0.25 : 1 - (t - 0.25) / 0.75;
+    if (flash > 0) {
+      ctx.beginPath();
+      ctx.arc(from.x, from.y, flash * 20, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(230,180,255,${flash * 0.6})`;
+      ctx.fill();
+    }
+  });
+}
+
 function playAttackAnimation(moveType, attackerEl, targetEl, isSpecial = true, moveName = '') {
   if (!attackerEl || !targetEl || skipBattleAnimation) return Promise.resolve();
   const ac = animCanvas(attackerEl, targetEl);
   if (!ac) return Promise.resolve();
   const { canvas, ctx, from, to } = ac;
+
+  // Useless move animations (attacker-centered, no damage)
+  if (moveName === 'Splash')   return animSplash(canvas, ctx, from, to);
+  if (moveName === 'Teleport') return animTeleport(canvas, ctx, from, to);
 
   if (!isSpecial) {
     // Physical move animations
@@ -2096,7 +2160,8 @@ async function checkAndEvolveTeam() {
       pokemon.currentHp = Math.max(1, Math.floor(oldHpRatio * newMax));
     }
 
-    markPokedexCaught(pokemon.speciesId, pokemon.name, pokemon.types, pokemon.spriteUrl);
+    const normalUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemon.speciesId}.png`;
+    markPokedexCaught(pokemon.speciesId, pokemon.name, pokemon.types, normalUrl);
     if (pokemon.isShiny) markShinyDexCaught(pokemon.speciesId, pokemon.name, pokemon.types, pokemon.spriteUrl);
     checkDexAchievements();
   }
@@ -2229,7 +2294,7 @@ function openPokedexModal(initialTab = 'normal') {
 
   function buildNormalGrid() {
     const dex = getPokedex();
-    const caughtCount = Object.keys(dex).length;
+    const caughtCount = [...ALL_CATCHABLE_IDS].filter(id => dex[id]?.caught).length;
     const grid = Array.from({ length: 151 }, (_, i) => {
       const id = i + 1;
       const e = dex[id];
@@ -2238,7 +2303,7 @@ function openPokedexModal(initialTab = 'normal') {
           `<span class="type-badge type-${t.toLowerCase()}">${t}</span>`).join('');
         return `<div class="dex-card dex-caught">
           <div class="dex-num">#${String(id).padStart(3,'0')}</div>
-          <img src="${e.spriteUrl || BASE + id + '.png'}" alt="${e.name}" class="dex-sprite"
+          <img src="${BASE + id + '.png'}" alt="${e.name}" class="dex-sprite"
                onerror="this.src='';this.style.display='none'">
           <div class="dex-name">${e.name}</div>
           <div class="dex-types">${types}</div>
@@ -2257,7 +2322,7 @@ function openPokedexModal(initialTab = 'normal') {
   function buildShinyGrid() {
     const dex = getShinyDex();
     const BASE_SHINY = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/';
-    const count = Object.keys(dex).length;
+    const count = [...ALL_CATCHABLE_IDS].filter(id => dex[id]).length;
     const grid = Array.from({ length: 151 }, (_, i) => {
       const id = i + 1;
       const e = dex[id];
@@ -2303,8 +2368,7 @@ function openPokedexModal(initialTab = 'normal') {
     modal.querySelector('.dex-modal-box').classList.toggle('shiny-dex-box', tab === 'shiny');
     const { grid, count } = tab === 'shiny' ? buildShinyGrid() : buildNormalGrid();
     document.getElementById('dex-grid-content').innerHTML = grid;
-    document.getElementById('dex-count-label').textContent =
-      tab === 'shiny' ? `Caught: ${count} / 151` : `Caught: ${count} / 151`;
+    document.getElementById('dex-count-label').textContent = `Caught: ${count} / ${ALL_CATCHABLE_IDS.size}`;
   }
 
   modal.querySelectorAll('.dex-tab').forEach(b =>

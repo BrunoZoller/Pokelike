@@ -65,7 +65,8 @@ async function showStarterSelect() {
   container.innerHTML = '';
   for (const species of starters) {
     if (!species) continue;
-    const inst = createInstance(species, startLevel);
+    const isShiny = Math.random() < 0.0625; // 1/16 shiny chance for starters
+    const inst = createInstance(species, startLevel, isShiny);
     const wrapper = document.createElement('div');
     wrapper.innerHTML = renderPokemonCard(inst, true, false);
     const card = wrapper.querySelector('.poke-card');
@@ -79,7 +80,9 @@ async function showStarterSelect() {
 }
 
 function selectStarter(pokemon) {
-  markPokedexCaught(pokemon.speciesId, pokemon.name, pokemon.types, pokemon.spriteUrl);
+  const normalUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemon.speciesId}.png`;
+  markPokedexCaught(pokemon.speciesId, pokemon.name, pokemon.types, normalUrl);
+  if (pokemon.isShiny) markShinyDexCaught(pokemon.speciesId, pokemon.name, pokemon.types, pokemon.spriteUrl);
   state.team = [pokemon];
   state.starterSpeciesId = pokemon.speciesId;
   state.maxTeamSize = 1;
@@ -118,6 +121,8 @@ function showMapScreen() {
   }
   const badgeEl = document.getElementById('badge-count');
   if (badgeEl) badgeEl.textContent = `Badges: ${state.badges}/8`;
+  const winsEl = document.getElementById('elite-wins-count');
+  if (winsEl) winsEl.textContent = `Wins: ${getEliteWins()}`;
 
   renderTeamBar(state.team);
   renderItemBadges(state.items);
@@ -420,7 +425,8 @@ async function doShinyNode(node) {
   `;
   document.getElementById('btn-take-shiny').onclick = () => {
     if (state.team.length < 6) {
-      markPokedexCaught(shiny.speciesId, shiny.name, shiny.types, shiny.spriteUrl);
+      const normalUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${shiny.speciesId}.png`;
+      markPokedexCaught(shiny.speciesId, shiny.name, shiny.types, normalUrl);
       markShinyDexCaught(shiny.speciesId, shiny.name, shiny.types, shiny.spriteUrl);
       checkDexAchievements();
       state.team.push(shiny);
@@ -532,6 +538,19 @@ function showWinScreen() {
   document.getElementById('win-team').innerHTML = state.team.map(p =>
     renderPokemonCard(p, false, false)).join('');
   document.getElementById('btn-play-again').onclick = startNewRun;
+
+  // Track elite four wins
+  const wins = incrementEliteWins();
+  const winsEl = document.getElementById('win-run-count');
+  if (winsEl) winsEl.textContent = `Championship #${wins}`;
+  if (wins === 10) {
+    const ach = unlockAchievement('elite_10');
+    if (ach) setTimeout(() => showAchievementToast(ach), 3000);
+  }
+  if (wins === 100) {
+    const ach = unlockAchievement('elite_100');
+    if (ach) setTimeout(() => showAchievementToast(ach), 3000);
+  }
 
   // Starter line achievement
   const sid = state.starterSpeciesId;
