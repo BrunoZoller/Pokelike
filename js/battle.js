@@ -95,8 +95,8 @@ function getTypeBoostItem(moveType, items) {
   return items.some(it => it.id === needed);
 }
 
-function runBattle(playerTeam, enemyTeam, playerItems, enemyItems, onLog) {
-  const items = playerItems; // alias for applyLevelGain / leftovers / focus band (player-only)
+function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog) {
+  const items = bagItems; // bag — only used for Lucky Egg check in level gain
   const pTeam = playerTeam.map(p => ({ ...p }));
   const eTeam = enemyTeam.map(p => ({
     ...p,
@@ -143,9 +143,13 @@ function runBattle(playerTeam, enemyTeam, playerItems, enemyItems, onLog) {
         types: pActive.types });
     }
 
+    // Per-Pokemon held items for this round
+    const pActiveItems = pActive.heldItem ? [pActive.heldItem] : [];
+    const eActiveItems = enemyItems; // enemy uses trainer-level items
+
     // Speed determines turn order
-    const pSpeed = getEffectiveStat(pActive, 'speed', playerItems);
-    const eSpeed = getEffectiveStat(eActive, 'speed', enemyItems);
+    const pSpeed = getEffectiveStat(pActive, 'speed', pActiveItems);
+    const eSpeed = getEffectiveStat(eActive, 'speed', eActiveItems);
 
     // If both active Pokemon can only use noDamage moves, force Struggle to break the stalemate
     const pMove = getBestMove(pActive.types || ['Normal'], pActive.baseStats, pActive.speciesId);
@@ -170,8 +174,8 @@ function runBattle(playerTeam, enemyTeam, playerItems, enemyItems, onLog) {
       if (!move.noDamage && getTypeEffectiveness(move.type, target.types || ['Normal']) === 0) {
         move = { name: 'Struggle', power: 50, type: 'Normal', isSpecial: false };
       }
-      const attackerItems = side === 'player' ? playerItems : enemyItems;
-      const defenderItems = side === 'player' ? enemyItems : playerItems;
+      const attackerItems = side === 'player' ? pActiveItems : eActiveItems;
+      const defenderItems = side === 'player' ? eActiveItems : pActiveItems;
 
       if (move.noDamage) {
         const aName = attacker.nickname || attacker.name;
@@ -192,7 +196,7 @@ function runBattle(playerTeam, enemyTeam, playerItems, enemyItems, onLog) {
       target.currentHp = Math.max(0, target.currentHp - damage);
 
       // Focus Band: 10% chance to survive a KO at 1 HP
-      if (target.currentHp === 0 && targetPreHp > 0 && tSide === 'player' && hasItem(items, 'focus_band') && Math.random() < 0.1) {
+      if (target.currentHp === 0 && targetPreHp > 0 && tSide === 'player' && target.heldItem?.id === 'focus_band' && Math.random() < 0.1) {
         target.currentHp = 1;
       }
 
@@ -215,7 +219,7 @@ function runBattle(playerTeam, enemyTeam, playerItems, enemyItems, onLog) {
       });
 
       // Life Orb recoil
-      if (side === 'player' && hasItem(items, 'life_orb')) {
+      if (side === 'player' && attacker.heldItem?.id === 'life_orb') {
         const recoil = Math.max(1, Math.floor(attacker.maxHp * 0.1));
         attacker.currentHp = Math.max(0, attacker.currentHp - recoil);
         addLog(`${aName} lost ${recoil} HP from Life Orb!`, 'log-item');
@@ -224,7 +228,7 @@ function runBattle(playerTeam, enemyTeam, playerItems, enemyItems, onLog) {
       }
 
       // Rocky Helmet
-      if (side === 'enemy' && hasItem(items, 'rocky_helmet')) {
+      if (side === 'enemy' && target.heldItem?.id === 'rocky_helmet') {
         const helmet = Math.max(1, Math.floor(attacker.maxHp * 0.15));
         attacker.currentHp = Math.max(0, attacker.currentHp - helmet);
         addLog(`Rocky Helmet hurt ${aName} for ${helmet} HP!`, 'log-item');
@@ -233,7 +237,7 @@ function runBattle(playerTeam, enemyTeam, playerItems, enemyItems, onLog) {
       }
 
       // Shell Bell
-      if (side === 'player' && hasItem(items, 'shell_bell')) {
+      if (side === 'player' && attacker.heldItem?.id === 'shell_bell') {
         const heal   = Math.max(1, Math.floor(damage * 0.25));
         const actual = Math.min(heal, attacker.maxHp - attacker.currentHp);
         if (actual > 0) {
@@ -272,10 +276,10 @@ function runBattle(playerTeam, enemyTeam, playerItems, enemyItems, onLog) {
       }
     }
 
-    // Leftovers: heal active player pokemon 1/16 maxHP each round
-    if (hasItem(items, 'leftovers')) {
-      const active = pTeam.map((p, i) => ({ p, i })).find(x => x.p.currentHp > 0);
-      if (active) {
+    // Leftovers: heal active player pokemon 1/16 maxHP each round (if they hold it)
+    const active = pTeam.map((p, i) => ({ p, i })).find(x => x.p.currentHp > 0);
+    if (active?.p.heldItem?.id === 'leftovers') {
+      {
         const heal = Math.max(1, Math.floor(active.p.maxHp / 16));
         const actual = Math.min(heal, active.p.maxHp - active.p.currentHp);
         if (actual > 0) {
@@ -296,15 +300,15 @@ function runBattle(playerTeam, enemyTeam, playerItems, enemyItems, onLog) {
   return { playerWon, log, detailedLog, pTeam, eTeam, playerParticipants };
 }
 
-function getLevelGain(items) {
-  if (hasItem(items, 'lucky_egg')) return 3;
-  return 2;
+function getLevelGain(team, bagItems) {
+  const hasLucky = (team || []).some(p => p.heldItem?.id === 'lucky_egg') || hasItem(bagItems, 'lucky_egg');
+  return hasLucky ? 3 : 2;
 }
 
 // Applies level gains and returns an array of level-up events for animation.
 // Each entry: { idx, pokemon, oldLevel, newLevel, preHp }
-function applyLevelGain(team, items, participantIdxs, maxEnemyLevel = 0, hardMode = false) {
-  const baseGain = hardMode ? 1 : getLevelGain(items);
+function applyLevelGain(team, bagItems, participantIdxs, maxEnemyLevel = 0, hardMode = false) {
+  const baseGain = hardMode ? 1 : getLevelGain(team, bagItems);
   const levelUps = [];
 
   for (let i = 0; i < team.length; i++) {

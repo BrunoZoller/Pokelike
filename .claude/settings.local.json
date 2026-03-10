@@ -10,7 +10,8 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(\"C:/Users/firep/Documents/claude/css/style.css\":*)",
       "Bash(git:*)",
-      "WebFetch(domain:play.pokemonshowdown.com)"
+      "WebFetch(domain:play.pokemonshowdown.com)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/life-orb.png\" && echo \"\" && curl -s -o /dev/null -w \"%{http_code}\" \"https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/sharp-beak.png\" && echo \"\" && curl -s -o /dev/null -w \"%{http_code}\" \"https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/adaptability-band.png\")"
     ]
   }
 }

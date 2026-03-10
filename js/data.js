@@ -218,40 +218,40 @@ const ELITE_4 = [
 
 // Item pool
 const ITEM_POOL = [
-  { id: 'lucky_egg',          name: 'Lucky Egg',          desc: '+3 levels per win (default +2)',                          icon: '🥚', minMap: 4 },
-  { id: 'life_orb',           name: 'Life Orb',           desc: '×1.3 damage; attacker loses 10% HP/hit',                 icon: '🔮' },
+  { id: 'lucky_egg',          name: 'Lucky Egg',          desc: '+3 levels per win instead of +2',                        icon: '🥚', minMap: 4 },
+  { id: 'life_orb',           name: 'Life Orb',           desc: '+30% damage; holder loses 10% max HP per hit',           icon: '🔮' },
   { id: 'choice_band',        name: 'Choice Band',        desc: '+40% physical damage, -30% special damage',              icon: '🎀' },
   { id: 'choice_specs',       name: 'Choice Specs',       desc: '+40% special damage, -30% physical damage',              icon: '👓' },
-  { id: 'muscle_band',        name: 'Muscle Band',        desc: '+20% physical attack damage',                            icon: '💪' },
-  { id: 'wise_glasses',       name: 'Wise Glasses',       desc: '+20% special attack damage',                             icon: '🔬' },
+  { id: 'muscle_band',        name: 'Muscle Band',        desc: '+20% physical damage',                                   icon: '💪' },
+  { id: 'wise_glasses',       name: 'Wise Glasses',       desc: '+20% special damage',                                    icon: '🔬' },
   { id: 'adaptability_band',  name: 'Adaptability Band',  desc: '+50% damage if your team has ≤2 different types',        icon: '🌀' },
-  { id: 'scope_lens',         name: 'Scope Lens',         desc: '20% crit chance (×1.5 damage)',                          icon: '🔭' },
-  { id: 'rocky_helmet',       name: 'Rocky Helmet',       desc: 'Attacker takes 15% maxHP on hit',                        icon: '⛑️' },
-  { id: 'shell_bell',         name: 'Shell Bell',         desc: 'Heal 25% of damage dealt',                              icon: '🐚' },
-  { id: 'eviolite',           name: 'Eviolite',           desc: 'NFE Pokemon ×1.5 DEF & Sp.Def',                         icon: '💎' },
-  { id: 'sharp_beak',         name: 'Sharp Beak',         desc: 'Flying moves ×1.5',                                     icon: '🦅' },
-  { id: 'charcoal',           name: 'Charcoal',           desc: 'Fire moves ×1.5',                                       icon: '🔥' },
-  { id: 'mystic_water',       name: 'Mystic Water',       desc: 'Water moves ×1.5',                                      icon: '💧' },
-  { id: 'magnet',             name: 'Magnet',             desc: 'Electric moves ×1.5',                                   icon: '🧲', minMap: 4 },
-  { id: 'miracle_seed',       name: 'Miracle Seed',       desc: 'Grass moves ×1.5',                                      icon: '🌱' },
-  { id: 'twisted_spoon',      name: 'Twisted Spoon',      desc: 'Psychic moves ×1.5',                                    icon: '🥄', minMap: 4 },
-  { id: 'black_belt',         name: 'Black Belt',         desc: 'Fighting moves ×1.5',                                   icon: '🥋' },
-  { id: 'soft_sand',          name: 'Soft Sand',          desc: 'Ground moves ×1.5',                                     icon: '🏖️', minMap: 4 },
-  { id: 'silver_powder',      name: 'Silver Powder',      desc: 'Bug moves ×1.5',                                        icon: '🐛' },
-  { id: 'hard_stone',         name: 'Hard Stone',         desc: 'Rock moves ×1.5',                                       icon: '🪨', minMap: 4 },
-  { id: 'dragon_fang',        name: 'Dragon Fang',        desc: 'Dragon moves ×1.5',                                     icon: '🐉', minMap: 6 },
-  { id: 'poison_barb',        name: 'Poison Barb',        desc: 'Poison moves ×1.5',                                     icon: '☠️', minMap: 4 },
-  { id: 'spell_tag',          name: 'Spell Tag',          desc: 'Ghost moves ×1.5',                                      icon: '👻', minMap: 4 },
-  { id: 'silk_scarf',         name: 'Silk Scarf',         desc: 'Normal moves ×1.5',                                     icon: '🤍' },
+  { id: 'scope_lens',         name: 'Scope Lens',         desc: '20% crit chance (+50% damage on crit)',                  icon: '🔭' },
+  { id: 'rocky_helmet',       name: 'Rocky Helmet',       desc: 'Attacker takes 15% of their max HP on each hit',         icon: '⛑️' },
+  { id: 'shell_bell',         name: 'Shell Bell',         desc: 'Heal 25% of damage dealt',                               icon: '🐚' },
+  { id: 'eviolite',           name: 'Eviolite',           desc: '+50% DEF & Sp.Def if holder is not fully evolved',       icon: '💎' },
+  { id: 'sharp_beak',         name: 'Sharp Beak',         desc: '+50% Flying move damage',                                icon: '🦅' },
+  { id: 'charcoal',           name: 'Charcoal',           desc: '+50% Fire move damage',                                  icon: '🔥' },
+  { id: 'mystic_water',       name: 'Mystic Water',       desc: '+50% Water move damage',                                 icon: '💧' },
+  { id: 'magnet',             name: 'Magnet',             desc: '+50% Electric move damage',                              icon: '🧲', minMap: 4 },
+  { id: 'miracle_seed',       name: 'Miracle Seed',       desc: '+50% Grass move damage',                                 icon: '🌱' },
+  { id: 'twisted_spoon',      name: 'Twisted Spoon',      desc: '+50% Psychic move damage',                               icon: '🥄', minMap: 4 },
+  { id: 'black_belt',         name: 'Black Belt',         desc: '+50% Fighting move damage',                              icon: '🥋' },
+  { id: 'soft_sand',          name: 'Soft Sand',          desc: '+50% Ground move damage',                                icon: '🏖️', minMap: 4 },
+  { id: 'silver_powder',      name: 'Silver Powder',      desc: '+50% Bug move damage',                                   icon: '🐛' },
+  { id: 'hard_stone',         name: 'Hard Stone',         desc: '+50% Rock move damage',                                  icon: '🪨', minMap: 4 },
+  { id: 'dragon_fang',        name: 'Dragon Fang',        desc: '+50% Dragon move damage',                                icon: '🐉', minMap: 6 },
+  { id: 'poison_barb',        name: 'Poison Barb',        desc: '+50% Poison move damage',                                icon: '☠️', minMap: 4 },
+  { id: 'spell_tag',          name: 'Spell Tag',          desc: '+50% Ghost move damage',                                 icon: '👻', minMap: 4 },
+  { id: 'silk_scarf',         name: 'Silk Scarf',         desc: '+50% Normal move damage',                                icon: '🤍' },
   // Stat items
-  { id: 'assault_vest',       name: 'Assault Vest',       desc: '×1.5 DEF & Sp.Def for all your Pokemon',                icon: '🦺' },
-  { id: 'choice_scarf',       name: 'Choice Scarf',       desc: '×1.5 Speed, ×0.75 ATK',                                icon: '🧣' },
+  { id: 'assault_vest',       name: 'Assault Vest',       desc: '+50% DEF & Sp.Def',                                     icon: '🦺' },
+  { id: 'choice_scarf',       name: 'Choice Scarf',       desc: '+50% Speed, -25% ATK',                                  icon: '🧣' },
   // Battle effect items
-  { id: 'leftovers',          name: 'Leftovers',          desc: 'Restore 1/16 maxHP per turn',                           icon: '🍃' },
-  { id: 'expert_belt',        name: 'Expert Belt',        desc: '×1.2 damage on super effective hits',                   icon: '🥊' },
-  { id: 'focus_band',         name: 'Focus Band',         desc: '10% chance to survive a KO with 1 HP',                 icon: '🎗️' },
-  { id: 'razor_claw',         name: 'Razor Claw',         desc: '20% crit chance (×1.5 damage)',                         icon: '🗡️' },
-  { id: 'air_balloon',        name: 'Air Balloon',        desc: 'Immune to Ground-type moves',                           icon: '🎈' },
+  { id: 'leftovers',          name: 'Leftovers',          desc: 'Restore 6% max HP per turn',                            icon: '🍃' },
+  { id: 'expert_belt',        name: 'Expert Belt',        desc: '+20% damage on super effective hits',                    icon: '🥊' },
+  { id: 'focus_band',         name: 'Focus Band',         desc: '10% chance to survive a KO with 1 HP',                  icon: '🎗️' },
+  { id: 'razor_claw',         name: 'Razor Claw',         desc: '20% crit chance (+50% damage on crit)',                  icon: '🗡️' },
+  { id: 'air_balloon',        name: 'Air Balloon',        desc: 'Immune to Ground-type moves',                            icon: '🎈' },
 ];
 
 const TYPE_ITEM_MAP = {
@@ -383,7 +383,7 @@ const GEN1_BST_APPROX = {
   veryHigh: [6,9,65,68,94,112,130,131,143,144,145,146,147,148,149,150,151],
 };
 
-const ALL_CATCHABLE_IDS = new Set(Object.values(GEN1_BST_APPROX).flat());
+const ALL_CATCHABLE_IDS = new Set(Array.from({ length: 151 }, (_, i) => i + 1));
 
 function isPokedexComplete() {
   const dex = getPokedex();
@@ -438,6 +438,7 @@ function createInstance(species, level, isShiny = false) {
     baseStats: species.baseStats,
     spriteUrl,
     megaStone: null,
+    heldItem: null,
   };
 }
 
@@ -644,6 +645,16 @@ function incrementEliteWins() {
   const wins = getEliteWins() + 1;
   localStorage.setItem('poke_elite_wins', String(wins));
   return wins;
+}
+
+// Returns an <img> for the item's official sprite, falling back to its emoji if the sprite 404s
+function itemIconHtml(item, size = 24) {
+  const slug = item.id.replace(/_/g, '-');
+  const url = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/${slug}.png`;
+  const esc = item.icon.replace(/'/g, "\\'");
+  return `<img src="${url}" alt="${item.name}" title="${item.name}" class="item-sprite-icon" `
+       + `style="width:${size}px;height:${size}px;image-rendering:pixelated;vertical-align:middle;" `
+       + `onerror="this.replaceWith(document.createTextNode('${esc}'))">`;
 }
 
 function isShinyDexComplete() {
