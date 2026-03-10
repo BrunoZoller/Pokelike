@@ -298,19 +298,8 @@ h1, h2, .pixel-font {
 .team-sprite { width: 40px; height: 40px; image-rendering: pixelated; }
 .team-slot-name { font-size: 9px; color: var(--text-dim); text-align: center; overflow: hidden; max-width: 64px; white-space: nowrap; text-overflow: ellipsis; }
 .team-slot-lv { font-size: 9px; color: var(--accent); }
-.team-slot-item {
-  font-size: 13px;
-  line-height: 1;
-  cursor: pointer;
-  border-radius: 4px;
-  padding: 1px 3px;
-  background: rgba(255,215,0,0.12);
-  border: 1px solid rgba(255,215,0,0.3);
-  transition: background 0.15s;
-}
-.team-slot-item:hover { background: rgba(255,215,0,0.28); }
 
-#item-bar { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+#item-bar { display: flex; gap: 6px; flex-wrap: wrap; }
 .item-badge {
   background: var(--bg3);
   border: 1px solid var(--border);
@@ -541,72 +530,6 @@ h1, h2, .pixel-font {
 #badge-msg { font-family: 'Press Start 2P', monospace; font-size: clamp(10px,2.5vw,14px); color: var(--gold); }
 #badge-leader { font-size: 16px; color: var(--text); }
 #badge-count-display { color: var(--text-dim); font-size: 14px; }
-
-/* ---- Item Equip Modal ---- */
-.item-equip-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.72);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 500;
-}
-.item-equip-box {
-  background: var(--bg2);
-  border: 2px solid var(--accent);
-  border-radius: 12px;
-  padding: 18px;
-  max-width: 360px;
-  width: 92%;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-.equip-item-header {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  background: var(--bg3);
-  border-radius: 8px;
-  padding: 10px 12px;
-}
-.equip-item-icon { font-size: 28px; flex-shrink: 0; }
-.equip-item-name { font-family: 'Press Start 2P', monospace; font-size: 9px; color: var(--text); margin-bottom: 4px; }
-.equip-item-desc { font-size: 11px; color: var(--text-dim); line-height: 1.5; }
-.equip-pokemon-list { display: flex; flex-direction: column; gap: 6px; }
-.equip-pokemon-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 7px 8px;
-}
-.equip-poke-sprite { width: 36px; height: 36px; image-rendering: pixelated; flex-shrink: 0; }
-.equip-poke-info { display: flex; flex-direction: column; min-width: 60px; }
-.equip-poke-name { font-size: 11px; color: var(--text); }
-.equip-poke-lv { font-size: 10px; color: var(--text-dim); }
-.equip-held-slot { flex: 1; font-size: 11px; text-align: right; padding-right: 6px; }
-.equip-held-item { color: var(--gold); }
-.equip-empty-slot { color: var(--text-dim); font-style: italic; }
-.equip-btn {
-  font-size: 10px;
-  padding: 5px 10px;
-  cursor: pointer;
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  border-radius: 5px;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-.equip-btn:hover { filter: brightness(1.2); }
-.equip-btn-swap { background: #b8860b; }
-.equip-self-tag { font-size: 9px; color: var(--text-dim); font-style: italic; flex-shrink: 0; }
 
 /* ---- Transition Screen ---- */
 #transition-screen {

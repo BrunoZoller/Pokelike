@@ -86,7 +86,7 @@ function hideTeamHoverCard() {
 }
 
 function getMoveForPokemon(pokemon) {
-  return getBestMove(pokemon.types || ['Normal'], pokemon.baseStats, pokemon.speciesId);
+  return getBestMove(pokemon.types || ['Normal'], pokemon.baseStats);
 }
 
 let _teamBarSelected = null;
@@ -106,21 +106,9 @@ function renderTeamBar(team, el) {
       <img src="${p.spriteUrl||''}" alt="${p.name}" class="team-sprite" onerror="this.src='';this.style.display='none'">
       <div class="team-slot-name">${p.nickname||p.name}</div>
       <div class="team-slot-lv">Lv${p.level}</div>
-      <div class="hp-bar-bg sm"><div class="hp-bar-fill" style="width:${Math.floor(pct*100)}%;background:${color}"></div></div>
-      ${p.heldItem ? `<div class="team-slot-item" title="${p.heldItem.name}: ${p.heldItem.desc}">${p.heldItem.icon}</div>` : ''}`;
+      <div class="hp-bar-bg sm"><div class="hp-bar-fill" style="width:${Math.floor(pct*100)}%;background:${color}"></div></div>`;
     slot.addEventListener('mouseenter', () => showTeamHoverCard(p, slot));
     slot.addEventListener('mouseleave', () => hideTeamHoverCard());
-    if (isMain && p.heldItem) {
-      const itemEl = slot.querySelector('.team-slot-item');
-      itemEl?.addEventListener('click', e => {
-        e.stopPropagation();
-        hideTeamHoverCard();
-        openItemEquipModal(p.heldItem, {
-          fromPokemonIdx: i,
-          onComplete: () => { renderItemBadges(state.items); renderTeamBar(state.team); },
-        });
-      });
-    }
     if (isMain) {
       slot.addEventListener('click', () => {
         if (_teamBarSelected === null) {
@@ -141,26 +129,9 @@ function renderTeamBar(team, el) {
 function renderItemBadges(items) {
   const el = document.getElementById('item-bar');
   if (!el) return;
-  el.innerHTML = '';
-  if (items.length === 0) {
-    el.innerHTML = '<span style="color:var(--text-dim);font-size:10px;">Bag empty</span>';
-    return;
-  }
-  items.forEach((it, idx) => {
-    const span = document.createElement('span');
-    span.className = 'item-badge';
-    span.dataset.tooltip = it.desc;
-    span.textContent = `${it.icon} ${it.name}`;
-    span.style.cursor = 'pointer';
-    span.title = `${it.name}: ${it.desc} — click to equip`;
-    span.addEventListener('click', () => {
-      openItemEquipModal(it, {
-        fromBagIdx: idx,
-        onComplete: () => { renderItemBadges(state.items); renderTeamBar(state.team); },
-      });
-    });
-    el.appendChild(span);
-  });
+  el.innerHTML = items.map(it =>
+    `<span class="item-badge" data-tooltip="${it.desc}">${it.icon} ${it.name}</span>`
+  ).join('');
 }
 
 function renderBattleLog(log) {

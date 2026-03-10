@@ -371,14 +371,9 @@ function showSwapScreen(newPoke, node) {
 function doItemNode(node) {
   showScreen('item-screen');
   renderTeamBar(state.team, document.getElementById('item-team-bar'));
-
-  // Exclude items already in bag or held by any Pokemon
-  const usedIds = new Set([
-    ...state.items.map(it => it.id),
-    ...state.team.filter(p => p.heldItem).map(p => p.heldItem.id),
-  ]);
+  const held = state.items.map(it => it.id);
   const available = ITEM_POOL.filter(it =>
-    !usedIds.has(it.id) && (it.minMap === undefined || state.currentMap >= it.minMap)
+    !held.includes(it.id) && (it.minMap === undefined || state.currentMap >= it.minMap)
   );
   const shuffled = [...available].sort(() => Math.random() - 0.5);
   const picks = shuffled.slice(0, 2);
@@ -393,9 +388,9 @@ function doItemNode(node) {
       <div class="item-desc">${item.desc}</div>`;
     div.style.cursor = 'pointer';
     div.addEventListener('click', () => {
-      openItemEquipModal(item, {
-        onComplete: () => { advanceFromNode(state.map, node.id); showMapScreen(); },
-      });
+      state.items.push(item);
+      advanceFromNode(state.map, node.id);
+      showMapScreen();
     });
     el.appendChild(div);
   }
@@ -404,94 +399,6 @@ function doItemNode(node) {
     advanceFromNode(state.map, node.id);
     showMapScreen();
   };
-}
-
-function openItemEquipModal(item, { fromBagIdx = -1, fromPokemonIdx = -1, onComplete = null } = {}) {
-  document.getElementById('item-equip-modal')?.remove();
-
-  const done = onComplete || (() => {
-    renderItemBadges(state.items);
-    renderTeamBar(state.team);
-  });
-
-  const modal = document.createElement('div');
-  modal.id = 'item-equip-modal';
-  modal.className = 'item-equip-overlay';
-
-  const rows = state.team.map((p, i) => {
-    const isSelf = fromPokemonIdx === i;
-    const hasHeld = !!p.heldItem;
-    const btnLabel = isSelf ? 'Holding' : hasHeld ? 'Swap' : 'Equip';
-    return `<div class="equip-pokemon-row">
-      <img src="${p.spriteUrl}" class="equip-poke-sprite" onerror="this.style.display='none'">
-      <div class="equip-poke-info">
-        <div class="equip-poke-name">${p.nickname || p.name}</div>
-        <div class="equip-poke-lv">Lv${p.level}</div>
-      </div>
-      <div class="equip-held-slot">
-        ${hasHeld
-          ? `<span class="equip-held-item" title="${p.heldItem.desc}">${p.heldItem.icon} ${p.heldItem.name}</span>`
-          : '<span class="equip-empty-slot">— empty —</span>'}
-      </div>
-      ${isSelf
-        ? `<span class="equip-self-tag">holding</span>`
-        : `<button class="equip-btn${hasHeld ? ' equip-btn-swap' : ''}" data-idx="${i}">${btnLabel}</button>`}
-    </div>`;
-  }).join('');
-
-  modal.innerHTML = `
-    <div class="item-equip-box">
-      <div class="equip-item-header">
-        <span class="equip-item-icon">${item.icon}</span>
-        <div>
-          <div class="equip-item-name">${item.name}</div>
-          <div class="equip-item-desc">${item.desc}</div>
-        </div>
-      </div>
-      <div class="equip-pokemon-list">${rows}</div>
-      <button id="btn-equip-to-bag" class="btn-secondary" style="width:100%;margin-top:8px;">
-        ${fromPokemonIdx >= 0 ? 'Put Back in Bag' : 'Keep in Bag'}
-      </button>
-    </div>`;
-
-  document.body.appendChild(modal);
-
-  modal.querySelectorAll('.equip-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const idx = parseInt(btn.dataset.idx);
-      const pokemon = state.team[idx];
-      const displaced = pokemon.heldItem;
-
-      // Remove item from its source
-      if (fromBagIdx >= 0) {
-        state.items.splice(fromBagIdx, 1);
-      } else if (fromPokemonIdx >= 0) {
-        state.team[fromPokemonIdx].heldItem = null;
-      }
-
-      // If target already held something, send it to bag
-      if (displaced) state.items.push(displaced);
-
-      pokemon.heldItem = item;
-      modal.remove();
-      done();
-    });
-  });
-
-  modal.querySelector('#btn-equip-to-bag').addEventListener('click', () => {
-    if (fromPokemonIdx >= 0) {
-      state.team[fromPokemonIdx].heldItem = null;
-      state.items.push(item);
-    } else if (fromBagIdx < 0) {
-      // Brand new item — put in bag
-      state.items.push(item);
-    }
-    // fromBagIdx >= 0 means it's already in bag — do nothing
-    modal.remove();
-    done();
-  });
-
-  modal.addEventListener('click', e => { if (e.target === modal) { modal.remove(); done(); } });
 }
 
 function doPokeCenterNode(node) {

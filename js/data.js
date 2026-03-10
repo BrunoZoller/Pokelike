@@ -438,7 +438,6 @@ function createInstance(species, level, isShiny = false) {
     baseStats: species.baseStats,
     spriteUrl,
     megaStone: null,
-    heldItem: null,
   };
 }
 
