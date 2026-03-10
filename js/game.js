@@ -356,6 +356,8 @@ function showSwapScreen(newPoke, node) {
     const idx = i;
     card.addEventListener('click', () => {
       if (newPoke.isShiny) markShinyDexCaught(newPoke.speciesId, newPoke.name, newPoke.types, newPoke.spriteUrl);
+      const released = state.team[idx];
+      if (released.heldItem) state.items.push(released.heldItem);
       state.team.splice(idx, 1, newPoke);
       advanceFromNode(state.map, node.id);
       showMapScreen();
