@@ -275,8 +275,14 @@ function runCanvas(canvas, ctx, duration, drawFn) {
     const start = performance.now();
     function frame(now) {
       const t = Math.min((now - start) / duration, 1);
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      drawFn(ctx, t);
+      try {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawFn(ctx, t);
+      } catch(e) {
+        canvas.style.display = 'none';
+        resolve();
+        return;
+      }
       if (t < 1) requestAnimationFrame(frame);
       else { ctx.clearRect(0, 0, canvas.width, canvas.height); canvas.style.display = 'none'; resolve(); }
     }
