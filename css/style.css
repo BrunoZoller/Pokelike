@@ -538,7 +538,7 @@ h1, h2, .pixel-font {
 
 /* ---- Badge Screen ---- */
 #badge-screen { align-items: center; justify-content: center; gap: 20px; text-align: center; }
-.badge-icon { font-size: 64px; animation: bounce 0.5s ease-in-out infinite alternate; }
+.badge-icon { width: 96px; height: 96px; image-rendering: pixelated; animation: bounce 0.5s ease-in-out infinite alternate; }
 @keyframes bounce { from { transform: scale(1); } to { transform: scale(1.1); } }
 #badge-msg { font-family: 'Press Start 2P', monospace; font-size: clamp(10px,2.5vw,14px); color: var(--gold); }
 #badge-leader { font-size: 16px; color: var(--text); }

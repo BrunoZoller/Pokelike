@@ -639,6 +639,8 @@ function showBadgeScreen(leader) {
   document.getElementById('badge-msg').textContent = `You earned the ${leader.badge}!`;
   document.getElementById('badge-leader').textContent = `Defeated ${leader.name}!`;
   document.getElementById('badge-count-display').textContent = `Badges: ${state.badges}/8`;
+  const badgeImg = document.getElementById('badge-icon-img');
+  if (badgeImg) badgeImg.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/${state.badges}.png`;
 
   document.getElementById('btn-next-map').onclick = () => {
     if (state.currentMap >= 7) {
