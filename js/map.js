@@ -260,7 +260,7 @@ function renderMap(map, container, onNodeClick) {
     line.setAttribute('y1', from.y);
     line.setAttribute('x2', to.x);
     line.setAttribute('y2', to.y);
-    line.setAttribute('stroke', onPath ? '#888' : '#444');
+    line.setAttribute('stroke', onPath ? '#888' : '#333');
     line.setAttribute('stroke-width', onPath ? '2.5' : '1.5');
     if (!onPath) line.setAttribute('stroke-dasharray', '4,5');
     svg.appendChild(line);
