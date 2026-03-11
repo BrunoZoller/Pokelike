@@ -152,12 +152,18 @@ function renderItemBadges(items) {
     span.dataset.tooltip = it.desc;
     span.innerHTML = `${itemIconHtml(it, 18)} ${it.name}`;
     span.style.cursor = 'pointer';
-    span.title = `${it.name}: ${it.desc} — click to equip`;
+    span.title = it.usable
+      ? `${it.name}: ${it.desc} — click to use`
+      : `${it.name}: ${it.desc} — click to equip`;
     span.addEventListener('click', () => {
-      openItemEquipModal(it, {
-        fromBagIdx: idx,
-        onComplete: () => { renderItemBadges(state.items); renderTeamBar(state.team); },
-      });
+      if (it.usable) {
+        openUsableItemModal(it, idx);
+      } else {
+        openItemEquipModal(it, {
+          fromBagIdx: idx,
+          onComplete: () => { renderItemBadges(state.items); renderTeamBar(state.team); },
+        });
+      }
     });
     el.appendChild(span);
   });
@@ -2414,3 +2420,132 @@ function openPokedexModal(initialTab = 'normal') {
 }
 
 function openShinyDexModal() { openPokedexModal('shiny'); }
+
+// ---- Patch Notes Modal ----
+
+const PATCH_NOTES = [
+  {
+    version: '1.1',
+    title: 'Items & Structure Update',
+    date: '2026-03-11',
+    sections: [
+      {
+        heading: 'New: Usable Items',
+        entries: [
+          '💊 Max Revive — fully revives a fainted Pokémon (only offered when someone is fainted)',
+          '🍬 Rare Candy — gives a Pokémon +3 levels; triggers evolution if the threshold is reached',
+          '🌟 Evolution Stone — force evolves any Pokémon regardless of level (Eevee gets the choice picker)',
+          'Usable items stack in the bag and are consumed on use',
+        ],
+      },
+      {
+        heading: 'New: Hall of Fame',
+        entries: [
+          'Every championship win now saves your winning team to the Hall of Fame',
+          'View past winning teams from the title screen — sprites, levels, and nicknames preserved',
+          'Hard mode wins are marked with 💀',
+        ],
+      },
+      {
+        heading: 'Enemy Items Rework',
+        entries: [
+          'Elite Four and Champion now use per-Pokémon held items instead of shared trainer items',
+          'Gary gives each of his Pokémon the type-boosting item matching their primary type',
+          'Gym leaders Sabrina, Blaine, and Giovanni also reworked to per-Pokémon items',
+          'Enemy held items now interact with all item effects the same way the player\'s do',
+        ],
+      },
+      {
+        heading: 'Map Generation',
+        entries: [
+          'Layer 1 of every map is now guaranteed to have at least one Catch node',
+          'Layers 1, 3, and 5 are now guaranteed to have at least one Battle node',
+          'The first Catch node on Map 1 always includes a Grass or Water type Pokémon',
+        ],
+      },
+    ],
+  },
+];
+
+function openPatchNotesModal() {
+  const existing = document.getElementById('patch-notes-modal');
+  if (existing) { existing.remove(); return; }
+
+  const notesHtml = PATCH_NOTES.map(patch => {
+    const sectionsHtml = patch.sections.map(s => `
+      <div style="margin-bottom:12px;">
+        <div style="font-size:9px;color:#4af;margin-bottom:6px;">${s.heading}</div>
+        <ul style="margin:0;padding-left:16px;list-style:disc;">
+          ${s.entries.map(e => `<li style="font-size:9px;color:var(--text-dim);margin-bottom:4px;line-height:1.6;">${e}</li>`).join('')}
+        </ul>
+      </div>`).join('');
+    return `
+      <div style="margin-bottom:20px;">
+        <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:10px;border-bottom:1px solid var(--border);padding-bottom:8px;">
+          <span style="font-size:12px;color:gold;">v${patch.version}</span>
+          <span style="font-size:10px;color:#fff;">${patch.title}</span>
+          <span style="font-size:9px;color:var(--text-dim);margin-left:auto;">${patch.date}</span>
+        </div>
+        ${sectionsHtml}
+      </div>`;
+  }).join('');
+
+  const modal = document.createElement('div');
+  modal.id = 'patch-notes-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML = `
+    <div style="background:var(--bg-main);border:2px solid var(--border);border-radius:12px;width:90%;max-width:500px;max-height:80vh;display:flex;flex-direction:column;font-family:'Press Start 2P',monospace;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);">
+        <span style="font-size:10px;color:gold;">Patch Notes</span>
+        <button style="background:none;border:none;color:var(--text-main);font-size:16px;cursor:pointer;line-height:1;" onclick="document.getElementById('patch-notes-modal').remove()">✕</button>
+      </div>
+      <div style="overflow-y:auto;padding:16px;">${notesHtml}</div>
+    </div>`;
+
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.body.appendChild(modal);
+}
+
+// ---- Hall of Fame Modal ----
+
+function openHallOfFameModal() {
+  const existing = document.getElementById('hof-modal');
+  if (existing) { existing.remove(); return; }
+
+  const entries = getHallOfFame();
+
+  const modal = document.createElement('div');
+  modal.id = 'hof-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;';
+
+  const entriesHtml = entries.length === 0
+    ? '<div style="color:var(--text-dim);text-align:center;padding:24px;font-size:11px;">No championships yet.<br>Defeat the Elite Four to be remembered!</div>'
+    : [...entries].reverse().map(e => {
+        const pokemonHtml = e.team.map(p => `
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+            <img src="${p.spriteUrl}" style="width:48px;height:48px;image-rendering:pixelated;${p.isShiny ? 'filter:drop-shadow(0 0 4px gold);' : ''}" title="${p.nickname || p.name}">
+            <div style="font-size:7px;color:${p.isShiny ? 'gold' : 'var(--text-dim)'};">${p.nickname || p.name}</div>
+            <div style="font-size:7px;color:var(--text-dim);">Lv.${p.level}</div>
+          </div>`).join('');
+        return `
+          <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+              <span style="font-size:10px;color:gold;font-weight:bold;">Championship #${e.runNumber}${e.hardMode ? ' 💀' : ''}</span>
+              <span style="font-size:9px;color:var(--text-dim);">${e.date}</span>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">${pokemonHtml}</div>
+          </div>`;
+      }).join('');
+
+  modal.innerHTML = `
+    <div style="background:var(--bg-main);border:2px solid var(--border);border-radius:12px;width:90%;max-width:480px;max-height:80vh;display:flex;flex-direction:column;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);">
+        <span style="font-family:'Press Start 2P',monospace;font-size:10px;color:gold;">Hall of Fame</span>
+        <button style="background:none;border:none;color:var(--text-main);font-size:16px;cursor:pointer;line-height:1;" onclick="document.getElementById('hof-modal').remove()">✕</button>
+      </div>
+      <div style="overflow-y:auto;padding:14px;font-family:'Press Start 2P',monospace;">${entriesHtml}</div>
+    </div>`;
+
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.body.appendChild(modal);
+}

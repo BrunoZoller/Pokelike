@@ -145,7 +145,7 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog) {
 
     // Per-Pokemon held items for this round
     const pActiveItems = pActive.heldItem ? [pActive.heldItem] : [];
-    const eActiveItems = enemyItems; // enemy uses trainer-level items
+    const eActiveItems = eActive.heldItem ? [eActive.heldItem] : [];
 
     // Speed determines turn order
     const pSpeed = getEffectiveStat(pActive, 'speed', pActiveItems);

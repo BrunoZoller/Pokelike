@@ -23,12 +23,17 @@
 <div id="title-screen" class="screen">
   <div class="game-logo">POKELIKE</div>
   <div class="game-subtitle">Pokemon + Roguelike</div>
+  <div style="color:var(--text-dim);font-size:9px;margin-bottom:6px;cursor:pointer;" onclick="openPatchNotesModal()">v1.1 — patch notes</div>
   <button id="btn-new-run" class="btn-primary">New Run</button>
   <button id="btn-hard-run" class="btn-secondary" style="margin-top:6px;" disabled>🔒 Hard Mode</button>
   <div id="hard-mode-hint" style="color:var(--text-dim);font-size:10px;margin-top:4px;"></div>
   <div style="display:flex;gap:8px;margin-top:8px;">
     <button onclick="openPokedexModal()" class="btn-secondary">📖 Pokédex</button>
     <button onclick="openAchievementsModal()" class="btn-secondary">🏆 Achievements</button>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:6px;">
+    <button onclick="openHallOfFameModal()" class="btn-secondary">🏛️ Hall of Fame</button>
+    <button onclick="openPatchNotesModal()" class="btn-secondary">📋 Patch Notes</button>
   </div>
 </div>
 
@@ -184,7 +189,10 @@
   <p style="color:var(--text-dim);">Congratulations! You defeated the Elite Four!</p>
   <div id="win-run-count" style="color:gold;font-size:13px;font-weight:bold;margin-bottom:8px;"></div>
   <div id="win-team"></div>
-  <button id="btn-play-again" class="btn-primary">Play Again</button>
+  <div style="display:flex;gap:8px;justify-content:center;margin-top:8px;">
+    <button id="btn-play-again" class="btn-primary">Play Again</button>
+    <button onclick="openHallOfFameModal()" class="btn-secondary">🏛️ Hall of Fame</button>
+  </div>
 </div>
 
 <!-- ===== EVOLUTION OVERLAY ===== -->

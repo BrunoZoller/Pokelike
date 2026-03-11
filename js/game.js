@@ -255,7 +255,7 @@ async function doBossNode(node) {
     if (ach) showAchievementToast(ach);
   }, () => {
     showGameOver();
-  }, leader.name, leader.items || []);
+  }, leader.name);
 }
 
 async function doElite4() {
@@ -269,7 +269,7 @@ async function doElite4() {
     document.getElementById('battle-title').textContent = `${boss.title}: ${boss.name}!`;
     document.getElementById('battle-subtitle').textContent = i === 4 ? 'Final Battle!' : `Elite Four - Battle ${i+1}/4`;
     const won = await new Promise(resolve => {
-      runBattleScreen(enemyTeam, true, () => resolve(true), () => resolve(false), boss.name, boss.items || []);
+      runBattleScreen(enemyTeam, true, () => resolve(true), () => resolve(false), boss.name);
     });
 
     if (!won) { showGameOver(); return; }
@@ -300,8 +300,19 @@ async function doCatchNode(node) {
   const choicesEl = document.getElementById('catch-choices');
   choicesEl.innerHTML = '<div class="loading">Finding Pokemon...</div>';
 
-  const choices = await getCatchChoices(state.currentMap);
+  let choices = await getCatchChoices(state.currentMap);
   const level = getLevelForNode(node);
+
+  // Map 1, layer 1: guarantee at least one Grass or Water Pokemon
+  if (state.currentMap === 0 && node.layer === 1) {
+    const hasGrassOrWater = choices.some(p => p.types?.some(t => t === 'Grass' || t === 'Water'));
+    if (!hasGrassOrWater) {
+      const grassWaterIds = [54, 60, 69, 72, 79, 86, 98, 116, 118, 120, 129];
+      const id = grassWaterIds[Math.floor(Math.random() * grassWaterIds.length)];
+      const replacement = await fetchPokemonById(id);
+      if (replacement) choices = [replacement, ...choices.slice(1)];
+    }
+  }
 
   const instances = choices.map(sp => createInstance(sp, level));
 
@@ -383,14 +394,29 @@ function doItemNode(node) {
   showScreen('item-screen');
   renderTeamBar(state.team, document.getElementById('item-team-bar'));
 
-  // Exclude items already in bag or held by any Pokemon
+  // Exclude held-type items already in bag or on a Pokemon (usable items can stack)
   const usedIds = new Set([
-    ...state.items.map(it => it.id),
+    ...state.items.filter(it => !it.usable).map(it => it.id),
     ...state.team.filter(p => p.heldItem).map(p => p.heldItem.id),
   ]);
-  const available = ITEM_POOL.filter(it =>
+  const heldAvailable = ITEM_POOL.filter(it =>
     !usedIds.has(it.id) && (it.minMap === undefined || state.currentMap >= it.minMap)
   );
+
+  // Usable items: filter out ones that can't be applied to current team
+  const canUseMaxRevive = state.team.some(p => p.currentHp <= 0);
+  const canUseEvoStone  = state.team.some(p => {
+    if (p.speciesId === 133) return true;
+    const evo = GEN1_EVOLUTIONS[p.speciesId];
+    return evo && evo.into !== p.speciesId;
+  });
+  const usableAvailable = USABLE_ITEM_POOL.filter(it => {
+    if (it.id === 'max_revive') return canUseMaxRevive;
+    if (it.id === 'evo_stone')  return canUseEvoStone;
+    return true;
+  });
+
+  const available = [...heldAvailable, ...usableAvailable];
   const shuffled = [...available].sort(() => Math.random() - 0.5);
   const picks = shuffled.slice(0, 2);
 
@@ -401,12 +427,19 @@ function doItemNode(node) {
     div.className = 'item-card';
     div.innerHTML = `<div class="item-icon">${itemIconHtml(item, 36)}</div>
       <div class="item-name">${item.name}</div>
-      <div class="item-desc">${item.desc}</div>`;
+      <div class="item-desc">${item.desc}</div>
+      ${item.usable ? '<div style="font-size:9px;color:#4af;margin-top:4px;">USABLE ITEM</div>' : ''}`;
     div.style.cursor = 'pointer';
     div.addEventListener('click', () => {
-      openItemEquipModal(item, {
-        onComplete: () => { advanceFromNode(state.map, node.id); showMapScreen(); },
-      });
+      if (item.usable) {
+        state.items.push({ ...item });
+        advanceFromNode(state.map, node.id);
+        showMapScreen();
+      } else {
+        openItemEquipModal(item, {
+          onComplete: () => { advanceFromNode(state.map, node.id); showMapScreen(); },
+        });
+      }
     });
     el.appendChild(div);
   }
@@ -520,6 +553,123 @@ function openItemEquipModal(item, { fromBagIdx = -1, fromPokemonIdx = -1, onComp
   });
 
   modal.addEventListener('click', e => { if (e.target === modal) { modal.remove(); done(); } });
+}
+
+function openUsableItemModal(item, bagIdx) {
+  document.getElementById('usable-item-modal')?.remove();
+
+  const canTarget = p => {
+    if (item.id === 'max_revive') return p.currentHp <= 0;
+    if (item.id === 'evo_stone') {
+      if (p.speciesId === 133) return true;
+      const evo = GEN1_EVOLUTIONS[p.speciesId];
+      return !!(evo && evo.into !== p.speciesId);
+    }
+    return true; // rare_candy works on everyone
+  };
+
+  const rows = state.team.map((p, i) => {
+    const enabled = canTarget(p);
+    const statusText = p.currentHp <= 0 ? 'Fainted' : `${p.currentHp}/${p.maxHp} HP`;
+    return `<div class="equip-pokemon-row" data-idx="${i}"
+        style="${enabled ? 'cursor:pointer;' : 'opacity:0.4;cursor:default;pointer-events:none;'}">
+      <img src="${p.spriteUrl}" class="equip-poke-sprite" onerror="this.style.display='none'">
+      <div class="equip-poke-info">
+        <div class="equip-poke-name">${p.nickname || p.name}</div>
+        <div class="equip-poke-lv">Lv${p.level} — ${statusText}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const modal = document.createElement('div');
+  modal.id = 'usable-item-modal';
+  modal.className = 'item-equip-overlay';
+  modal.innerHTML = `
+    <div class="item-equip-box">
+      <div class="equip-item-header">
+        <span class="equip-item-icon">${itemIconHtml(item, 32)}</span>
+        <div>
+          <div class="equip-item-name">${item.name}</div>
+          <div class="equip-item-desc">${item.desc}</div>
+        </div>
+      </div>
+      <div class="equip-pokemon-list">${rows}</div>
+      <button id="btn-cancel-use" class="btn-secondary" style="width:100%;margin-top:8px;">Cancel</button>
+    </div>`;
+  document.body.appendChild(modal);
+
+  modal.querySelector('#btn-cancel-use').addEventListener('click', () => modal.remove());
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+
+  modal.querySelectorAll('[data-idx]').forEach(row => {
+    if (row.style.pointerEvents === 'none') return;
+    row.addEventListener('click', async () => {
+      const idx = parseInt(row.dataset.idx);
+      const pokemon = state.team[idx];
+      modal.remove();
+      state.items.splice(bagIdx, 1);
+
+      if (item.id === 'max_revive') {
+        pokemon.currentHp = pokemon.maxHp;
+        showMapNotification(`${pokemon.nickname || pokemon.name} was revived!`);
+        renderItemBadges(state.items);
+        renderTeamBar(state.team);
+
+      } else if (item.id === 'rare_candy') {
+        pokemon.level = Math.min(100, pokemon.level + 3);
+        const newMax = calcHp(pokemon.baseStats.hp, pokemon.level);
+        pokemon.currentHp = Math.min(newMax, pokemon.currentHp + (newMax - pokemon.maxHp));
+        pokemon.maxHp = newMax;
+        showMapNotification(`${pokemon.nickname || pokemon.name} grew to Lv. ${pokemon.level}!`);
+        renderItemBadges(state.items);
+        renderTeamBar(state.team);
+        // Check if now eligible to evolve
+        const canEvo = pokemon.speciesId === 133
+          ? pokemon.level >= 36
+          : (GEN1_EVOLUTIONS[pokemon.speciesId]?.level <= pokemon.level);
+        if (canEvo) await applyEvolution(pokemon);
+
+      } else if (item.id === 'evo_stone') {
+        await applyEvolution(pokemon);
+      }
+    });
+  });
+}
+
+async function applyEvolution(pokemon) {
+  let evo;
+  if (pokemon.speciesId === 133) {
+    evo = await showEeveeChoice(pokemon);
+  } else {
+    evo = GEN1_EVOLUTIONS[pokemon.speciesId];
+    if (!evo) return;
+  }
+
+  await playEvoAnimation(pokemon, evo);
+
+  const oldHpRatio = pokemon.currentHp / pokemon.maxHp;
+  const newSpecies = await fetchPokemonById(evo.into);
+
+  pokemon.speciesId = evo.into;
+  pokemon.name      = evo.name;
+  pokemon.spriteUrl = pokemon.isShiny
+    ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/${evo.into}.png`
+    : `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${evo.into}.png`;
+
+  if (newSpecies) {
+    pokemon.types     = newSpecies.types;
+    pokemon.baseStats = newSpecies.baseStats;
+    const newMax      = calcHp(newSpecies.baseStats.hp, pokemon.level);
+    pokemon.maxHp     = newMax;
+    pokemon.currentHp = Math.max(1, Math.floor(oldHpRatio * newMax));
+  }
+
+  const normalUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemon.speciesId}.png`;
+  markPokedexCaught(pokemon.speciesId, pokemon.name, pokemon.types, normalUrl);
+  if (pokemon.isShiny) markShinyDexCaught(pokemon.speciesId, pokemon.name, pokemon.types, pokemon.spriteUrl);
+  checkDexAchievements();
+  renderItemBadges(state.items);
+  renderTeamBar(state.team);
 }
 
 function doPokeCenterNode(node) {
@@ -664,6 +814,7 @@ function showWinScreen() {
 
   // Track elite four wins
   const wins = incrementEliteWins();
+  saveHallOfFameEntry(state.team, wins, state.hardMode);
   const winsEl = document.getElementById('win-run-count');
   if (winsEl) winsEl.textContent = `Championship #${wins}`;
   if (wins === 10) {

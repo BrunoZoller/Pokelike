@@ -53,6 +53,17 @@ function generateMap(mapIndex) {
       const t = weightedRandom(w);
       layer.push({ id: `n${l}_${c}`, type: t, layer: l, col: c });
     }
+
+    // Layer 1: guarantee at least one catch node
+    if (l === 1 && !layer.some(n => n.type === 'catch')) {
+      layer[0].type = 'catch';
+    }
+    // Layers 1, 3, 5: guarantee at least one battle node
+    if ((l === 1 || l === 3 || l === 5) && !layer.some(n => n.type === 'battle')) {
+      const idx = layer.findIndex(n => n.type !== 'catch');
+      layer[idx >= 0 ? idx : 0].type = 'battle';
+    }
+
     layers.push(layer);
   }
 
@@ -249,9 +260,9 @@ function renderMap(map, container, onNodeClick) {
     line.setAttribute('y1', from.y);
     line.setAttribute('x2', to.x);
     line.setAttribute('y2', to.y);
-    line.setAttribute('stroke', onPath ? '#555' : '#222');
-    line.setAttribute('stroke-width', onPath ? '2' : '1');
-    if (!onPath) line.setAttribute('stroke-dasharray', '3,5');
+    line.setAttribute('stroke', onPath ? '#888' : '#444');
+    line.setAttribute('stroke-width', onPath ? '2.5' : '1.5');
+    if (!onPath) line.setAttribute('stroke-dasharray', '4,5');
     svg.appendChild(line);
   }
 
