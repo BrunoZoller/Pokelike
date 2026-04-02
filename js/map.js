@@ -124,8 +124,8 @@ function generateMap(mapIndex) {
     const size = CONTENT_SIZES[ci];
     const layer = Array.from({ length: size }, (_, c) => makeNode(`n${l}_${c}`, pickType(ci), l, c));
 
-    // Guarantee a pokecenter in the last 2 content layers
-    if (ci >= CONTENT_SIZES.length - 2) {
+    // Guarantee a pokecenter in the last content layer
+    if (ci === CONTENT_SIZES.length - 1 && !layer.some(n => n.type === NODE_TYPES.POKECENTER)) {
       const idx = Math.floor(Math.random() * size);
       layer[idx].type = NODE_TYPES.POKECENTER;
     }
