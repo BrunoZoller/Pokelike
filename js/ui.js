@@ -2445,6 +2445,46 @@ function openShinyDexModal() { openPokedexModal('shiny'); }
 
 const PATCH_NOTES = [
   {
+    version: '1.2',
+    title: 'Combat & Maps Update',
+    date: '2026-04-02',
+    sections: [
+      {
+        heading: 'Combat Pacing',
+        entries: [
+          'Skipping battle animations now speeds them up instead of jumping straight to the end',
+          'Skip button greys out after pressing instead of disappearing',
+          'Auto-skip setting hides the skip button entirely — no more greyed-out clutter',
+          'Continue button is now available as soon as the level-up animation starts — click to fast-forward and auto-proceed',
+          'All Pokémon level up simultaneously instead of one at a time',
+        ],
+      },
+      {
+        heading: 'Difficulty',
+        entries: [
+          'Gym leaders Lt. Surge, Erika, and Koga now give their Pokémon held items',
+          'Lt. Surge: Pikachu → Eviolite, Voltorb → Magnet, Raichu → Life Orb',
+          'Erika: Tangela → Leftovers, Victreebel → Poison Barb, Vileplume → Miracle Seed',
+          'Koga: Koffing × 2 → Rocky Helmet, Muk → Poison Barb, Weezing → Leftovers',
+        ],
+      },
+      {
+        heading: 'Branching Paths',
+        entries: [
+          'Tons of overall improvements to branching paths',
+          'The last content layer before each boss is now guaranteed to have a Pokémon Center',
+          'Added proper icons for nodes',
+        ],
+      },
+      {
+        heading: 'Misc',
+        entries: [
+          'Removed the map legend from the bottom of the screen',
+        ],
+      },
+    ],
+  },
+  {
     version: '1.1',
     title: 'Items & Structure Update',
     date: '2026-03-11',
