@@ -12,6 +12,7 @@
     gtag('js', new Date());
     gtag('config', 'G-7B6G2K0W0K');
   </script>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -23,12 +24,17 @@
 <div id="title-screen" class="screen">
   <div class="game-logo">POKELIKE</div>
   <div class="game-subtitle">Pokemon + Roguelike</div>
+  <div style="color:var(--text-dim);font-size:9px;margin-bottom:6px;cursor:pointer;" onclick="openPatchNotesModal()">v1.1 — patch notes</div>
   <button id="btn-new-run" class="btn-primary">New Run</button>
   <button id="btn-hard-run" class="btn-secondary" style="margin-top:6px;" disabled>🔒 Hard Mode</button>
   <div id="hard-mode-hint" style="color:var(--text-dim);font-size:10px;margin-top:4px;"></div>
   <div style="display:flex;gap:8px;margin-top:8px;">
     <button onclick="openPokedexModal()" class="btn-secondary">📖 Pokédex</button>
     <button onclick="openAchievementsModal()" class="btn-secondary">🏆 Achievements</button>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:6px;">
+    <button onclick="openHallOfFameModal()" class="btn-secondary">🏛️ Hall of Fame</button>
+    <button onclick="openPatchNotesModal()" class="btn-secondary">📋 Patch Notes</button>
   </div>
 </div>
 
@@ -61,10 +67,11 @@
   <div class="map-header">
     <div id="map-info"></div>
     <div style="display:flex;align-items:center;gap:8px;">
-      <div id="badge-count">Badges: 0/8</div>
+      <div id="badge-count"></div>
       <div id="elite-wins-count" style="color:gold;font-size:11px;">Wins: 0</div>
       <button onclick="openPokedexModal()" class="btn-icon-sm" title="Pokédex">📖</button>
       <button onclick="openAchievementsModal()" class="btn-icon-sm" title="Achievements">🏆</button>
+      <button onclick="openSettingsModal()" class="btn-icon-sm" title="Settings">⚙</button>
     </div>
   </div>
 
@@ -98,6 +105,11 @@
     <p id="battle-subtitle"></p>
   </div>
 
+  <div class="battle-controls">
+    <button id="btn-auto-battle" class="btn-primary">Skip</button>
+    <button id="btn-continue-battle" class="btn-primary" style="display:none">Continue</button>
+  </div>
+
   <div class="battle-field">
     <div class="battle-side">
       <div class="battle-trainer" id="player-trainer-icon"></div>
@@ -109,13 +121,6 @@
       <div class="battle-side-label">Enemy</div>
       <div id="enemy-side"></div>
     </div>
-  </div>
-
-  <div id="battle-log"></div>
-
-  <div class="battle-controls">
-    <button id="btn-auto-battle" class="btn-primary">Skip</button>
-    <button id="btn-continue-battle" class="btn-primary" style="display:none">Continue</button>
   </div>
 </div>
 
@@ -144,9 +149,20 @@
 <!-- ===== SWAP SCREEN ===== -->
 <div id="swap-screen" class="screen">
   <h2>Team Full!</h2>
+  <p id="swap-prompt" class="swap-prompt"></p>
   <div id="swap-choices"></div>
   <div style="text-align:center;margin-top:12px;">
     <button id="btn-cancel-swap" class="btn-secondary">Keep team as-is</button>
+  </div>
+</div>
+
+<!-- ===== TRADE SCREEN ===== -->
+<div id="trade-screen" class="screen">
+  <h2>⇄ Trade Offer</h2>
+  <p id="trade-desc"></p>
+  <ul id="trade-team-list"></ul>
+  <div class="trade-footer">
+    <button id="btn-skip-trade" class="btn-secondary">Decline</button>
   </div>
 </div>
 
@@ -157,7 +173,7 @@
 
 <!-- ===== BADGE SCREEN ===== -->
 <div id="badge-screen" class="screen">
-  <div class="badge-icon">🏅</div>
+  <img id="badge-icon-img" class="badge-icon" src="" alt="Badge">
   <div id="badge-msg">Badge Earned!</div>
   <div id="badge-leader"></div>
   <div id="badge-count-display">Badges: 0/8</div>
@@ -184,7 +200,10 @@
   <p style="color:var(--text-dim);">Congratulations! You defeated the Elite Four!</p>
   <div id="win-run-count" style="color:gold;font-size:13px;font-weight:bold;margin-bottom:8px;"></div>
   <div id="win-team"></div>
-  <button id="btn-play-again" class="btn-primary">Play Again</button>
+  <div style="display:flex;gap:8px;justify-content:center;margin-top:8px;">
+    <button id="btn-play-again" class="btn-primary">Play Again</button>
+    <button onclick="openHallOfFameModal()" class="btn-secondary">🏛️ Hall of Fame</button>
+  </div>
 </div>
 
 <!-- ===== EVOLUTION OVERLAY ===== -->

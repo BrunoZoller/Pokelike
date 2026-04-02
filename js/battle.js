@@ -25,21 +25,20 @@ function calcDamage(attacker, defender, move, items, defItems = []) {
 
   // Physical/special split items
   if (isSpecial) {
-    if (hasItem(items, 'wise_glasses'))  damage = Math.floor(damage * 1.2);
     if (hasItem(items, 'choice_specs'))  damage = Math.floor(damage * 1.4);
-    if (hasItem(items, 'choice_band'))   damage = Math.floor(damage * 0.7);
-    if (hasItem(items, 'muscle_band'))   damage = damage; // no effect on special
   } else {
-    if (hasItem(items, 'muscle_band'))   damage = Math.floor(damage * 1.2);
     if (hasItem(items, 'choice_band'))   damage = Math.floor(damage * 1.4);
-    if (hasItem(items, 'choice_specs'))  damage = Math.floor(damage * 0.7);
-    if (hasItem(items, 'wise_glasses'))  damage = damage; // no effect on physical
   }
 
-  // Adaptability Band: +50% if team has ≤2 unique types
-  if (hasItem(items, 'adaptability_band')) {
-    const uniqueTypes = new Set((typeof state !== 'undefined' ? state.team : []).flatMap(p => p.types || []));
-    if (uniqueTypes.size <= 2) damage = Math.floor(damage * 1.5);
+  // Adaptability Band: +50% if every Pokémon on the team shares a type
+  if (hasItem(items, 'metronome')) {
+    const team = typeof state !== 'undefined' ? state.team : [];
+    if (team.length > 0) {
+      const sharedType = (attacker.types || []).find(t =>
+        team.every(p => (p.types || []).some(pt => pt.toLowerCase() === t.toLowerCase()))
+      );
+      if (sharedType) damage = Math.floor(damage * 1.5);
+    }
   }
 
   if (hasItem(items, 'expert_belt') && typeEff >= 2) damage = Math.floor(damage * 1.2);
@@ -66,16 +65,26 @@ function getEffectiveStat(pokemon, stat, items) {
   let val = rawStat || 50;
   val = Math.floor(val * pokemon.level / 50) + 5;
 
-  if (stat === 'def') {
-    if (hasItem(items, 'eviolite'))     val = Math.floor(val * 1.5);
-    if (hasItem(items, 'assault_vest')) val = Math.floor(val * 1.5);
-  }
-  if (stat === 'special' || stat === 'spdef') {
-    if (hasItem(items, 'eviolite'))     val = Math.floor(val * 1.5);
-    if (hasItem(items, 'assault_vest')) val = Math.floor(val * 1.5);
-  }
+  const team = typeof state !== 'undefined' ? state.team : [];
+  const allPhysical = team.length > 0 && team.every(p => (p.baseStats?.atk || 0) > (p.baseStats?.special || 0));
+  const allSpecial  = team.length > 0 && team.every(p => (p.baseStats?.special || 0) >= (p.baseStats?.atk || 0));
+
   if (stat === 'atk') {
-    if (hasItem(items, 'choice_scarf')) val = Math.floor(val * 0.75);
+    if (hasItem(items, 'muscle_band') && allPhysical) val = Math.floor(val * 1.5);
+  }
+  if (stat === 'def') {
+    if (hasItem(items, 'eviolite'))                      val = Math.floor(val * 1.5);
+    if (hasItem(items, 'muscle_band') && allPhysical) val = Math.floor(val * 1.5);
+    if (hasItem(items, 'choice_band'))                   val = Math.floor(val * 0.8);
+  }
+  if (stat === 'special') {
+    if (hasItem(items, 'wise_glasses') && allSpecial)    val = Math.floor(val * 1.5);
+  }
+  if (stat === 'spdef') {
+    if (hasItem(items, 'eviolite'))                      val = Math.floor(val * 1.5);
+    if (hasItem(items, 'assault_vest'))                  val = Math.floor(val * 1.5);
+    if (hasItem(items, 'wise_glasses') && allSpecial)    val = Math.floor(val * 1.5);
+    if (hasItem(items, 'choice_specs'))                  val = Math.floor(val * 0.8);
   }
   if (stat === 'speed') {
     if (hasItem(items, 'choice_scarf')) val = Math.floor(val * 1.5);
@@ -145,15 +154,15 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog) {
 
     // Per-Pokemon held items for this round
     const pActiveItems = pActive.heldItem ? [pActive.heldItem] : [];
-    const eActiveItems = enemyItems; // enemy uses trainer-level items
+    const eActiveItems = eActive.heldItem ? [eActive.heldItem] : [];
 
     // Speed determines turn order
     const pSpeed = getEffectiveStat(pActive, 'speed', pActiveItems);
     const eSpeed = getEffectiveStat(eActive, 'speed', eActiveItems);
 
     // If both active Pokemon can only use noDamage moves, force Struggle to break the stalemate
-    const pMove = getBestMove(pActive.types || ['Normal'], pActive.baseStats, pActive.speciesId);
-    const eMove = getBestMove(eActive.types || ['Normal'], eActive.baseStats, eActive.speciesId);
+    const pMove = getBestMove(pActive.types || ['Normal'], pActive.baseStats, pActive.speciesId, pActive.moveTier ?? 1);
+    const eMove = getBestMove(eActive.types || ['Normal'], eActive.baseStats, eActive.speciesId, eActive.moveTier ?? 1);
     const bothUseless = pMove.noDamage && eMove.noDamage;
 
     const turns = pSpeed >= eSpeed
@@ -165,7 +174,7 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog) {
     for (const { attacker, aIdx, side, target, tIdx, tSide } of turns) {
       if (attacker.currentHp <= 0 || target.currentHp <= 0) continue;
 
-      let move = getBestMove(attacker.types || ['Normal'], attacker.baseStats, attacker.speciesId);
+      let move = getBestMove(attacker.types || ['Normal'], attacker.baseStats, attacker.speciesId, attacker.moveTier ?? 1);
       // If both sides are stuck with useless moves, force Struggle on both
       if (bothUseless) {
         move = { name: 'Struggle', power: 50, type: 'Normal', isSpecial: false };
@@ -228,11 +237,11 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog) {
       }
 
       // Rocky Helmet
-      if (side === 'enemy' && target.heldItem?.id === 'rocky_helmet') {
+      if (target.heldItem?.id === 'rocky_helmet') {
         const helmet = Math.max(1, Math.floor(attacker.maxHp * 0.15));
         attacker.currentHp = Math.max(0, attacker.currentHp - helmet);
         addLog(`Rocky Helmet hurt ${aName} for ${helmet} HP!`, 'log-item');
-        detailedLog.push({ type: 'effect', side: 'enemy', idx: aIdx, name: aName,
+        detailedLog.push({ type: 'effect', side, idx: aIdx, name: aName,
           hpChange: -helmet, hpAfter: attacker.currentHp, reason: `Rocky Helmet hurt ${aName} for ${helmet} HP!` });
       }
 
@@ -307,8 +316,9 @@ function getLevelGain(team, bagItems) {
 
 // Applies level gains and returns an array of level-up events for animation.
 // Each entry: { idx, pokemon, oldLevel, newLevel, preHp }
-function applyLevelGain(team, bagItems, participantIdxs, maxEnemyLevel = 0, hardMode = false) {
-  const baseGain = hardMode ? 1 : getLevelGain(team, bagItems);
+// baseGainOverride: if set, ignores hardMode/Lucky Egg and uses this value directly
+function applyLevelGain(team, bagItems, participantIdxs, maxEnemyLevel = 0, hardMode = false, baseGainOverride = null) {
+  const baseGain = baseGainOverride !== null ? baseGainOverride : (hardMode ? 1 : getLevelGain(team, bagItems));
   const levelUps = [];
 
   for (let i = 0; i < team.length; i++) {
@@ -316,8 +326,7 @@ function applyLevelGain(team, bagItems, participantIdxs, maxEnemyLevel = 0, hard
     const getsXp = p.currentHp > 0 || (participantIdxs && participantIdxs.has(i));
     if (!getsXp) continue;
 
-    const overleveled = !hardMode && maxEnemyLevel > 0 && p.level > maxEnemyLevel + 5;
-    const gain = overleveled ? 1 : baseGain;
+    const gain = baseGain;
     const oldLevel = p.level;
     const newLevel = Math.min(100, oldLevel + gain);
     if (newLevel === oldLevel) continue; // already at cap

@@ -66,7 +66,7 @@ async function showStarterSelect() {
   for (const species of starters) {
     if (!species) continue;
     const isShiny = Math.random() < 0.01; // 1/100 shiny chance for starters
-    const inst = createInstance(species, startLevel, isShiny);
+    const inst = createInstance(species, startLevel, isShiny, 0);
     const wrapper = document.createElement('div');
     wrapper.innerHTML = renderPokemonCard(inst, true, false);
     const card = wrapper.querySelector('.poke-card');
@@ -120,7 +120,16 @@ function showMapScreen() {
       : `<span>Map ${state.currentMap+1}: vs <b>${leader.name}</b> (${leader.type})</span><span>Levels ${range[0]}–${range[1]}</span>`;
   }
   const badgeEl = document.getElementById('badge-count');
-  if (badgeEl) badgeEl.textContent = `Badges: ${state.badges}/8`;
+  if (badgeEl) {
+    const BASE = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/';
+    badgeEl.innerHTML = Array.from({ length: 8 }, (_, i) => {
+      const earned = i < state.badges;
+      const label = GYM_LEADERS[i].badge;
+      return earned
+        ? `<img src="${BASE}${i + 1}.png" alt="${label}" title="${label}" class="badge-icon-img">`
+        : `<span class="badge-icon-empty" title="${label}"></span>`;
+    }).join('');
+  }
   const winsEl = document.getElementById('elite-wins-count');
   if (winsEl) winsEl.textContent = `Wins: ${getEliteWins()}`;
 
@@ -131,6 +140,23 @@ function showMapScreen() {
   renderMap(state.map, mapContainer, onNodeClick);
 }
 
+function showItemFoundToast(icon, name) {
+  const toast = document.createElement('div');
+  toast.className = 'item-found-toast';
+  toast.innerHTML = `<span class="item-toast-icon">${icon}</span>
+    <div class="ach-toast-text">
+      <div class="item-toast-label">Item Found!</div>
+      <div class="item-toast-name">${name}</div>
+    </div>`;
+  document.body.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add('visible'));
+  setTimeout(() => {
+    toast.classList.remove('visible');
+    setTimeout(() => toast.remove(), 400);
+  }, 3000);
+}
+
+
 async function onNodeClick(node) {
   state.currentNode = node;
   let resolvedType = node.type;
@@ -138,6 +164,8 @@ async function onNodeClick(node) {
   if (node.type === NODE_TYPES.QUESTION) {
     resolvedType = resolveQuestionMark();
   }
+
+  const isTrainerOrBoss = resolvedType === NODE_TYPES.TRAINER || resolvedType === NODE_TYPES.BOSS || resolvedType === NODE_TYPES.ITEM;
 
   switch (resolvedType) {
     case NODE_TYPES.BATTLE:
@@ -155,6 +183,18 @@ async function onNodeClick(node) {
     case NODE_TYPES.POKECENTER:
       doPokeCenterNode(node);
       break;
+    case NODE_TYPES.TRAINER:
+      await doTrainerNode(node);
+      break;
+    case NODE_TYPES.LEGENDARY:
+      await doLegendaryNode(node);
+      break;
+    case NODE_TYPES.MOVE_TUTOR:
+      await doMoveTutorNode(node);
+      break;
+    case NODE_TYPES.TRADE:
+      await doTradeNode(node);
+      break;
     case 'shiny':
       await doShinyNode(node);
       break;
@@ -164,15 +204,17 @@ async function onNodeClick(node) {
     default:
       await doBattleNode(node);
   }
+
 }
 
 function resolveQuestionMark() {
   const r = Math.random();
-  if (r < 0.4) return NODE_TYPES.BATTLE;
-  if (r < 0.6) return NODE_TYPES.CATCH;
-  if (r < 0.8) return NODE_TYPES.ITEM;
-  // Hard mode win reward: shiny chance doubled (10% → 20%)
-  const shinyThreshold = hasHardModeWin() ? 0.8 : 0.9;
+  if (r < 0.22) return NODE_TYPES.BATTLE;
+  if (r < 0.42) return NODE_TYPES.TRAINER;
+  if (r < 0.52) return NODE_TYPES.CATCH;
+  if (r < 0.65) return NODE_TYPES.ITEM;
+  // Hard mode win reward: shiny chance doubled
+  const shinyThreshold = hasHardModeWin() ? 0.70 : 0.88;
   if (r < shinyThreshold) return 'shiny';
   return 'mega';
 }
@@ -214,7 +256,7 @@ async function doBattleNode(node) {
     showMapScreen();
     return;
   }
-  const enemy = createInstance(enemySpecies, level);
+  const enemy = createInstance(enemySpecies, level, false, getMoveТierForMap(state.currentMap));
   const titleEl = document.getElementById('battle-title');
   const subEl = document.getElementById('battle-subtitle');
   if (titleEl) titleEl.textContent = `Wild ${enemy.name} appeared!`;
@@ -224,7 +266,7 @@ async function doBattleNode(node) {
     showMapScreen();
   }, () => {
     showGameOver();
-  });
+  }, null, [], 1); // Wild battles always give 1 level
 }
 
 async function doBossNode(node) {
@@ -233,7 +275,7 @@ async function doBossNode(node) {
     return;
   }
   const leader = GYM_LEADERS[state.currentMap];
-  const enemyTeam = leader.team.map(p => createInstance(p, p.level));
+  const enemyTeam = leader.team.map(p => createInstance(p, p.level, false, 1));
 
   showScreen('battle-screen');
   document.getElementById('battle-title').textContent = `Gym Battle vs ${leader.name}!`;
@@ -246,7 +288,7 @@ async function doBossNode(node) {
     if (ach) showAchievementToast(ach);
   }, () => {
     showGameOver();
-  }, leader.name, leader.items || []);
+  }, leader.name);
 }
 
 async function doElite4() {
@@ -254,13 +296,13 @@ async function doElite4() {
   for (let i = state.eliteIndex; i < bosses.length; i++) {
     state.eliteIndex = i;
     const boss = bosses[i];
-    const enemyTeam = boss.team.map(p => createInstance(p, p.level));
+    const enemyTeam = boss.team.map(p => createInstance(p, p.level, false, 2));
 
     showScreen('battle-screen');
     document.getElementById('battle-title').textContent = `${boss.title}: ${boss.name}!`;
     document.getElementById('battle-subtitle').textContent = i === 4 ? 'Final Battle!' : `Elite Four - Battle ${i+1}/4`;
     const won = await new Promise(resolve => {
-      runBattleScreen(enemyTeam, true, () => resolve(true), () => resolve(false), boss.name, boss.items || []);
+      runBattleScreen(enemyTeam, true, () => resolve(true), () => resolve(false), boss.name);
     });
 
     if (!won) { showGameOver(); return; }
@@ -291,10 +333,29 @@ async function doCatchNode(node) {
   const choicesEl = document.getElementById('catch-choices');
   choicesEl.innerHTML = '<div class="loading">Finding Pokemon...</div>';
 
-  const choices = await getCatchChoices(state.currentMap);
-  const level = getLevelForNode(node);
+  let choices = await getCatchChoices(state.currentMap);
+  const level = (state.currentMap === 0) ? Math.max(4, getLevelForNode(node)) : getLevelForNode(node);
 
-  const instances = choices.map(sp => createInstance(sp, level));
+  // Map 1, layer 1: guarantee at least one Grass AND one Water Pokemon
+  if (state.currentMap === 0 && node.layer === 1) {
+    const grassIds = [43, 69, 102]; // Oddish, Bellsprout, Exeggcute
+    const waterIds = [54, 60, 72, 79, 86, 98, 116, 118, 120, 129];
+    if (!choices.some(p => p.types?.includes('Grass'))) {
+      const id = grassIds[Math.floor(Math.random() * grassIds.length)];
+      const r = await fetchPokemonById(id);
+      if (r) choices[0] = r;
+    }
+    if (!choices.some(p => p.types?.includes('Water'))) {
+      const id = waterIds[Math.floor(Math.random() * waterIds.length)];
+      const r = await fetchPokemonById(id);
+      if (r) {
+        const slot = choices.findIndex(p => !p.types?.includes('Grass'));
+        choices[slot === -1 ? 2 : slot] = r;
+      }
+    }
+  }
+
+  const instances = choices.map(sp => createInstance(sp, level, false, getMoveТierForMap(state.currentMap)));
 
   choicesEl.innerHTML = '';
   const dex = getPokedex();
@@ -344,7 +405,8 @@ function catchPokemon(pokemon, node) {
 function showSwapScreen(newPoke, node) {
   showScreen('swap-screen');
   const el = document.getElementById('swap-choices');
-  el.innerHTML = `<p class="swap-prompt">Your team is full! Choose a Pokemon to release:</p>`;
+  el.innerHTML = '';
+  document.getElementById('swap-prompt').textContent = 'Choose a Pokémon to release:';
   for (let i = 0; i < state.team.length; i++) {
     const p = state.team[i];
     const wrapper = document.createElement('div');
@@ -356,6 +418,8 @@ function showSwapScreen(newPoke, node) {
     const idx = i;
     card.addEventListener('click', () => {
       if (newPoke.isShiny) markShinyDexCaught(newPoke.speciesId, newPoke.name, newPoke.types, newPoke.spriteUrl);
+      const released = state.team[idx];
+      if (released.heldItem) state.items.push(released.heldItem);
       state.team.splice(idx, 1, newPoke);
       advanceFromNode(state.map, node.id);
       showMapScreen();
@@ -372,14 +436,29 @@ function doItemNode(node) {
   showScreen('item-screen');
   renderTeamBar(state.team, document.getElementById('item-team-bar'));
 
-  // Exclude items already in bag or held by any Pokemon
+  // Exclude held-type items already in bag or on a Pokemon (usable items can stack)
   const usedIds = new Set([
-    ...state.items.map(it => it.id),
+    ...state.items.filter(it => !it.usable).map(it => it.id),
     ...state.team.filter(p => p.heldItem).map(p => p.heldItem.id),
   ]);
-  const available = ITEM_POOL.filter(it =>
+  const heldAvailable = ITEM_POOL.filter(it =>
     !usedIds.has(it.id) && (it.minMap === undefined || state.currentMap >= it.minMap)
   );
+
+  // Usable items: filter out ones that can't be applied to current team
+  const canUseMaxRevive = state.team.some(p => p.currentHp <= 0);
+  const canUseEvoStone  = state.team.some(p => {
+    if (p.speciesId === 133) return true;
+    const evo = GEN1_EVOLUTIONS[p.speciesId];
+    return evo && evo.into !== p.speciesId;
+  });
+  const usableAvailable = USABLE_ITEM_POOL.filter(it => {
+    if (it.id === 'max_revive') return canUseMaxRevive;
+    if (it.id === 'moon_stone')  return canUseEvoStone;
+    return true;
+  });
+
+  const available = [...heldAvailable, ...usableAvailable];
   const shuffled = [...available].sort(() => Math.random() - 0.5);
   const picks = shuffled.slice(0, 2);
 
@@ -390,12 +469,19 @@ function doItemNode(node) {
     div.className = 'item-card';
     div.innerHTML = `<div class="item-icon">${itemIconHtml(item, 36)}</div>
       <div class="item-name">${item.name}</div>
-      <div class="item-desc">${item.desc}</div>`;
+      <div class="item-desc">${item.desc}</div>
+      ${item.usable ? '<div style="font-size:9px;color:#4af;margin-top:4px;">USABLE ITEM</div>' : ''}`;
     div.style.cursor = 'pointer';
     div.addEventListener('click', () => {
-      openItemEquipModal(item, {
-        onComplete: () => { advanceFromNode(state.map, node.id); showMapScreen(); },
-      });
+      if (item.usable) {
+        state.items.push({ ...item });
+        advanceFromNode(state.map, node.id);
+        showMapScreen();
+      } else {
+        openItemEquipModal(item, {
+          onComplete: () => { advanceFromNode(state.map, node.id); showMapScreen(); },
+        });
+      }
     });
     el.appendChild(div);
   }
@@ -511,11 +597,337 @@ function openItemEquipModal(item, { fromBagIdx = -1, fromPokemonIdx = -1, onComp
   modal.addEventListener('click', e => { if (e.target === modal) { modal.remove(); done(); } });
 }
 
+function openUsableItemModal(item, bagIdx) {
+  document.getElementById('usable-item-modal')?.remove();
+
+  const canTarget = p => {
+    if (item.id === 'max_revive') return p.currentHp <= 0;
+    if (item.id === 'moon_stone') {
+      if (p.speciesId === 133) return true;
+      const evo = GEN1_EVOLUTIONS[p.speciesId];
+      return !!(evo && evo.into !== p.speciesId);
+    }
+    return true;
+  };
+
+  const rows = state.team.map((p, i) => {
+    const enabled = canTarget(p);
+    const statusText = p.currentHp <= 0 ? 'Fainted' : `${p.currentHp}/${p.maxHp} HP`;
+    return `<div class="equip-pokemon-row" data-idx="${i}"
+        style="${enabled ? 'cursor:pointer;' : 'opacity:0.4;cursor:default;pointer-events:none;'}">
+      <img src="${p.spriteUrl}" class="equip-poke-sprite" onerror="this.style.display='none'">
+      <div class="equip-poke-info">
+        <div class="equip-poke-name">${p.nickname || p.name}</div>
+        <div class="equip-poke-lv">Lv${p.level} — ${statusText}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const modal = document.createElement('div');
+  modal.id = 'usable-item-modal';
+  modal.className = 'item-equip-overlay';
+  modal.innerHTML = `
+    <div class="item-equip-box">
+      <div class="equip-item-header">
+        <span class="equip-item-icon">${itemIconHtml(item, 32)}</span>
+        <div>
+          <div class="equip-item-name">${item.name}</div>
+          <div class="equip-item-desc">${item.desc}</div>
+        </div>
+      </div>
+      <div class="equip-pokemon-list">${rows}</div>
+      <button id="btn-cancel-use" class="btn-secondary" style="width:100%;margin-top:8px;">Cancel</button>
+    </div>`;
+  document.body.appendChild(modal);
+
+  modal.querySelector('#btn-cancel-use').addEventListener('click', () => modal.remove());
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+
+  modal.querySelectorAll('[data-idx]').forEach(row => {
+    if (row.style.pointerEvents === 'none') return;
+    row.addEventListener('click', async () => {
+      const idx = parseInt(row.dataset.idx);
+      const pokemon = state.team[idx];
+      modal.remove();
+      state.items.splice(bagIdx, 1);
+
+      if (item.id === 'max_revive') {
+        pokemon.currentHp = pokemon.maxHp;
+        showMapNotification(`${pokemon.nickname || pokemon.name} was revived!`);
+        renderItemBadges(state.items);
+        renderTeamBar(state.team);
+
+      } else if (item.id === 'moon_stone') {
+        await applyEvolution(pokemon);
+      }
+    });
+  });
+}
+
+async function applyEvolution(pokemon) {
+  let evo;
+  if (pokemon.speciesId === 133) {
+    evo = await showEeveeChoice(pokemon);
+  } else {
+    evo = GEN1_EVOLUTIONS[pokemon.speciesId];
+    if (!evo) return;
+  }
+
+  await playEvoAnimation(pokemon, evo);
+
+  const oldHpRatio = pokemon.currentHp / pokemon.maxHp;
+  const newSpecies = await fetchPokemonById(evo.into);
+
+  pokemon.speciesId = evo.into;
+  pokemon.name      = evo.name;
+  pokemon.spriteUrl = pokemon.isShiny
+    ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/${evo.into}.png`
+    : `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${evo.into}.png`;
+
+  if (newSpecies) {
+    pokemon.types     = newSpecies.types;
+    pokemon.baseStats = newSpecies.baseStats;
+    const newMax      = calcHp(newSpecies.baseStats.hp, pokemon.level);
+    pokemon.maxHp     = newMax;
+    pokemon.currentHp = Math.max(1, Math.floor(oldHpRatio * newMax));
+  }
+
+  const normalUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemon.speciesId}.png`;
+  markPokedexCaught(pokemon.speciesId, pokemon.name, pokemon.types, normalUrl);
+  if (pokemon.isShiny) markShinyDexCaught(pokemon.speciesId, pokemon.name, pokemon.types, pokemon.spriteUrl);
+  checkDexAchievements();
+  renderItemBadges(state.items);
+  renderTeamBar(state.team);
+}
+
 function doPokeCenterNode(node) {
   for (const p of state.team) p.currentHp = p.maxHp;
   advanceFromNode(state.map, node.id);
   showMapScreen();
   showMapNotification('🏥 Your team was fully healed!');
+}
+
+// ---- Trainer Battle Node ----
+
+// Species pools for each trainer archetype (Gen 1 IDs).
+// null = use the map's random BST pool instead.
+const TRAINER_BATTLE_CONFIG = {
+  bugCatcher:  { name: 'Bug Catcher',   sprite: 'bugcatcher',
+                 pool: [10,11,12,13,14,15,46,47,48,49,123,127] },
+  hiker:       { name: 'Hiker',         sprite: 'hiker',
+                 pool: [27,28,50,51,66,67,68,74,75,76,95,111,112] },
+  fisher:      { name: 'Fisherman',     sprite: 'sailor',
+                 pool: [54,55,60,61,62,72,73,86,87,90,91,98,99,116,117,118,119,129,130] },
+  Scientist:   { name: 'Scientist',     sprite: 'scientist-gen1',
+                 pool: [81,82,88,89,92,93,94,100,101,137] },
+  teamRocket:  { name: 'Rocket Grunt',  sprite: 'team-rocket-grunt-m',
+                 pool: [19,20,23,24,41,42,52,53,88,89,109,110] },
+  policeman:   { name: 'Officer',       sprite: 'policeman',
+                 pool: [58,59] },
+  fireSpitter: { name: 'Fire Trainer',  sprite: 'firebreather',
+                 pool: [4,5,6,37,38,58,59,77,78,126,136] },
+  aceTrainer:  { name: 'Ace Trainer',   sprite: 'acetrainer-gen1', pool: null },
+  oldGuy:      { name: 'Old Man',       sprite: 'camper',       pool: null },
+};
+
+async function doTrainerNode(node) {
+  const key = node.trainerSprite || 'aceTrainer';
+  const config = TRAINER_BATTLE_CONFIG[key] || TRAINER_BATTLE_CONFIG.aceTrainer;
+  const teamSize = state.currentMap === 0 ? 1 : state.currentMap <= 2 ? 2 : 3;
+  const level = getLevelForNode(node);
+  const moveTier = getMoveТierForMap(state.currentMap);
+
+  let speciesList;
+  if (config.pool) {
+    // Dedupe pool, filter out evolved forms the battle level can't reach, then shuffle
+    const eligible = [...new Set(config.pool)]
+      .filter(id => minLevelForSpecies(id) <= level);
+    const pool = eligible.length ? eligible : [...new Set(config.pool)]; // fallback: use full pool
+    const shuffled = pool.sort(() => Math.random() - 0.5);
+    const ids = Array.from({ length: teamSize }, (_, i) => shuffled[i % shuffled.length]);
+    const fetched = await Promise.all(ids.map(id => fetchPokemonById(id)));
+    speciesList = fetched.filter(Boolean);
+  } else {
+    const choices = await getCatchChoices(state.currentMap);
+    speciesList = choices.slice(0, teamSize);
+  }
+
+  if (!speciesList.length) { advanceFromNode(state.map, node.id); showMapScreen(); return; }
+  const enemyTeam = speciesList.map(sp => createInstance(sp, level, false, moveTier));
+
+  const titleEl = document.getElementById('battle-title');
+  const subEl   = document.getElementById('battle-subtitle');
+  if (titleEl) titleEl.textContent = `${config.name} wants to battle!`;
+  if (subEl)   subEl.textContent   = `${enemyTeam.length} Pokémon — Lv ~${level}`;
+
+  await runBattleScreen(enemyTeam, false, () => {
+    advanceFromNode(state.map, node.id);
+    showMapScreen();
+  }, () => {
+    showGameOver();
+  }, config.sprite, [], 2, true); // always show player portrait for trainer battles
+}
+
+// ---- Legendary Node ----
+
+async function doLegendaryNode(node) {
+  const legendId = LEGENDARY_IDS[Math.floor(Math.random() * LEGENDARY_IDS.length)];
+  const species = await fetchPokemonById(legendId);
+  if (!species) { advanceFromNode(state.map, node.id); showMapScreen(); return; }
+
+  const level = MAP_LEVEL_RANGES[state.currentMap][1]; // top of map range
+  const legendary = createInstance(species, level, false, 2);
+
+  const titleEl = document.getElementById('battle-title');
+  const subEl = document.getElementById('battle-subtitle');
+  if (titleEl) titleEl.textContent = `A legendary ${legendary.name} appeared!`;
+  if (subEl) subEl.textContent = `Lv ${legendary.level} — Defeat it to add it to your team!`;
+
+  await runBattleScreen([legendary], false, async () => {
+    // Win — offer to add legendary to team
+    const normalUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${legendary.speciesId}.png`;
+    markPokedexCaught(legendary.speciesId, legendary.name, legendary.types, normalUrl);
+    checkDexAchievements();
+    if (state.team.length < 6) {
+      state.team.push(legendary);
+      if (state.team.length > state.maxTeamSize) state.maxTeamSize = state.team.length;
+      advanceFromNode(state.map, node.id);
+      showMapNotification(`${legendary.name} joined your team!`);
+      showMapScreen();
+    } else {
+      showSwapScreen(legendary, node);
+    }
+  }, () => {
+    showGameOver();
+  }, null, [], 0); // Legendary battles give 0 extra levels (already challenging enough)
+}
+
+// ---- Move Tutor Node ----
+
+function doMoveTutorNode(node) {
+  document.getElementById('item-equip-modal')?.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'item-equip-modal';
+  modal.className = 'item-equip-overlay';
+
+  const rows = state.team.map((p, i) => {
+    const tier = p.moveTier ?? 1;
+    const maxed = tier >= 2;
+    const currentMove = getBestMove(p.types || ['Normal'], p.baseStats, p.speciesId, tier);
+    const nextMove = !maxed ? getBestMove(p.types || ['Normal'], p.baseStats, p.speciesId, tier + 1) : null;
+    const tierLabel = ['Tier 1', 'Tier 2', 'Mastered'][tier];
+    return `<div class="equip-pokemon-row" style="${maxed ? 'opacity:0.45;' : ''}">
+      <img src="${p.spriteUrl}" class="equip-poke-sprite" onerror="this.style.display='none'">
+      <div class="equip-poke-info">
+        <div class="equip-poke-name">${p.nickname || p.name}</div>
+        <div class="equip-poke-lv">Lv${p.level} &bull; ${currentMove.name} (${tierLabel})</div>
+      </div>
+      <div class="equip-btn-group">
+        ${maxed
+          ? `<span style="font-size:10px;color:#888;">Already mastered!</span>`
+          : `<button class="equip-btn" data-tutor="${i}">→ ${nextMove.name}</button>`}
+      </div>
+    </div>`;
+  }).join('');
+
+  modal.innerHTML = `
+    <div class="item-equip-box">
+      <div class="equip-item-header">
+        <span class="equip-item-icon" style="font-size:28px;">♪</span>
+        <div>
+          <div class="equip-item-name">Move Tutor</div>
+          <div class="equip-item-desc">Teach one Pokémon a more powerful move.</div>
+        </div>
+      </div>
+      <div class="equip-pokemon-list">${rows}</div>
+      <button id="btn-skip-tutor" class="btn-secondary" style="width:100%;margin-top:8px;">Skip</button>
+    </div>`;
+
+  document.body.appendChild(modal);
+
+  const finish = () => {
+    modal.remove();
+    advanceFromNode(state.map, node.id);
+    showMapScreen();
+  };
+
+  modal.querySelectorAll('button[data-tutor]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.tutor);
+      const pokemon = state.team[idx];
+      pokemon.moveTier = Math.min(2, (pokemon.moveTier ?? 1) + 1);
+      const newMove = getBestMove(pokemon.types || ['Normal'], pokemon.baseStats, pokemon.speciesId, pokemon.moveTier);
+      modal.remove();
+      advanceFromNode(state.map, node.id);
+      showMapScreen();
+      showMapNotification(`${pokemon.nickname || pokemon.name} learned ${newMove.name}!`);
+    });
+  });
+
+  modal.querySelector('#btn-skip-tutor').addEventListener('click', finish);
+  modal.addEventListener('click', e => { if (e.target === modal) finish(); });
+}
+
+// ---- Trade Node ----
+
+async function doTradeNode(node) {
+  showScreen('trade-screen');
+  document.getElementById('trade-desc').textContent = "Send one of your Pokémon. You'll receive a stronger one in return.";
+
+  const listEl = document.getElementById('trade-team-list');
+  listEl.innerHTML = '';
+
+  for (let i = 0; i < state.team.length; i++) {
+    const mine = state.team[i];
+    const typeBadges = (mine.types || []).map(t =>
+      `<span class="type-badge type-${t.toLowerCase()}">${t}</span>`
+    ).join('');
+
+    const li = document.createElement('li');
+    li.className = 'trade-member-row';
+    li.innerHTML = `
+      <img class="trade-member-sprite" src="${mine.spriteUrl || ''}" alt="${mine.name}" loading="lazy">
+      <div class="trade-member-info">
+        <div class="trade-member-name">${mine.nickname || mine.name}</div>
+        <div class="trade-member-level">Lv ${mine.level}</div>
+        <div class="trade-member-types">${typeBadges}</div>
+      </div>
+      <div class="trade-member-arrow">→</div>
+    `;
+
+    const idx = i;
+    const doTrade = async () => {
+      const pool = await getCatchChoices(state.currentMap);
+      const species = pool[Math.floor(Math.random() * pool.length)];
+      if (!species) { advanceFromNode(state.map, node.id); showMapScreen(); return; }
+      const offerLevel = Math.min(100, mine.level + 3);
+      const offer = createInstance(species, offerLevel, false, getMoveТierForMap(state.currentMap));
+      const released = state.team[idx];
+      if (released.heldItem) state.items.push(released.heldItem);
+      state.team.splice(idx, 1, offer);
+      advanceFromNode(state.map, node.id);
+
+      // Show full-screen reveal
+      showScreen('shiny-screen');
+      document.getElementById('shiny-content').innerHTML = `
+        <div class="shiny-title">You received ${offer.name}!</div>
+        <div style="color:var(--text-dim);font-size:10px;margin-bottom:8px;">
+          ${released.nickname || released.name} was sent to the trainer.</div>
+        ${renderPokemonCard(offer, false, false, false)}
+        <button id="btn-trade-continue" class="btn-primary" style="margin-top:12px;">Continue</button>
+      `;
+      document.getElementById('btn-trade-continue').onclick = () => showMapScreen();
+    };
+
+    li.addEventListener('click', doTrade);
+    listEl.appendChild(li);
+  }
+
+  document.getElementById('btn-skip-trade').onclick = () => {
+    advanceFromNode(state.map, node.id);
+    showMapScreen();
+  };
 }
 
 async function doShinyNode(node) {
@@ -524,7 +936,7 @@ async function doShinyNode(node) {
   const species = choices[0];
   if (!species) { advanceFromNode(state.map, node.id); showMapScreen(); return; }
 
-  const shiny = createInstance(species, level, true);
+  const shiny = createInstance(species, level, true, getMoveТierForMap(state.currentMap));
 
   const shinyCaught = !!(getShinyDex()[shiny.speciesId]);
   showScreen('shiny-screen');
@@ -555,10 +967,11 @@ function doMegaNode(node) {
 
 // ---- Battle Screen ----
 
-function runBattleScreen(enemyTeam, isBoss, onWin, onLose, enemyName = null, enemyItems = []) {
+function runBattleScreen(enemyTeam, isBoss, onWin, onLose, enemyName = null, enemyItems = [], baseGainOverride = null, showPlayerPortrait = null) {
   return new Promise(async resolve => {
     showScreen('battle-screen');
-    renderTrainerIcons(state.trainer, isBoss ? enemyName : null);
+    const showPlayer = showPlayerPortrait !== null ? showPlayerPortrait : !!(isBoss || enemyName);
+    renderTrainerIcons(state.trainer, enemyName || null, showPlayer);
 
     const pTeamCopy = state.team.map(p => ({ ...p }));
     // enemyTeam HP init (runBattle will deep-copy, but we need initial state for animation)
@@ -575,17 +988,27 @@ function runBattleScreen(enemyTeam, isBoss, onWin, onLose, enemyName = null, ene
       pTeamCopy, enemyTeam, state.items, enemyItems, null
     );
 
+    // Read auto-skip settings
+    const settings = getSettings();
+    const autoSkip = settings.autoSkipAllBattles || (!isBoss && settings.autoSkipBattles);
+    const autoSkipLvl = autoSkip || settings.autoSkipLevelUp;
+
     // Set up Skip button
     const skipBtn = document.getElementById('btn-auto-battle');
     skipBtn.disabled = false;
     skipBtn.textContent = 'Skip';
-    skipBtn.onclick = () => { skipBattleAnimation = true; };
+    if (autoSkip) {
+      skipBtn.style.display = 'none';
+    } else {
+      skipBtn.style.display = 'block';
+      skipBtn.onclick = () => { skipBattleAnimation = true; skipBtn.style.display = 'none'; };
+    }
 
     document.getElementById('btn-continue-battle').style.display = 'none';
     document.getElementById('btn-continue-battle').textContent = 'Continue';
 
     // Auto-start visual animation
-    skipBattleAnimation = false;
+    skipBattleAnimation = autoSkip;
     await animateBattleVisually(detailedLog, pTeamCopy, eTeamInit);
 
     // Show final HP state after animation
@@ -597,20 +1020,30 @@ function runBattleScreen(enemyTeam, isBoss, onWin, onLose, enemyName = null, ene
         if (resultP[i]) state.team[i].currentHp = resultP[i].currentHp;
       }
       const maxEnemyLevel = Math.max(...resultE.map(p => p.level));
-      const levelUps = applyLevelGain(state.team, state.hardMode ? [] : state.items, playerParticipants, maxEnemyLevel, state.hardMode);
-      // Keep Skip active for level-up animation too
-      skipBtn.disabled = false;
-      skipBtn.textContent = 'Skip';
-      skipBtn.onclick = () => { skipBattleAnimation = true; };
+      const levelUps = applyLevelGain(state.team, state.hardMode ? [] : state.items, playerParticipants, maxEnemyLevel, state.hardMode, baseGainOverride);
+      if (autoSkipLvl) {
+        skipBattleAnimation = true;
+        skipBtn.style.display = 'none';
+      } else {
+        skipBtn.disabled = false;
+        skipBtn.style.display = 'block';
+        skipBtn.textContent = 'Skip';
+        skipBtn.onclick = () => { skipBattleAnimation = true; skipBtn.style.display = 'none'; };
+      }
       await animateLevelUp(levelUps);
-      skipBtn.disabled = true;
+      skipBtn.style.display = 'none';
       await checkAndEvolveTeam();
-      document.getElementById('btn-continue-battle').style.display = 'block';
-      document.getElementById('btn-continue-battle').onclick = () => {
-        if (onWin) onWin();
-        resolve(true);
-      };
+      if (autoSkip) {
+        setTimeout(() => { if (onWin) onWin(); resolve(true); }, 400);
+      } else {
+        document.getElementById('btn-continue-battle').style.display = 'block';
+        document.getElementById('btn-continue-battle').onclick = () => {
+          if (onWin) onWin();
+          resolve(true);
+        };
+      }
     } else {
+      skipBtn.style.display = 'none';
       document.getElementById('btn-continue-battle').style.display = 'block';
       document.getElementById('btn-continue-battle').textContent = 'Continue...';
       document.getElementById('btn-continue-battle').onclick = () => {
@@ -628,6 +1061,8 @@ function showBadgeScreen(leader) {
   document.getElementById('badge-msg').textContent = `You earned the ${leader.badge}!`;
   document.getElementById('badge-leader').textContent = `Defeated ${leader.name}!`;
   document.getElementById('badge-count-display').textContent = `Badges: ${state.badges}/8`;
+  const badgeImg = document.getElementById('badge-icon-img');
+  if (badgeImg) badgeImg.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/${state.badges}.png`;
 
   document.getElementById('btn-next-map').onclick = () => {
     if (state.currentMap >= 7) {
@@ -651,6 +1086,7 @@ function showWinScreen() {
 
   // Track elite four wins
   const wins = incrementEliteWins();
+  saveHallOfFameEntry(state.team, wins, state.hardMode);
   const winsEl = document.getElementById('win-run-count');
   if (winsEl) winsEl.textContent = `Championship #${wins}`;
   if (wins === 10) {
