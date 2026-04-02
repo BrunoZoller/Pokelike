@@ -278,7 +278,7 @@ const ELITE_4 = [
 
 // Item pool
 const ITEM_POOL = [
-  { id: 'lucky_egg',          name: 'Lucky Egg',          desc: '+3 levels per win instead of +2',                                    icon: '🥚', minMap: 4 },
+  { id: 'lucky_egg',          name: 'Lucky Egg',          desc: 'Holder gains +1 extra level after winning wild battles',             icon: '🥚', minMap: 4 },
   { id: 'life_orb',           name: 'Life Orb',           desc: '+30% damage; holder loses 10% max HP per hit',                       icon: '🔮' },
   { id: 'choice_band',        name: 'Choice Band',        desc: '+40% physical damage, -20% DEF',                                     icon: '🎀' },
   { id: 'choice_specs',       name: 'Choice Specs',       desc: '+40% special damage, -20% Sp.Def',                                   icon: '👓' },
@@ -316,7 +316,7 @@ const ITEM_POOL = [
 
 const USABLE_ITEM_POOL = [
   { id: 'max_revive',  name: 'Max Revive',       desc: 'Fully revives a fainted Pokémon',              icon: '💊', usable: true },
-  { id: 'rare_candy',  name: 'Rare Candy',        desc: 'Gives a Pokémon +1 level',                    icon: '🍬', usable: true },
+  { id: 'rare_candy',  name: 'Rare Candy',        desc: 'Gives a Pokémon +3 levels',                   icon: '🍬', usable: true },
   { id: 'moon_stone',  name: 'Moon Stone',        desc: 'Force evolves a Pokémon regardless of level',  icon: '🌙', usable: true },
 ];
 

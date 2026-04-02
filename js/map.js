@@ -478,7 +478,7 @@ function getNodeLabel(node) {
     [NODE_TYPES.TRAINER]:    'Trainer Battle',
     [NODE_TYPES.LEGENDARY]:  'Legendary Pokemon',
     [NODE_TYPES.MOVE_TUTOR]: 'Move Tutor',
-    [NODE_TYPES.TRADE]:      'Trade',
+    [NODE_TYPES.TRADE]:      'Trade — swap a Pokémon for one 3 levels higher',
   };
   return labels[node.type] || node.type;
 }

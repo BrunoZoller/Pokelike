@@ -657,6 +657,14 @@ function openUsableItemModal(item, bagIdx) {
         renderItemBadges(state.items);
         renderTeamBar(state.team);
 
+      } else if (item.id === 'rare_candy') {
+        for (let i = 0; i < 3; i++) {
+          if (pokemon.level < 100) pokemon.level++;
+        }
+        showMapNotification(`${pokemon.nickname || pokemon.name} grew to Lv ${pokemon.level}!`);
+        renderTeamBar(state.team);
+        await checkAndEvolveTeam();
+
       } else if (item.id === 'moon_stone') {
         await applyEvolution(pokemon);
       }
@@ -873,7 +881,7 @@ function doMoveTutorNode(node) {
 
 async function doTradeNode(node) {
   showScreen('trade-screen');
-  document.getElementById('trade-desc').textContent = "Send one of your Pokémon. You'll receive a stronger one in return.";
+  document.getElementById('trade-desc').textContent = "Trade one of your Pokémon for a random Pokémon 3 levels higher.";
 
   const listEl = document.getElementById('trade-team-list');
   listEl.innerHTML = '';
