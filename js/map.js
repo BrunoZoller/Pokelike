@@ -122,9 +122,15 @@ function generateMap(mapIndex) {
   for (let ci = 0; ci < CONTENT_SIZES.length; ci++) {
     const l    = ci + 2;
     const size = CONTENT_SIZES[ci];
-    layers.push(
-      Array.from({ length: size }, (_, c) => makeNode(`n${l}_${c}`, pickType(ci), l, c))
-    );
+    const layer = Array.from({ length: size }, (_, c) => makeNode(`n${l}_${c}`, pickType(ci), l, c));
+
+    // Guarantee a pokecenter in the last 2 content layers
+    if (ci >= CONTENT_SIZES.length - 2) {
+      const idx = Math.floor(Math.random() * size);
+      layer[idx].type = NODE_TYPES.POKECENTER;
+    }
+
+    layers.push(layer);
   }
 
   // Boss layer

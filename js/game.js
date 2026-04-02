@@ -1005,18 +1005,18 @@ function runBattleScreen(enemyTeam, isBoss, onWin, onLose, enemyName = null, ene
     const skipBtn = document.getElementById('btn-auto-battle');
     skipBtn.disabled = false;
     skipBtn.textContent = 'Skip';
-    if (autoSkip) {
-      skipBtn.style.display = 'none';
-    } else {
-      skipBtn.style.display = 'block';
-      skipBtn.onclick = () => { skipBattleAnimation = true; skipBtn.style.display = 'none'; };
+    battleSpeedMultiplier = autoSkip ? SKIP_SPEED : 1;
+    skipBtn.style.display = autoSkip ? 'none' : 'block';
+    if (!autoSkip) {
+      skipBtn.onclick = () => { battleSpeedMultiplier = SKIP_SPEED; skipBtn.disabled = true; };
     }
 
-    document.getElementById('btn-continue-battle').style.display = 'none';
-    document.getElementById('btn-continue-battle').textContent = 'Continue';
+    const continueEl = document.getElementById('btn-continue-battle');
+    continueEl.style.display = 'none';
+    continueEl.textContent = 'Continue';
+    continueEl.disabled = false;
 
     // Auto-start visual animation
-    skipBattleAnimation = autoSkip;
     await animateBattleVisually(detailedLog, pTeamCopy, eTeamInit);
 
     // Show final HP state after animation
@@ -1029,26 +1029,31 @@ function runBattleScreen(enemyTeam, isBoss, onWin, onLose, enemyName = null, ene
       }
       const maxEnemyLevel = Math.max(...resultE.map(p => p.level));
       const levelUps = applyLevelGain(state.team, state.hardMode ? [] : state.items, playerParticipants, maxEnemyLevel, state.hardMode, baseGainOverride);
-      if (autoSkipLvl) {
-        skipBattleAnimation = true;
-        skipBtn.style.display = 'none';
-      } else {
+      battleSpeedMultiplier = autoSkipLvl ? SKIP_SPEED : 1;
+      skipBtn.textContent = 'Skip';
+      skipBtn.style.display = autoSkipLvl ? 'none' : 'block';
+      if (!autoSkipLvl) {
         skipBtn.disabled = false;
-        skipBtn.style.display = 'block';
-        skipBtn.textContent = 'Skip';
-        skipBtn.onclick = () => { skipBattleAnimation = true; skipBtn.style.display = 'none'; };
+        skipBtn.onclick = () => { battleSpeedMultiplier = SKIP_SPEED; skipBtn.disabled = true; };
       }
+
+      const continueBtn = document.getElementById('btn-continue-battle');
+      let fastForwarded = false;
+      if (!autoSkipLvl) {
+        continueBtn.style.display = 'block';
+        continueBtn.onclick = () => { battleSpeedMultiplier = 1000; fastForwarded = true; continueBtn.disabled = true; };
+      }
+
       await animateLevelUp(levelUps);
       skipBtn.style.display = 'none';
       await checkAndEvolveTeam();
-      if (autoSkip) {
-        setTimeout(() => { if (onWin) onWin(); resolve(true); }, 400);
+
+      if (autoSkip || fastForwarded) {
+        if (onWin) onWin();
+        resolve(true);
       } else {
-        document.getElementById('btn-continue-battle').style.display = 'block';
-        document.getElementById('btn-continue-battle').onclick = () => {
-          if (onWin) onWin();
-          resolve(true);
-        };
+        continueBtn.disabled = false;
+        continueBtn.onclick = () => { if (onWin) onWin(); resolve(true); };
       }
     } else {
       skipBtn.style.display = 'none';

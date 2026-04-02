@@ -1,7 +1,8 @@
 // ui.js - Screen transitions and UI helpers
 
-// Global flag for skipping battle animation
-let skipBattleAnimation = false;
+// Speed multiplier for battle animation (1 = normal, SKIP_SPEED = fast/skip)
+const SKIP_SPEED = 3;
+let battleSpeedMultiplier = 1;
 
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -209,22 +210,14 @@ function animateHpBar(containerEl, fromHp, toHp, maxHp, duration = 250) {
     const textEl = containerEl.querySelector('.hp-text');
     if (!fillEl) { resolve(); return; }
 
-    if (skipBattleAnimation) {
-      const finalPct = Math.max(0, toHp / maxHp);
-      fillEl.style.width = `${Math.floor(finalPct * 100)}%`;
-      fillEl.style.background = hpBarColor(finalPct);
-      if (textEl) textEl.textContent = `${Math.max(0, toHp)}/${maxHp}`;
-      resolve();
-      return;
-    }
-
     const fromPct = Math.max(0, fromHp / maxHp);
     const toPct = Math.max(0, toHp / maxHp);
+    const scaledDuration = duration / battleSpeedMultiplier;
     const start = performance.now();
 
     function frame(now) {
       const elapsed = now - start;
-      const t = Math.min(elapsed / duration, 1);
+      const t = Math.min(elapsed / scaledDuration, 1);
       const curPct = fromPct + (toPct - fromPct) * t;
       const curHp = Math.round(fromHp + (toHp - fromHp) * t);
 
@@ -257,7 +250,7 @@ const TYPE_COLORS_RGB = {
 
 function animCanvas(attackerEl, targetEl) {
   const canvas = document.getElementById('battle-anim-canvas');
-  if (!canvas || skipBattleAnimation) return null;
+  if (!canvas) return null;
   canvas.width  = window.innerWidth;
   canvas.height = window.innerHeight;
   canvas.style.display = 'block';
@@ -271,9 +264,10 @@ function animCanvas(attackerEl, targetEl) {
 
 function runCanvas(canvas, ctx, duration, drawFn) {
   return new Promise(resolve => {
+    const scaledDuration = duration / battleSpeedMultiplier;
     const start = performance.now();
     function frame(now) {
-      const t = Math.min((now - start) / duration, 1);
+      const t = Math.min((now - start) / scaledDuration, 1);
       try {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         drawFn(ctx, t);
@@ -291,13 +285,15 @@ function runCanvas(canvas, ctx, duration, drawFn) {
 
 function runParticleCanvas(canvas, ctx, particles, duration) {
   return new Promise(resolve => {
+    const scaledDuration = duration / battleSpeedMultiplier;
     const start = performance.now();
     function frame(now) {
       const elapsed = now - start;
+      const scaledElapsed = elapsed * battleSpeedMultiplier;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       let anyAlive = false;
-      for (const p of particles) { p.tick(elapsed); if (p.alive) { p.draw(ctx); anyAlive = true; } }
-      if (elapsed < duration || anyAlive) requestAnimationFrame(frame);
+      for (const p of particles) { p.tick(scaledElapsed); if (p.alive) { p.draw(ctx); anyAlive = true; } }
+      if (elapsed < scaledDuration || anyAlive) requestAnimationFrame(frame);
       else { ctx.clearRect(0, 0, canvas.width, canvas.height); canvas.style.display = 'none'; resolve(); }
     }
     requestAnimationFrame(frame);
@@ -1105,7 +1101,7 @@ function animTeleport(canvas, ctx, from, to) {
 }
 
 function playAttackAnimation(moveType, attackerEl, targetEl, isSpecial = true, moveName = '') {
-  if (!attackerEl || !targetEl || skipBattleAnimation) return Promise.resolve();
+  if (!attackerEl || !targetEl) return Promise.resolve();
   const ac = animCanvas(attackerEl, targetEl);
   if (!ac) return Promise.resolve();
   const { canvas, ctx, from, to } = ac;
@@ -1920,8 +1916,7 @@ async function animateBattleVisually(detailedLog, pTeamInit, eTeamInit) {
   }
 
   function sleep(ms) {
-    if (skipBattleAnimation) return Promise.resolve();
-    return new Promise(r => setTimeout(r, ms));
+    return new Promise(r => setTimeout(r, ms / battleSpeedMultiplier));
   }
 
   for (const event of detailedLog) {
@@ -2210,11 +2205,11 @@ async function checkAndEvolveTeam() {
 async function animateLevelUp(levelUps) {
   const pEl = document.getElementById('player-side');
   if (!pEl || levelUps.length === 0) return;
-  const sleep = ms => skipBattleAnimation ? Promise.resolve() : new Promise(r => setTimeout(r, ms));
+  const sleep = ms => new Promise(r => setTimeout(r, ms / battleSpeedMultiplier));
 
-  for (const { idx, pokemon, newLevel, preHp } of levelUps) {
+  await Promise.all(levelUps.map(async ({ idx, pokemon, newLevel, preHp }) => {
     const el = pEl.querySelector(`.battle-pokemon[data-idx="${idx}"]`);
-    if (!el) continue;
+    if (!el) return;
 
     // Animate HP bar filling up (alive pokemon only)
     if (pokemon.currentHp > 0 && pokemon.currentHp > preHp) {
@@ -2235,7 +2230,7 @@ async function animateLevelUp(levelUps) {
     // Update name/level label after animation
     const nameEl = el.querySelector('.battle-poke-name');
     if (nameEl) nameEl.textContent = `${pokemon.nickname || pokemon.name} Lv${newLevel}`;
-  }
+  }));
 }
 
 // Legacy: animate battle log line by line (kept for fallback)
