@@ -641,7 +641,6 @@ function openUsableItemModal(item, bagIdx) {
   document.body.appendChild(modal);
 
   modal.querySelector('#btn-cancel-use').addEventListener('click', () => modal.remove());
-  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
 
   modal.querySelectorAll('[data-idx]').forEach(row => {
     if (row.style.pointerEvents === 'none') return;
