@@ -404,6 +404,7 @@ function catchPokemon(pokemon, node) {
 
 function showSwapScreen(newPoke, node) {
   showScreen('swap-screen');
+  document.getElementById('swap-incoming').innerHTML = `<div style="display:flex;justify-content:center;">${renderPokemonCard(newPoke, true, false)}</div>`;
   const el = document.getElementById('swap-choices');
   el.innerHTML = '';
   document.getElementById('swap-prompt').textContent = 'Choose a Pokémon to release:';
