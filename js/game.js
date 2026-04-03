@@ -569,12 +569,11 @@ function openItemEquipModal(item, { fromBagIdx = -1, fromPokemonIdx = -1, onComp
       // Remove item from its source
       if (fromBagIdx >= 0) {
         state.items.splice(fromBagIdx, 1);
+        if (displaced) state.items.push(displaced);
       } else if (fromPokemonIdx >= 0) {
-        state.team[fromPokemonIdx].heldItem = null;
+        // True swap: give the displaced item back to the source Pokemon
+        state.team[fromPokemonIdx].heldItem = displaced || null;
       }
-
-      // If target already held something, send it to bag
-      if (displaced) state.items.push(displaced);
 
       pokemon.heldItem = item;
       modal.remove();
