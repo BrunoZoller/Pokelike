@@ -2310,7 +2310,6 @@ function openSettingsModal() {
   }
 
   render();
-  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   document.body.appendChild(modal);
 }
 
@@ -2341,7 +2340,6 @@ function openAchievementsModal() {
         }).join('')}
       </div>
     </div>`;
-  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   document.body.appendChild(modal);
 }
 
@@ -2434,7 +2432,6 @@ function openPokedexModal(initialTab = 'normal') {
 
   modal.querySelectorAll('.dex-tab').forEach(b =>
     b.addEventListener('click', () => switchTab(b.dataset.tab)));
-  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   document.body.appendChild(modal);
   switchTab(initialTab);
 }
@@ -2562,7 +2559,6 @@ function openPatchNotesModal() {
       <div style="overflow-y:auto;padding:16px;">${notesHtml}</div>
     </div>`;
 
-  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   document.body.appendChild(modal);
 }
 
@@ -2606,6 +2602,5 @@ function openHallOfFameModal() {
       <div style="overflow-y:auto;padding:14px;font-family:'Press Start 2P',monospace;">${entriesHtml}</div>
     </div>`;
 
-  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   document.body.appendChild(modal);
 }

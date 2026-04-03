@@ -594,7 +594,6 @@ function openItemEquipModal(item, { fromBagIdx = -1, fromPokemonIdx = -1, onComp
     done();
   });
 
-  modal.addEventListener('click', e => { if (e.target === modal) { modal.remove(); done(); } });
 }
 
 function openUsableItemModal(item, bagIdx) {
@@ -873,7 +872,6 @@ function doMoveTutorNode(node) {
   });
 
   modal.querySelector('#btn-skip-tutor').addEventListener('click', finish);
-  modal.addEventListener('click', e => { if (e.target === modal) finish(); });
 }
 
 // ---- Trade Node ----
