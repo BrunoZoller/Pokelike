@@ -660,10 +660,12 @@ function openUsableItemModal(item, bagIdx) {
           if (pokemon.level < 100) pokemon.level++;
         }
         showMapNotification(`${pokemon.nickname || pokemon.name} grew to Lv ${pokemon.level}!`);
+        renderItemBadges(state.items);
         renderTeamBar(state.team);
         await checkAndEvolveTeam();
 
       } else if (item.id === 'moon_stone') {
+        renderItemBadges(state.items);
         await applyEvolution(pokemon);
       }
     });
