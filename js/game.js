@@ -1004,8 +1004,9 @@ function runBattleScreen(enemyTeam, isBoss, onWin, onLose, enemyName = null, ene
     skipBtn.textContent = 'Skip';
     battleSpeedMultiplier = autoSkip ? SKIP_SPEED : 1;
     skipBtn.style.display = autoSkip ? 'none' : 'block';
+    let manuallySkipped = false;
     if (!autoSkip) {
-      skipBtn.onclick = () => { battleSpeedMultiplier = SKIP_SPEED; skipBtn.disabled = true; };
+      skipBtn.onclick = () => { battleSpeedMultiplier = SKIP_SPEED; skipBtn.disabled = true; manuallySkipped = true; };
     }
 
     const continueEl = document.getElementById('btn-continue-battle');
@@ -1026,26 +1027,27 @@ function runBattleScreen(enemyTeam, isBoss, onWin, onLose, enemyName = null, ene
       }
       const maxEnemyLevel = Math.max(...resultE.map(p => p.level));
       const levelUps = applyLevelGain(state.team, state.hardMode ? [] : state.items, playerParticipants, maxEnemyLevel, state.hardMode, baseGainOverride);
-      battleSpeedMultiplier = autoSkipLvl ? SKIP_SPEED : 1;
+      const skipAll = autoSkip || manuallySkipped;
+      const skipLvl = autoSkipLvl || manuallySkipped;
+      battleSpeedMultiplier = skipLvl ? SKIP_SPEED : 1;
       skipBtn.textContent = 'Skip';
-      skipBtn.style.display = autoSkipLvl ? 'none' : 'block';
-      if (!autoSkipLvl) {
+      skipBtn.style.display = skipLvl ? 'none' : 'block';
+      if (!skipLvl) {
         skipBtn.disabled = false;
-        skipBtn.onclick = () => { battleSpeedMultiplier = SKIP_SPEED; skipBtn.disabled = true; };
+        skipBtn.onclick = () => { battleSpeedMultiplier = SKIP_SPEED; skipBtn.disabled = true; manuallySkipped = true; };
       }
 
       const continueBtn = document.getElementById('btn-continue-battle');
-      let fastForwarded = false;
-      if (!autoSkipLvl) {
+      if (!skipLvl) {
         continueBtn.style.display = 'block';
-        continueBtn.onclick = () => { battleSpeedMultiplier = 1000; fastForwarded = true; continueBtn.disabled = true; };
+        continueBtn.onclick = () => { battleSpeedMultiplier = 1000; manuallySkipped = true; continueBtn.disabled = true; };
       }
 
       await animateLevelUp(levelUps);
       skipBtn.style.display = 'none';
       await checkAndEvolveTeam();
 
-      if (autoSkip || fastForwarded) {
+      if (skipAll || manuallySkipped) {
         if (onWin) onWin();
         resolve(true);
       } else {
