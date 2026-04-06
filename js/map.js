@@ -198,6 +198,18 @@ const TRAINER_SPRITE_KEYS = [
   'hiker', 'oldGuy', 'policeman', 'Scientist', 'teamRocket',
 ];
 
+const TRAINER_SPRITE_NAMES = {
+  aceTrainer:  'Ace Trainer',
+  bugCatcher:  'Bug Catcher',
+  fireSpitter: 'Fire Breather',
+  fisher:      'Fisher',
+  hiker:       'Hiker',
+  oldGuy:      'Old Man',
+  policeman:   'Policeman',
+  Scientist:   'Scientist',
+  teamRocket:  'Team Rocket Grunt',
+};
+
 const RANDOM_TRAINER_SPRITES = TRAINER_SPRITE_KEYS.map(k => `sprites/${k}.png`);
 
 const GYM_LEADER_SPRITES = [
@@ -481,7 +493,7 @@ function getNodeLabel(node) {
     [NODE_TYPES.ITEM]:       'Item',
     [NODE_TYPES.QUESTION]:   'Random Event',
     [NODE_TYPES.POKECENTER]: 'Pokemon Center',
-    [NODE_TYPES.TRAINER]:    'Trainer Battle',
+    [NODE_TYPES.TRAINER]:    `Trainer Battle${node.trainerSprite && TRAINER_SPRITE_NAMES[node.trainerSprite] ? ' — ' + TRAINER_SPRITE_NAMES[node.trainerSprite] : ''}`,
     [NODE_TYPES.LEGENDARY]:  'Legendary Pokemon',
     [NODE_TYPES.MOVE_TUTOR]: 'Move Tutor',
     [NODE_TYPES.TRADE]:      'Trade — swap a Pokémon for one 3 levels higher',

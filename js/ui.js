@@ -92,12 +92,29 @@ function getMoveForPokemon(pokemon) {
 }
 
 let _teamBarSelected = null;
+let _teamHoverCardDismissListener = null;
 
 function renderTeamBar(team, el) {
   const isMain = !el;
   if (!el) el = document.getElementById('team-bar');
   if (!el) return;
   el.innerHTML = '';
+
+  // On mobile, mouseenter/mouseleave never fire for "leave", so tapping outside
+  // the team bar should dismiss the hover card.
+  if (isMain && !_teamHoverCardDismissListener) {
+    _teamHoverCardDismissListener = (e) => {
+      const popup  = document.getElementById('team-hover-card');
+      const teamBar = document.getElementById('team-bar');
+      if (!popup || popup.style.display === 'none') return;
+      if (!popup.contains(e.target) && !teamBar?.contains(e.target)) {
+        hideTeamHoverCard();
+      }
+    };
+    document.addEventListener('touchstart', _teamHoverCardDismissListener, { passive: true });
+    document.addEventListener('click',      _teamHoverCardDismissListener);
+  }
+
   team.forEach((p, i) => {
     const pct = p.currentHp / p.maxHp;
     const color = hpBarColor(pct);

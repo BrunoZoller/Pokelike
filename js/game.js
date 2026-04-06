@@ -573,6 +573,9 @@ function openItemEquipModal(item, { fromBagIdx = -1, fromPokemonIdx = -1, onComp
       } else if (fromPokemonIdx >= 0) {
         // True swap: give the displaced item back to the source Pokemon
         state.team[fromPokemonIdx].heldItem = displaced || null;
+      } else {
+        // Brand new item from a node — displaced item goes to bag
+        if (displaced) state.items.push(displaced);
       }
 
       pokemon.heldItem = item;

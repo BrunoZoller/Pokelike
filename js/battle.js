@@ -10,7 +10,7 @@ function calcDamage(attacker, defender, move, items, defItems = []) {
 
   let damage = Math.floor(((2 * lvl / 5 + 2) * power * atk / def / 50 + 2));
 
-  const typeEff = getTypeEffectiveness(moveType, defender.types || ['Normal']);
+  const typeEff = move.typeless ? 1 : getTypeEffectiveness(moveType, defender.types || ['Normal']);
   damage = Math.floor(damage * typeEff);
 
   // STAB
@@ -52,7 +52,7 @@ function calcDamage(attacker, defender, move, items, defItems = []) {
   if (crit) damage = Math.floor(damage * 1.5);
 
   const rng = 0.85 + Math.random() * 0.15;
-  damage = Math.max(1, Math.floor(damage * rng));
+  damage = typeEff === 0 ? 0 : Math.max(1, Math.floor(damage * rng));
 
   return { damage, typeEff, moveType, crit };
 }
@@ -177,11 +177,11 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog) {
       let move = getBestMove(attacker.types || ['Normal'], attacker.baseStats, attacker.speciesId, attacker.moveTier ?? 1);
       // If both sides are stuck with useless moves, force Struggle on both
       if (bothUseless) {
-        move = { name: 'Struggle', power: 50, type: 'Normal', isSpecial: false };
+        move = { name: 'Struggle', power: 50, type: 'Normal', isSpecial: false, typeless: true };
       }
       // If the attacker's best move has no effect on the target, use Struggle (typeless)
       if (!move.noDamage && getTypeEffectiveness(move.type, target.types || ['Normal']) === 0) {
-        move = { name: 'Struggle', power: 50, type: 'Normal', isSpecial: false };
+        move = { name: 'Struggle', power: 50, type: 'Normal', isSpecial: false, typeless: true };
       }
       const attackerItems = side === 'player' ? pActiveItems : eActiveItems;
       const defenderItems = side === 'player' ? eActiveItems : pActiveItems;
