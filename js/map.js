@@ -39,7 +39,7 @@ function weightedRandom(weights) {
   return Object.keys(weights)[0];
 }
 
-function generateMap(mapIndex) {
+function generateMap(mapIndex, nuzlockeMode = false) {
   // Layer sizes: start(1), catch/battle(2), 3,4,3,4,3,2, boss(1)
   const CONTENT_SIZES = [3, 4, 3, 4, 3, 2]; // layers 2–7
   const bossLayerIdx  = 2 + CONTENT_SIZES.length; // = 8
@@ -68,6 +68,7 @@ function generateMap(mapIndex) {
   const pickType = (ci) => {
     const w = { ...NODE_WEIGHTS[Math.min(ci, NODE_WEIGHTS.length - 1)] };
     if (mapIndex >= 5 && ci >= 2) w.legendary = 6;
+    if (nuzlockeMode) { w.catch = 0; w.trade = 0; }
     return weightedRandom(w);
   };
 
@@ -112,10 +113,10 @@ function generateMap(mapIndex) {
   // Layer 0: Start
   layers.push([makeNode('n0_0', NODE_TYPES.START, 0, 0)]);
 
-  // Layer 1: always Catch (left) and Battle (right)
+  // Layer 1: always Catch (left) and Battle (right); nuzlocke gets two Catch nodes
   layers.push([
     makeNode('n1_0', NODE_TYPES.CATCH,  1, 0),
-    makeNode('n1_1', NODE_TYPES.BATTLE, 1, 1),
+    makeNode('n1_1', nuzlockeMode ? NODE_TYPES.CATCH : NODE_TYPES.BATTLE, 1, 1),
   ]);
 
   // Layers 2–7: random content nodes

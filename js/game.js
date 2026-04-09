@@ -11,7 +11,7 @@ let state = {
   trainer: 'boy',
   starterSpeciesId: null,
   maxTeamSize: 1,
-  hardMode: false,
+  nuzlockeMode: false,
 };
 
 // ---- Initialization ----
@@ -21,19 +21,11 @@ async function initGame() {
   document.getElementById('btn-new-run').addEventListener('click', () => startNewRun(false));
 
   const hardBtn = document.getElementById('btn-hard-run');
-  const hardHint = document.getElementById('hard-mode-hint');
-  if (isPokedexComplete()) {
-    hardBtn.disabled = false;
-    hardBtn.textContent = '💀 Hard Mode';
-    hardHint.textContent = 'Every fight grants exactly 1 level';
-  } else {
-    hardHint.textContent = 'Complete the Pokédex to unlock';
-  }
   hardBtn.addEventListener('click', () => startNewRun(true));
 }
 
-async function startNewRun(hardMode = false) {
-  state = { currentMap: 0, currentNode: null, team: [], items: [], badges: 0, map: null, eliteIndex: 0, trainer: 'boy', starterSpeciesId: null, maxTeamSize: 1, hardMode };
+async function startNewRun(nuzlockeMode = false) {
+  state = { currentMap: 0, currentNode: null, team: [], items: [], badges: 0, map: null, eliteIndex: 0, trainer: 'boy', starterSpeciesId: null, maxTeamSize: 1, nuzlockeMode };
   await showTrainerSelect();
 }
 
@@ -93,7 +85,7 @@ function selectStarter(pokemon) {
 
 function startMap(mapIndex) {
   state.currentMap = mapIndex;
-  state.map = generateMap(mapIndex);
+  state.map = generateMap(mapIndex, state.nuzlockeMode);
 
   // Full heal between arenas (skip the very first map)
   if (mapIndex > 0) {
@@ -211,11 +203,9 @@ function resolveQuestionMark() {
   const r = Math.random();
   if (r < 0.22) return NODE_TYPES.BATTLE;
   if (r < 0.42) return NODE_TYPES.TRAINER;
-  if (r < 0.52) return NODE_TYPES.CATCH;
+  if (r < 0.52) return state.nuzlockeMode ? NODE_TYPES.BATTLE : NODE_TYPES.CATCH;
   if (r < 0.65) return NODE_TYPES.ITEM;
-  // Hard mode win reward: shiny chance doubled
-  const shinyThreshold = hasHardModeWin() ? 0.70 : 0.88;
-  if (r < shinyThreshold) return 'shiny';
+  if (r < (hasShinyCharm() ? 0.79 : 0.72)) return 'shiny';
   return 'mega';
 }
 
@@ -336,8 +326,8 @@ async function doCatchNode(node) {
   let choices = await getCatchChoices(state.currentMap);
   const level = (state.currentMap === 0) ? Math.max(4, getLevelForNode(node)) : getLevelForNode(node);
 
-  // Map 1, layer 1: guarantee at least one Grass AND one Water Pokemon
-  if (state.currentMap === 0 && node.layer === 1) {
+  // Map 1, layer 1: guarantee at least one Grass AND one Water Pokemon (non-nuzlocke only)
+  if (!state.nuzlockeMode && state.currentMap === 0 && node.layer === 1) {
     const grassIds = [43, 69, 102]; // Oddish, Bellsprout, Exeggcute
     const waterIds = [54, 60, 72, 79, 86, 98, 116, 118, 120, 129];
     if (!choices.some(p => p.types?.includes('Grass'))) {
@@ -355,7 +345,8 @@ async function doCatchNode(node) {
     }
   }
 
-  const instances = choices.map(sp => createInstance(sp, level, false, getMoveТierForMap(state.currentMap)));
+  if (state.nuzlockeMode) choices = choices.slice(0, 1);
+  const instances = choices.map(sp => createInstance(sp, level, Math.random() < (hasShinyCharm() ? 0.02 : 0.01), getMoveТierForMap(state.currentMap)));
 
   choicesEl.innerHTML = '';
   const dex = getPokedex();
@@ -390,7 +381,9 @@ function checkDexAchievements() {
 }
 
 function catchPokemon(pokemon, node) {
-  markPokedexCaught(pokemon.speciesId, pokemon.name, pokemon.types, pokemon.spriteUrl);
+  const normalUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemon.speciesId}.png`;
+  markPokedexCaught(pokemon.speciesId, pokemon.name, pokemon.types, normalUrl);
+  if (pokemon.isShiny) markShinyDexCaught(pokemon.speciesId, pokemon.name, pokemon.types, pokemon.spriteUrl);
   checkDexAchievements();
   if (state.team.length < 6) {
     state.team.push(pokemon);
@@ -461,7 +454,7 @@ function doItemNode(node) {
 
   const available = [...heldAvailable, ...usableAvailable];
   const shuffled = [...available].sort(() => Math.random() - 0.5);
-  const picks = shuffled.slice(0, 2);
+  const picks = shuffled.slice(0, 3);
 
   const el = document.getElementById('item-choices');
   el.innerHTML = '';
@@ -542,6 +535,7 @@ function openItemEquipModal(item, { fromBagIdx = -1, fromPokemonIdx = -1, onComp
       <button id="btn-equip-to-bag" class="btn-secondary" style="width:100%;margin-top:8px;">
         ${fromPokemonIdx >= 0 ? '⬇ Unequip (return to bag)' : 'Keep in Bag'}
       </button>
+      <button id="btn-equip-cancel" class="btn-secondary" style="width:100%;margin-top:4px;">Cancel</button>
     </div>`;
 
   document.body.appendChild(modal);
@@ -595,6 +589,10 @@ function openItemEquipModal(item, { fromBagIdx = -1, fromPokemonIdx = -1, onComp
     // fromBagIdx >= 0 means it's already in bag — do nothing
     modal.remove();
     done();
+  });
+
+  modal.querySelector('#btn-equip-cancel').addEventListener('click', () => {
+    modal.remove();
   });
 
 }
@@ -787,7 +785,7 @@ async function doLegendaryNode(node) {
   if (!species) { advanceFromNode(state.map, node.id); showMapScreen(); return; }
 
   const level = MAP_LEVEL_RANGES[state.currentMap][1]; // top of map range
-  const legendary = createInstance(species, level, false, 2);
+  const legendary = createInstance(species, level, Math.random() < (hasShinyCharm() ? 0.02 : 0.01), 2);
 
   const titleEl = document.getElementById('battle-title');
   const subEl = document.getElementById('battle-subtitle');
@@ -798,6 +796,7 @@ async function doLegendaryNode(node) {
     // Win — offer to add legendary to team
     const normalUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${legendary.speciesId}.png`;
     markPokedexCaught(legendary.speciesId, legendary.name, legendary.types, normalUrl);
+    if (legendary.isShiny) markShinyDexCaught(legendary.speciesId, legendary.name, legendary.types, legendary.spriteUrl);
     checkDexAchievements();
     if (state.team.length < 6) {
       state.team.push(legendary);
@@ -954,6 +953,7 @@ async function doShinyNode(node) {
     <div class="shiny-title">✨ A Shiny Pokemon appeared!</div>
     ${renderPokemonCard(shiny, false, false, shinyCaught)}
     <button id="btn-take-shiny" class="btn-primary">Take ${shiny.name}!</button>
+    <button id="btn-skip-shiny" class="btn-secondary" style="margin-top:6px;">Skip</button>
   `;
   document.getElementById('btn-take-shiny').onclick = () => {
     if (state.team.length < 6) {
@@ -968,6 +968,10 @@ async function doShinyNode(node) {
     } else {
       showSwapScreen(shiny, node);
     }
+  };
+  document.getElementById('btn-skip-shiny').onclick = () => {
+    advanceFromNode(state.map, node.id);
+    showMapScreen();
   };
 }
 
@@ -1031,7 +1035,8 @@ function runBattleScreen(enemyTeam, isBoss, onWin, onLose, enemyName = null, ene
         if (resultP[i]) state.team[i].currentHp = resultP[i].currentHp;
       }
       const maxEnemyLevel = Math.max(...resultE.map(p => p.level));
-      const levelUps = applyLevelGain(state.team, state.hardMode ? [] : state.items, playerParticipants, maxEnemyLevel, state.hardMode, baseGainOverride);
+      const levelCap = state.nuzlockeMode ? getNuzlockeLevelCap(state.currentMap) : null;
+      const levelUps = applyLevelGain(state.team, state.nuzlockeMode ? [] : state.items, playerParticipants, maxEnemyLevel, state.nuzlockeMode, baseGainOverride, levelCap);
       const skipAll = autoSkip || manuallySkipped;
       const skipLvl = autoSkipLvl || manuallySkipped;
       battleSpeedMultiplier = skipLvl ? SKIP_SPEED : 1;
@@ -1051,6 +1056,21 @@ function runBattleScreen(enemyTeam, isBoss, onWin, onLose, enemyName = null, ene
       await animateLevelUp(levelUps);
       skipBtn.style.display = 'none';
       await checkAndEvolveTeam();
+
+      // Nuzlocke: remove fainted Pokemon permanently, return their items to bag
+      if (state.nuzlockeMode) {
+        const fainted = state.team.filter(p => p.currentHp <= 0);
+        for (const p of fainted) {
+          if (p.heldItem) state.items.push(p.heldItem);
+        }
+        state.team = state.team.filter(p => p.currentHp > 0);
+        if (fainted.length > 0) { renderTeamBar(state.team); renderItemBadges(state.items); }
+        if (state.team.length === 0) {
+          showGameOver();
+          resolve(false);
+          return;
+        }
+      }
 
       if (skipAll || manuallySkipped) {
         if (onWin) onWin();
@@ -1103,7 +1123,7 @@ function showWinScreen() {
 
   // Track elite four wins
   const wins = incrementEliteWins();
-  saveHallOfFameEntry(state.team, wins, state.hardMode);
+  saveHallOfFameEntry(state.team, wins, state.nuzlockeMode);
   const winsEl = document.getElementById('win-run-count');
   if (winsEl) winsEl.textContent = `Championship #${wins}`;
   if (wins === 10) {
@@ -1132,8 +1152,8 @@ function showWinScreen() {
   }
 
   // Hard mode win achievement
-  if (state.hardMode) {
-    const ach = unlockAchievement('hard_mode_win');
+  if (state.nuzlockeMode) {
+    const ach = unlockAchievement('nuzlocke_win');
     if (ach) setTimeout(() => showAchievementToast(ach), 2200);
   }
 }

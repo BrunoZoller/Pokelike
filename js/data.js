@@ -464,10 +464,10 @@ const GEN1_BST_APPROX = {
   low:      [10,11,13,14,16,17,19,20,21,23,27,29,32,41,46,48,52,54,56,60,
              69,72,74,79,81,84,86,96,98,100,102,108,111,116,118,120,129,133],
   midLow:   [25,30,33,35,37,39,43,50,58,61,63,66,73,77,83,92,95,96,104,109,
-             113,114,116,120,122,123,126,127,128,138,140],
+             113,114,116,120,122,126,127,128,138,140],
   mid:      [26,36,42,49,51,64,67,70,75,82,85,93,97,101,103,105,107,110,119,
              121,124,125,130,137,139,141],
-  midHigh:  [40,44,55,62,76,80,87,88,89,90,91,99,106,115,117,131,
+  midHigh:  [40,44,55,62,76,80,87,88,89,90,91,99,106,115,117,123,131,
              132,137,142,143],
   high:     [3,6,9,12,15,18,22,24,28,31,34,38,45,47,53,57,59,
              65,68,71,76,78,80,89,94,112,121,130,142,143,149],
@@ -483,6 +483,16 @@ function isPokedexComplete() {
     if (!caughtIds.has(id)) return false;
   }
   return true;
+}
+
+function hasShinyCharm() { return isPokedexComplete(); }
+
+// Returns the level cap for nuzlocke mode on a given map (max level of the gym leader's team),
+// or null if uncapped (final map / Elite 4).
+function getNuzlockeLevelCap(mapIndex) {
+  const leader = GYM_LEADERS[mapIndex];
+  if (!leader) return null; // Elite 4 / final — uncapped
+  return Math.max(...leader.team.map(p => p.level));
 }
 
 // Get 3 random pokemon ids from the right BST bucket for a given mapIndex
@@ -704,7 +714,7 @@ const ACHIEVEMENTS = [
   { id: 'solo_run',    name: 'One is Enough',   desc: 'Beat the game with only 1 Pokemon on your team', icon: '⭐' },
   { id: 'pokedex_complete',  name: 'Gotta Catch \'Em All', desc: 'Complete the regular Pokédex',                          icon: '📖' },
   { id: 'shinydex_complete', name: 'Shiny Hunter',          desc: 'Complete the Shiny Pokédex',                            icon: '✨' },
-  { id: 'hard_mode_win',     name: 'True Master',           desc: 'Beat the game on Hard Mode — doubles shiny chance on ? nodes in all future runs', icon: '💀' },
+  { id: 'nuzlocke_win',      name: 'True Master',           desc: 'Beat the game on Nuzlocke Mode — doubles shiny chance on ? nodes in all future runs', icon: '☠️' },
 ];
 
 function getUnlockedAchievements() {
@@ -752,8 +762,8 @@ function getShinyDex() {
   catch { return {}; }
 }
 
-function hasHardModeWin() {
-  return getUnlockedAchievements().has('hard_mode_win');
+function hasNuzlockeModeWin() {
+  return getUnlockedAchievements().has('nuzlocke_win');
 }
 
 function getEliteWins() {

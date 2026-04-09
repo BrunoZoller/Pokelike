@@ -98,14 +98,12 @@ h1, h2, .pixel-font {
 .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
 .btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
 
-#btn-hard-run:not(:disabled) {
-  border-color: var(--red);
-  color: var(--red);
+#btn-hard-run {
+  background: #c0392b;
 }
-#btn-hard-run:not(:disabled):hover {
-  background: rgba(244,67,54,0.1);
-  border-color: var(--red);
-  color: var(--red);
+#btn-hard-run:hover {
+  background: #e74c3c;
+  box-shadow: 0 4px 16px rgba(192,57,43,0.5);
 }
 
 /* ---- Starter Screen ---- */
