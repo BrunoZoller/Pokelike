@@ -316,7 +316,7 @@ function getLevelGain(team, bagItems) {
 // Applies level gains and returns an array of level-up events for animation.
 // Each entry: { idx, pokemon, oldLevel, newLevel, preHp }
 // baseGainOverride: if set, uses this as the base gain (e.g. 1 for wild battles)
-function applyLevelGain(team, bagItems, participantIdxs, maxEnemyLevel = 0, hardMode = false, baseGainOverride = null, levelCap = null) {
+function applyLevelGain(team, bagItems, participantIdxs, maxEnemyLevel = 0, hardMode = false, baseGainOverride = null) {
   const isWild = baseGainOverride !== null;
   const baseGain = isWild ? baseGainOverride : (hardMode ? 1 : getLevelGain(team, bagItems));
   const levelUps = [];
@@ -329,8 +329,7 @@ function applyLevelGain(team, bagItems, participantIdxs, maxEnemyLevel = 0, hard
     const luckyBonus = isWild && p.heldItem?.id === 'lucky_egg' ? 1 : 0;
     const gain = baseGain + luckyBonus;
     const oldLevel = p.level;
-    const cap = levelCap !== null ? Math.min(100, levelCap) : 100;
-    const newLevel = Math.min(cap, oldLevel + gain);
+    const newLevel = Math.min(100, oldLevel + gain);
     if (newLevel === oldLevel) continue; // already at cap
 
     const preHp = p.currentHp;

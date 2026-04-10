@@ -1035,8 +1035,7 @@ function runBattleScreen(enemyTeam, isBoss, onWin, onLose, enemyName = null, ene
         if (resultP[i]) state.team[i].currentHp = resultP[i].currentHp;
       }
       const maxEnemyLevel = Math.max(...resultE.map(p => p.level));
-      const levelCap = (state.nuzlockeMode && !isBoss) ? getNuzlockeLevelCap(state.currentMap) : null;
-      const levelUps = applyLevelGain(state.team, state.nuzlockeMode ? [] : state.items, playerParticipants, maxEnemyLevel, state.nuzlockeMode, baseGainOverride, levelCap);
+      const levelUps = applyLevelGain(state.team, state.nuzlockeMode ? [] : state.items, playerParticipants, maxEnemyLevel, state.nuzlockeMode, baseGainOverride);
       const skipAll = autoSkip || manuallySkipped;
       const skipLvl = autoSkipLvl || manuallySkipped;
       battleSpeedMultiplier = skipLvl ? SKIP_SPEED : 1;

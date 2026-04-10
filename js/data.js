@@ -487,13 +487,6 @@ function isPokedexComplete() {
 
 function hasShinyCharm() { return isPokedexComplete(); }
 
-// Returns the level cap for nuzlocke mode on a given map (max level of the gym leader's team),
-// or null if uncapped (final map / Elite 4).
-function getNuzlockeLevelCap(mapIndex) {
-  const leader = GYM_LEADERS[mapIndex];
-  if (!leader) return null; // Elite 4 / final — uncapped
-  return Math.max(...leader.team.map(p => p.level));
-}
 
 // Get 3 random pokemon ids from the right BST bucket for a given mapIndex
 async function getCatchChoices(mapIndex) {
