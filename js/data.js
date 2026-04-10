@@ -714,7 +714,7 @@ const ACHIEVEMENTS = [
   { id: 'solo_run',    name: 'One is Enough',   desc: 'Beat the game with only 1 Pokemon on your team', icon: '⭐' },
   { id: 'pokedex_complete',  name: 'Gotta Catch \'Em All', desc: 'Complete the regular Pokédex',                          icon: '📖' },
   { id: 'shinydex_complete', name: 'Shiny Hunter',          desc: 'Complete the Shiny Pokédex',                            icon: '✨' },
-  { id: 'nuzlocke_win',      name: 'True Master',           desc: 'Beat the game on Nuzlocke Mode — doubles shiny chance on ? nodes in all future runs', icon: '☠️' },
+  { id: 'nuzlocke_win',      name: 'True Master',           desc: 'Beat the game on Nuzlocke Mode', icon: '☠️' },
 ];
 
 function getUnlockedAchievements() {

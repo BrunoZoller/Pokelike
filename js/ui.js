@@ -2441,7 +2441,7 @@ function openPokedexModal(initialTab = 'normal') {
           <div id="dex-progress-bar" style="height:100%;background:repeating-linear-gradient(60deg,#e8920a 0px,#e8920a 16px,#f5b942 16px,#f5b942 32px);border-radius:6px;transition:width 0.3s;width:0%"></div>
           <span id="dex-progress-label" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.6);pointer-events:none;"></span>
         </div>
-        <div id="dex-charm-icon" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:6px;background:var(--bg-card);flex-shrink:0;" title="Shiny Charm">
+        <div id="dex-charm-icon" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:6px;background:var(--bg-card);flex-shrink:0;" title="Shiny Charm — complete the Pokédex to unlock. Doubles all shiny rates.">
           <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/shiny-charm.png" alt="Shiny Charm" style="width:24px;height:24px;image-rendering:pixelated;" onerror="this.style.display='none'">
         </div>
       </div>
@@ -2462,7 +2462,7 @@ function openPokedexModal(initialTab = 'normal') {
     if (hasShinyCharm()) {
       charmEl.style.borderColor = 'gold';
       charmEl.style.boxShadow = '0 0 6px gold';
-      charmEl.title = 'Shiny Charm';
+      charmEl.title = 'Shiny Charm — active! Doubles all shiny rates.';
     }
   }
 
