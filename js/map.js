@@ -489,12 +489,12 @@ function getNodeLabel(node) {
   }
   const labels = {
     [NODE_TYPES.START]:      'Start',
-    [NODE_TYPES.BATTLE]:     'Wild Battle',
+    [NODE_TYPES.BATTLE]:     'Wild Battle — +1 level',
     [NODE_TYPES.CATCH]:      'Catch Pokemon',
     [NODE_TYPES.ITEM]:       'Item',
     [NODE_TYPES.QUESTION]:   'Random Event',
     [NODE_TYPES.POKECENTER]: 'Pokemon Center',
-    [NODE_TYPES.TRAINER]:    `Trainer Battle${node.trainerSprite && TRAINER_SPRITE_NAMES[node.trainerSprite] ? ' — ' + TRAINER_SPRITE_NAMES[node.trainerSprite] : ''}`,
+    [NODE_TYPES.TRAINER]:    `Trainer Battle — +2 levels${node.trainerSprite && TRAINER_SPRITE_NAMES[node.trainerSprite] ? ' — ' + TRAINER_SPRITE_NAMES[node.trainerSprite] : ''}`,
     [NODE_TYPES.LEGENDARY]:  'Legendary Pokemon',
     [NODE_TYPES.MOVE_TUTOR]: 'Move Tutor',
     [NODE_TYPES.TRADE]:      'Trade — swap a Pokémon for one 3 levels higher',

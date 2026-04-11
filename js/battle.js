@@ -73,7 +73,7 @@ function getEffectiveStat(pokemon, stat, items) {
     if (hasItem(items, 'muscle_band') && allPhysical) val = Math.floor(val * 1.5);
   }
   if (stat === 'def') {
-    if (hasItem(items, 'eviolite'))                      val = Math.floor(val * 1.5);
+    if (hasItem(items, 'eviolite') && canEvolve(pokemon.speciesId)) val = Math.floor(val * 1.5);
     if (hasItem(items, 'muscle_band') && allPhysical) val = Math.floor(val * 1.5);
     if (hasItem(items, 'choice_band'))                   val = Math.floor(val * 0.8);
   }
@@ -81,7 +81,7 @@ function getEffectiveStat(pokemon, stat, items) {
     if (hasItem(items, 'wise_glasses') && allSpecial)    val = Math.floor(val * 1.5);
   }
   if (stat === 'spdef') {
-    if (hasItem(items, 'eviolite'))                      val = Math.floor(val * 1.5);
+    if (hasItem(items, 'eviolite') && canEvolve(pokemon.speciesId)) val = Math.floor(val * 1.5);
     if (hasItem(items, 'assault_vest'))                  val = Math.floor(val * 1.5);
     if (hasItem(items, 'wise_glasses') && allSpecial)    val = Math.floor(val * 1.5);
     if (hasItem(items, 'choice_specs'))                  val = Math.floor(val * 0.8);

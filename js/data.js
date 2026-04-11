@@ -180,23 +180,23 @@ const GYM_LEADERS = [
     name: 'Misty', badge: 'Cascade Badge', type: 'Water',
     team: [
       { speciesId: 120, name: 'Staryu',  types: ['Water'], baseStats: { hp:30,atk:45,def:55,speed:85,special:70 }, level: 18 },
-      { speciesId: 121, name: 'Starmie', types: ['Water','Psychic'], baseStats: { hp:60,atk:75,def:85,speed:115,special:100 }, level: 21 },
+      { speciesId: 121, name: 'Starmie', types: ['Water','Psychic'], baseStats: { hp:60,atk:75,def:85,speed:115,special:100 }, level: 19 },
     ]
   },
   {
     name: 'Lt. Surge', badge: 'Thunder Badge', type: 'Electric',
     team: [
-      { speciesId: 25,  name: 'Pikachu',  types: ['Electric'], baseStats: { hp:35,atk:55,def:40,speed:90,special:50 },  level: 18, heldItem: { id: 'eviolite', name: 'Eviolite', icon: '💎' } },
-      { speciesId: 100, name: 'Voltorb',  types: ['Electric'], baseStats: { hp:40,atk:30,def:50,speed:100,special:55 }, level: 21, heldItem: { id: 'magnet',   name: 'Magnet',   icon: '🧲' } },
-      { speciesId: 26,  name: 'Raichu',   types: ['Electric'], baseStats: { hp:60,atk:90,def:55,speed:110,special:90 }, level: 24, heldItem: { id: 'life_orb', name: 'Life Orb', icon: '🔮' } },
+      { speciesId: 25,  name: 'Pikachu',  types: ['Electric'], baseStats: { hp:35,atk:55,def:40,speed:90,special:50 },  level: 19, heldItem: { id: 'eviolite', name: 'Eviolite', icon: '💎' } },
+      { speciesId: 100, name: 'Voltorb',  types: ['Electric'], baseStats: { hp:40,atk:30,def:50,speed:100,special:55 }, level: 22, heldItem: { id: 'magnet',   name: 'Magnet',   icon: '🧲' } },
+      { speciesId: 26,  name: 'Raichu',   types: ['Electric'], baseStats: { hp:60,atk:90,def:55,speed:110,special:90 }, level: 25, heldItem: { id: 'life_orb', name: 'Life Orb', icon: '🔮' } },
     ]
   },
   {
     name: 'Erika', badge: 'Rainbow Badge', type: 'Grass',
     team: [
-      { speciesId: 114, name: 'Tangela',     types: ['Grass'], baseStats: { hp:65,atk:55,def:115,speed:60,special:100 }, level: 24, heldItem: { id: 'leftovers',     name: 'Leftovers',    icon: '🍃' } },
-      { speciesId: 71,  name: 'Victreebel',  types: ['Grass','Poison'], baseStats: { hp:80,atk:105,def:65,speed:70,special:100 }, level: 29, heldItem: { id: 'poison_barb',   name: 'Poison Barb',  icon: '☠️' } },
-      { speciesId: 45,  name: 'Vileplume',   types: ['Grass','Poison'], baseStats: { hp:75,atk:80,def:85,speed:50,special:110 }, level: 29, heldItem: { id: 'miracle_seed',  name: 'Miracle Seed', icon: '🌱' } },
+      { speciesId: 114, name: 'Tangela',     types: ['Grass'], baseStats: { hp:65,atk:55,def:115,speed:60,special:100 }, level: 25, heldItem: { id: 'leftovers',     name: 'Leftovers',    icon: '🍃' } },
+      { speciesId: 71,  name: 'Victreebel',  types: ['Grass','Poison'], baseStats: { hp:80,atk:105,def:65,speed:70,special:100 }, level: 30, heldItem: { id: 'poison_barb',   name: 'Poison Barb',  icon: '☠️' } },
+      { speciesId: 45,  name: 'Vileplume',   types: ['Grass','Poison'], baseStats: { hp:75,atk:80,def:85,speed:50,special:110 }, level: 31, heldItem: { id: 'miracle_seed',  name: 'Miracle Seed', icon: '🌱' } },
     ]
   },
   {
@@ -220,20 +220,20 @@ const GYM_LEADERS = [
   {
     name: 'Blaine', badge: 'Volcano Badge', type: 'Fire',
     team: [
-      { speciesId: 77,  name: 'Ponyta',   types: ['Fire'], baseStats: { hp:50,atk:85,def:55,speed:90,special:65 }, level: 40, heldItem: { id: 'charcoal', name: 'Charcoal', icon: '🔥' } },
-      { speciesId: 58,  name: 'Growlithe',types: ['Fire'], baseStats: { hp:55,atk:70,def:45,speed:60,special:50 }, level: 42, heldItem: { id: 'eviolite', name: 'Eviolite', icon: '💎' } },
-      { speciesId: 78,  name: 'Rapidash', types: ['Fire'], baseStats: { hp:65,atk:100,def:70,speed:105,special:80 }, level: 42, heldItem: { id: 'charcoal', name: 'Charcoal', icon: '🔥' } },
-      { speciesId: 59,  name: 'Arcanine', types: ['Fire'], baseStats: { hp:90,atk:110,def:80,speed:95,special:100 }, level: 47, heldItem: { id: 'life_orb', name: 'Life Orb', icon: '🔮' } },
+      { speciesId: 77,  name: 'Ponyta',   types: ['Fire'], baseStats: { hp:50,atk:85,def:55,speed:90,special:65 }, level: 42, heldItem: { id: 'charcoal', name: 'Charcoal', icon: '🔥' } },
+      { speciesId: 58,  name: 'Growlithe',types: ['Fire'], baseStats: { hp:55,atk:70,def:45,speed:60,special:50 }, level: 44, heldItem: { id: 'eviolite', name: 'Eviolite', icon: '💎' } },
+      { speciesId: 78,  name: 'Rapidash', types: ['Fire'], baseStats: { hp:65,atk:100,def:70,speed:105,special:80 }, level: 45, heldItem: { id: 'charcoal', name: 'Charcoal', icon: '🔥' } },
+      { speciesId: 59,  name: 'Arcanine', types: ['Fire'], baseStats: { hp:90,atk:110,def:80,speed:95,special:100 }, level: 50, heldItem: { id: 'life_orb', name: 'Life Orb', icon: '🔮' } },
     ]
   },
   {
     name: 'Giovanni', badge: 'Earth Badge', type: 'Ground',
     team: [
-      { speciesId: 51,  name: 'Dugtrio',  types: ['Ground'], baseStats: { hp:35,atk:100,def:50,speed:120,special:50 }, level: 42, heldItem: { id: 'soft_sand', name: 'Soft Sand', icon: '🏖️' } },
-      { speciesId: 31,  name: 'Nidoqueen',types: ['Poison','Ground'], baseStats: { hp:90,atk:82,def:87,speed:76,special:75 }, level: 44, heldItem: { id: 'poison_barb', name: 'Poison Barb', icon: '☠️' } },
-      { speciesId: 34,  name: 'Nidoking', types: ['Poison','Ground'], baseStats: { hp:81,atk:92,def:77,speed:85,special:75 }, level: 45, heldItem: { id: 'soft_sand', name: 'Soft Sand', icon: '🏖️' } },
-      { speciesId: 111, name: 'Rhyhorn',  types: ['Ground','Rock'], baseStats: { hp:80,atk:85,def:95,speed:25,special:30 }, level: 45, heldItem: { id: 'hard_stone', name: 'Hard Stone', icon: '🪨' } },
-      { speciesId: 112, name: 'Rhydon',   types: ['Ground','Rock'], baseStats: { hp:105,atk:130,def:120,speed:40,special:45 }, level: 50, heldItem: { id: 'rocky_helmet', name: 'Rocky Helmet', icon: '⛑️' } },
+      { speciesId: 51,  name: 'Dugtrio',  types: ['Ground'], baseStats: { hp:35,atk:100,def:50,speed:120,special:50 }, level: 51, heldItem: { id: 'soft_sand', name: 'Soft Sand', icon: '🏖️' } },
+      { speciesId: 31,  name: 'Nidoqueen',types: ['Poison','Ground'], baseStats: { hp:90,atk:82,def:87,speed:76,special:75 }, level: 51, heldItem: { id: 'poison_barb', name: 'Poison Barb', icon: '☠️' } },
+      { speciesId: 34,  name: 'Nidoking', types: ['Poison','Ground'], baseStats: { hp:81,atk:92,def:77,speed:85,special:75 }, level: 52, heldItem: { id: 'soft_sand', name: 'Soft Sand', icon: '🏖️' } },
+      { speciesId: 111, name: 'Rhyhorn',  types: ['Ground','Rock'], baseStats: { hp:80,atk:85,def:95,speed:25,special:30 }, level: 52, heldItem: { id: 'hard_stone', name: 'Hard Stone', icon: '🪨' } },
+      { speciesId: 112, name: 'Rhydon',   types: ['Ground','Rock'], baseStats: { hp:105,atk:130,def:120,speed:40,special:45 }, level: 57, heldItem: { id: 'rocky_helmet', name: 'Rocky Helmet', icon: '⛑️' } },
     ]
   },
 ];
@@ -678,6 +678,11 @@ function minLevelForSpecies(speciesId) {
     if (evo.into === speciesId) return evo.level;
   }
   return 1;
+}
+
+// Returns true if the species can still evolve (i.e. is not fully evolved)
+function canEvolve(speciesId) {
+  return speciesId in GEN1_EVOLUTIONS || speciesId === 133; // 133 = Eevee
 }
 
 // Eevee branching evolution options (shown as a choice at level 36)

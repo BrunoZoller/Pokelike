@@ -106,10 +106,9 @@ function showMapScreen() {
   if (mapInfo) {
     const isFinal = state.currentMap === 8;
     const leader = isFinal ? null : GYM_LEADERS[state.currentMap];
-    const range = MAP_LEVEL_RANGES[state.currentMap];
     mapInfo.innerHTML = isFinal
-      ? `<span>Elite Four & Champion</span><span>Levels ${range[0]}–${range[1]}</span>`
-      : `<span>Map ${state.currentMap+1}: vs <b>${leader.name}</b> (${leader.type})</span><span>Levels ${range[0]}–${range[1]}</span>`;
+      ? `<span>Elite Four & Champion</span>`
+      : `<span>Map ${state.currentMap+1}: vs <b>${leader.name}</b> (${leader.type})</span>`;
   }
   const badgeEl = document.getElementById('badge-count');
   if (badgeEl) {
@@ -122,14 +121,57 @@ function showMapScreen() {
         : `<span class="badge-icon-empty" title="${label}"></span>`;
     }).join('');
   }
-  const winsEl = document.getElementById('elite-wins-count');
-  if (winsEl) winsEl.textContent = `Wins: ${getEliteWins()}`;
 
   renderTeamBar(state.team);
   renderItemBadges(state.items);
 
   const mapContainer = document.getElementById('map-container');
   renderMap(state.map, mapContainer, onNodeClick);
+
+  if (!localStorage.getItem('poke_tutorial_seen')) {
+    showTutorialOverlay();
+  }
+}
+
+function showTutorialOverlay() {
+  const overlay = document.createElement('div');
+  overlay.id = 'tutorial-overlay';
+
+  // Find positions of the settings button and team bar
+  const settingsBtn = document.querySelector('#map-screen button[title="Settings"]');
+  const teamBar = document.getElementById('team-bar');
+
+  if (settingsBtn) {
+    const r = settingsBtn.getBoundingClientRect();
+    const callout = document.createElement('div');
+    callout.className = 'tutorial-callout arrow-right';
+    callout.textContent = 'Open settings and turn on Auto Skip!';
+    callout.style.top = (r.top + r.height / 2 - 30) + 'px';
+    callout.style.right = (window.innerWidth - r.left + 10) + 'px';
+    overlay.appendChild(callout);
+  }
+
+  if (teamBar) {
+    const r = teamBar.getBoundingClientRect();
+    const callout = document.createElement('div');
+    callout.className = 'tutorial-callout arrow-up';
+    callout.textContent = 'Click a Pokémon to swap positions in your team';
+    callout.style.top = (r.bottom + 14) + 'px';
+    callout.style.left = (r.left + r.width / 2 - 90) + 'px';
+    overlay.appendChild(callout);
+  }
+
+  const dismiss = document.createElement('div');
+  dismiss.className = 'tutorial-dismiss';
+  dismiss.textContent = 'Click anywhere to dismiss';
+  overlay.appendChild(dismiss);
+
+  overlay.addEventListener('click', () => {
+    localStorage.setItem('poke_tutorial_seen', '1');
+    overlay.remove();
+  });
+
+  document.body.appendChild(overlay);
 }
 
 function showItemFoundToast(icon, name) {
@@ -345,7 +387,11 @@ async function doCatchNode(node) {
     }
   }
 
-  if (state.nuzlockeMode) choices = choices.slice(0, 1);
+  if (state.nuzlockeMode) {
+    const teamIds = new Set(state.team.map(p => p.speciesId));
+    const filtered = choices.filter(sp => !teamIds.has(sp.id));
+    choices = (filtered.length > 0 ? filtered : choices).slice(0, 1);
+  }
   const instances = choices.map(sp => createInstance(sp, level, Math.random() < (hasShinyCharm() ? 0.02 : 0.01), getMoveТierForMap(state.currentMap)));
 
   choicesEl.innerHTML = '';

@@ -373,6 +373,54 @@ h1, h2, .pixel-font {
 }
 #map-node-tooltip.visible { opacity: 1; }
 
+/* ---- Tutorial overlay ---- */
+#tutorial-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 600;
+  cursor: pointer;
+}
+.tutorial-callout {
+  position: absolute;
+  background: #1e1e32;
+  border: 1px solid var(--accent);
+  color: var(--text);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  line-height: 1.7;
+  padding: 8px 12px;
+  border-radius: 6px;
+  max-width: 180px;
+  pointer-events: none;
+}
+.tutorial-callout::after {
+  content: '';
+  position: absolute;
+  border: 6px solid transparent;
+}
+.tutorial-callout.arrow-right::after {
+  right: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-left-color: var(--accent);
+}
+.tutorial-callout.arrow-up::after {
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-bottom-color: var(--accent);
+}
+.tutorial-dismiss {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--text-dim);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  pointer-events: none;
+}
+
 #team-hover-card {
   position: fixed;
   z-index: 500;
@@ -410,6 +458,17 @@ h1, h2, .pixel-font {
   min-height: 300px;
   position: relative;
   overflow: hidden;
+}
+#map-container::after {
+  content: 'pokelike.xyz';
+  position: absolute;
+  bottom: 8px;
+  right: 10px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  color: var(--text-dim);
+  opacity: 0.4;
+  pointer-events: none;
 }
 
 /* Map legend */
