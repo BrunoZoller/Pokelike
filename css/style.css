@@ -737,7 +737,7 @@ h1, h2, .pixel-font {
 
 /* ---- Responsive ---- */
 @media (max-width: 600px) {
-  .battle-field { grid-template-columns: 1fr; }
+  .battle-field { grid-template-columns: 1fr 1fr; }
   .poke-card { width: 150px; }
 }
 
@@ -1091,7 +1091,10 @@ h1, h2, .pixel-font {
 }
 
 /* ---- Team bar reordering ---- */
-.team-slot-selected {
+.team-slot-dragging {
+  opacity: 0.4;
+}
+.team-slot-dragover {
   outline: 2px solid #ffd700;
   box-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
   background: rgba(255, 215, 0, 0.08);
