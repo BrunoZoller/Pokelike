@@ -48,17 +48,17 @@ const MOVE_POOL = {
               special:  [{name:'Swift',             power:60,  desc:'Star-shaped rays that never miss the target.'},
                          {name:'Hyper Voice',       power:90,  desc:'Emits a piercing cry to strike the foe.'},
                          {name:'Boomburst',         power:140, desc:'Attacks everything with a destructive sound wave.'}] },
-  Fire:     { physical: [{name:'Ember',             power:40,  desc:'A small flame scorches the foe.'},
+  Fire:     { physical: [{name:'Ember',             power:60,  desc:'A small flame scorches the foe.'},
                          {name:'Fire Punch',        power:75,  desc:'An incandescent punch that sears the foe.'},
                          {name:'Flare Blitz',       power:120, desc:'A full-force charge cloaked in searing flames.'}],
               special:  [{name:'Incinerate',        power:60,  desc:'Scorches the foe with an intense burst of fire.'},
                          {name:'Flamethrower',      power:90,  desc:'A scorching stream of fire engulfs the foe.'},
                          {name:'Fire Blast',        power:110, desc:'A fiery blast that scorches everything in its path.'}] },
-  Water:    { physical: [{name:'Water Gun',         power:40,  desc:'Squirts water to attack the foe.'},
+  Water:    { physical: [{name:'Water Gun',         power:50,  desc:'Squirts water to attack the foe.'},
                          {name:'Waterfall',         power:80,  desc:'Charges the foe with tremendous force.'},
                          {name:'Aqua Tail',         power:110, desc:'Attacks by swinging its tail as if it were a wave.'}],
-              special:  [{name:'Bubble',            power:40,  desc:'Fires a barrage of bubbles at the foe.'},
-                         {name:'Surf',              power:90,  desc:'A giant wave crashes over the foe.'},
+              special:  [{name:'Bubble',            power:50,  desc:'Fires a barrage of bubbles at the foe.'},
+                         {name:'Surf',              power:80,  desc:'A giant wave crashes over the foe.'},
                          {name:'Hydro Pump',        power:110, desc:'Blasts the foe with a high-powered blast of water.'}] },
   Electric: { physical: [{name:'Spark',             power:40,  desc:'An electrified tackle that crackles with voltage.'},
                          {name:'Thunder Punch',     power:75,  desc:'An electrified punch that crackles with voltage.'},
@@ -66,10 +66,10 @@ const MOVE_POOL = {
               special:  [{name:'Thunder Shock',     power:40,  desc:'A jolt of electricity zaps the foe.'},
                          {name:'Thunderbolt',       power:90,  desc:'A strong bolt of lightning strikes the foe.'},
                          {name:'Thunder',           power:110, desc:'A wicked thunderbolt is dropped on the foe.'}] },
-  Grass:    { physical: [{name:'Vine Whip',         power:45,  desc:'Strikes the foe with slender, whiplike vines.'},
+  Grass:    { physical: [{name:'Vine Whip',         power:40,  desc:'Strikes the foe with slender, whiplike vines.'},
                          {name:'Razor Leaf',        power:65,  desc:'Sharp-edged leaves slice the foe to ribbons.'},
                          {name:'Power Whip',        power:120, desc:'The user violently whirls its vines to strike the foe.'}],
-              special:  [{name:'Magical Leaf',      power:60,  desc:'A strange, mystical leaf that always hits the foe.'},
+              special:  [{name:'Magical Leaf',      power:40,  desc:'A strange, mystical leaf that always hits the foe.'},
                          {name:'Energy Ball',       power:90,  desc:'Draws power from nature and fires it at the foe.'},
                          {name:'Solar Beam',        power:120, desc:'A full-power blast of concentrated solar energy.'}] },
   Ice:      { physical: [{name:'Powder Snow',       power:40,  desc:'Blows a chilling gust of powdery snow at the foe.'},
@@ -155,6 +155,10 @@ function getBestMove(types, baseStats, speciesId, moveTier = 1) {
   if (speciesId === 63)  return { name: 'Teleport', power: 0, type: 'Normal', isSpecial: false, noDamage: true };
   const isSpecial = (baseStats?.special || 0) >= (baseStats?.atk || 0);
   const tier = Math.max(0, Math.min(2, moveTier ?? 1));
+  if ([74, 75, 76, 95].includes(speciesId)) {
+    const move = MOVE_POOL['Rock'][isSpecial ? 'special' : 'physical'][tier];
+    return { ...move, type: 'Rock', isSpecial };
+  }
   for (const t of types) {
     // Skip Normal if the Pokémon also has a more specific type (e.g. Normal/Flying → use Flying)
     if (t.toLowerCase() === 'normal' && types.length > 1) continue;
@@ -170,70 +174,70 @@ function getBestMove(types, baseStats, speciesId, moveTier = 1) {
 // Gym leader teams (hardcoded)
 const GYM_LEADERS = [
   {
-    name: 'Brock', badge: 'Boulder Badge', type: 'Rock',
+    name: 'Brock', badge: 'Boulder Badge', type: 'Rock', moveTier: 0,
     team: [
       { speciesId: 74, name: 'Geodude', types: ['Rock','Ground'], baseStats: { hp:40,atk:80,def:100,speed:20,special:30 }, level: 12 },
       { speciesId: 95, name: 'Onix',    types: ['Rock','Ground'], baseStats: { hp:35,atk:45,def:160,speed:70,special:30 }, level: 14 },
     ]
   },
   {
-    name: 'Misty', badge: 'Cascade Badge', type: 'Water',
+    name: 'Misty', badge: 'Cascade Badge', type: 'Water', moveTier: 0,
     team: [
       { speciesId: 120, name: 'Staryu',  types: ['Water'], baseStats: { hp:30,atk:45,def:55,speed:85,special:70 }, level: 18 },
-      { speciesId: 121, name: 'Starmie', types: ['Water','Psychic'], baseStats: { hp:60,atk:75,def:85,speed:115,special:100 }, level: 19 },
+      { speciesId: 121, name: 'Starmie', types: ['Water','Psychic'], baseStats: { hp:60,atk:75,def:85,speed:115,special:100 }, level: 20 },
     ]
   },
   {
-    name: 'Lt. Surge', badge: 'Thunder Badge', type: 'Electric',
+    name: 'Lt. Surge', badge: 'Thunder Badge', type: 'Electric', moveTier: 1,
     team: [
-      { speciesId: 25,  name: 'Pikachu',  types: ['Electric'], baseStats: { hp:35,atk:55,def:40,speed:90,special:50 },  level: 19, heldItem: { id: 'eviolite', name: 'Eviolite', icon: '💎' } },
-      { speciesId: 100, name: 'Voltorb',  types: ['Electric'], baseStats: { hp:40,atk:30,def:50,speed:100,special:55 }, level: 22, heldItem: { id: 'magnet',   name: 'Magnet',   icon: '🧲' } },
-      { speciesId: 26,  name: 'Raichu',   types: ['Electric'], baseStats: { hp:60,atk:90,def:55,speed:110,special:90 }, level: 25, heldItem: { id: 'life_orb', name: 'Life Orb', icon: '🔮' } },
+      { speciesId: 25,  name: 'Pikachu',  types: ['Electric'], baseStats: { hp:35,atk:55,def:40,speed:90,special:50 },  level: 20, heldItem: { id: 'eviolite', name: 'Eviolite', icon: '💎' } },
+      { speciesId: 100, name: 'Voltorb',  types: ['Electric'], baseStats: { hp:40,atk:30,def:50,speed:100,special:55 }, level: 23, heldItem: { id: 'magnet',   name: 'Magnet',   icon: '🧲' } },
+      { speciesId: 26,  name: 'Raichu',   types: ['Electric'], baseStats: { hp:60,atk:90,def:55,speed:110,special:90 }, level: 26, heldItem: { id: 'life_orb', name: 'Life Orb', icon: '🔮' } },
     ]
   },
   {
-    name: 'Erika', badge: 'Rainbow Badge', type: 'Grass',
+    name: 'Erika', badge: 'Rainbow Badge', type: 'Grass', moveTier: 1,
     team: [
-      { speciesId: 114, name: 'Tangela',     types: ['Grass'], baseStats: { hp:65,atk:55,def:115,speed:60,special:100 }, level: 25, heldItem: { id: 'leftovers',     name: 'Leftovers',    icon: '🍃' } },
-      { speciesId: 71,  name: 'Victreebel',  types: ['Grass','Poison'], baseStats: { hp:80,atk:105,def:65,speed:70,special:100 }, level: 30, heldItem: { id: 'poison_barb',   name: 'Poison Barb',  icon: '☠️' } },
-      { speciesId: 45,  name: 'Vileplume',   types: ['Grass','Poison'], baseStats: { hp:75,atk:80,def:85,speed:50,special:110 }, level: 31, heldItem: { id: 'miracle_seed',  name: 'Miracle Seed', icon: '🌱' } },
+      { speciesId: 114, name: 'Tangela',     types: ['Grass'], baseStats: { hp:65,atk:55,def:115,speed:60,special:100 }, level: 26, heldItem: { id: 'leftovers',     name: 'Leftovers',    icon: '🍃' } },
+      { speciesId: 71,  name: 'Victreebel',  types: ['Grass','Poison'], baseStats: { hp:80,atk:105,def:65,speed:70,special:100 }, level: 31, heldItem: { id: 'poison_barb',   name: 'Poison Barb',  icon: '☠️' } },
+      { speciesId: 45,  name: 'Vileplume',   types: ['Grass','Poison'], baseStats: { hp:75,atk:80,def:85,speed:50,special:110 }, level: 32, heldItem: { id: 'miracle_seed',  name: 'Miracle Seed', icon: '🌱' } },
     ]
   },
   {
-    name: 'Koga', badge: 'Soul Badge', type: 'Poison',
+    name: 'Koga', badge: 'Soul Badge', type: 'Poison', moveTier: 1,
     team: [
-      { speciesId: 109, name: 'Koffing',  types: ['Poison'], baseStats: { hp:40,atk:65,def:95,speed:35,special:60 },  level: 37, heldItem: { id: 'rocky_helmet', name: 'Rocky Helmet', icon: '⛑️' } },
-      { speciesId: 109, name: 'Koffing',  types: ['Poison'], baseStats: { hp:40,atk:65,def:95,speed:35,special:60 },  level: 37, heldItem: { id: 'rocky_helmet', name: 'Rocky Helmet', icon: '⛑️' } },
-      { speciesId: 89,  name: 'Muk',      types: ['Poison'], baseStats: { hp:105,atk:105,def:75,speed:50,special:65 }, level: 39, heldItem: { id: 'poison_barb',  name: 'Poison Barb',  icon: '☠️' } },
-      { speciesId: 110, name: 'Weezing',  types: ['Poison'], baseStats: { hp:65,atk:90,def:120,speed:60,special:85 },  level: 43, heldItem: { id: 'leftovers',    name: 'Leftovers',    icon: '🍃' } },
+      { speciesId: 109, name: 'Koffing',  types: ['Poison'], baseStats: { hp:40,atk:65,def:95,speed:35,special:60 },  level: 38, heldItem: { id: 'rocky_helmet', name: 'Rocky Helmet', icon: '⛑️' } },
+      { speciesId: 109, name: 'Koffing',  types: ['Poison'], baseStats: { hp:40,atk:65,def:95,speed:35,special:60 },  level: 38, heldItem: { id: 'rocky_helmet', name: 'Rocky Helmet', icon: '⛑️' } },
+      { speciesId: 89,  name: 'Muk',      types: ['Poison'], baseStats: { hp:105,atk:105,def:75,speed:50,special:65 }, level: 40, heldItem: { id: 'poison_barb',  name: 'Poison Barb',  icon: '☠️' } },
+      { speciesId: 110, name: 'Weezing',  types: ['Poison'], baseStats: { hp:65,atk:90,def:120,speed:60,special:85 },  level: 44, heldItem: { id: 'leftovers',    name: 'Leftovers',    icon: '🍃' } },
     ]
   },
   {
-    name: 'Sabrina', badge: 'Marsh Badge', type: 'Psychic',
+    name: 'Sabrina', badge: 'Marsh Badge', type: 'Psychic', moveTier: 1,
     team: [
-      { speciesId: 122, name: 'Mr. Mime', types: ['Psychic'], baseStats: { hp:40,atk:45,def:65,speed:90,special:100 }, level: 37, heldItem: { id: 'twisted_spoon', name: 'Twisted Spoon', icon: '🥄' } },
-      { speciesId: 49,  name: 'Venomoth', types: ['Bug','Poison'], baseStats: { hp:70,atk:65,def:60,speed:90,special:90 }, level: 38, heldItem: { id: 'silver_powder', name: 'Silver Powder', icon: '🐛' } },
-      { speciesId: 64,  name: 'Kadabra',  types: ['Psychic'], baseStats: { hp:40,atk:35,def:30,speed:105,special:120 }, level: 38, heldItem: { id: 'eviolite', name: 'Eviolite', icon: '💎' } },
-      { speciesId: 65,  name: 'Alakazam', types: ['Psychic'], baseStats: { hp:55,atk:50,def:45,speed:120,special:135 }, level: 43, heldItem: { id: 'scope_lens', name: 'Scope Lens', icon: '🔭' } },
+      { speciesId: 122, name: 'Mr. Mime', types: ['Psychic'], baseStats: { hp:40,atk:45,def:65,speed:90,special:100 }, level: 40, heldItem: { id: 'twisted_spoon', name: 'Twisted Spoon', icon: '🥄' } },
+      { speciesId: 49,  name: 'Venomoth', types: ['Bug','Poison'], baseStats: { hp:70,atk:65,def:60,speed:90,special:90 }, level: 41, heldItem: { id: 'silver_powder', name: 'Silver Powder', icon: '🐛' } },
+      { speciesId: 64,  name: 'Kadabra',  types: ['Psychic'], baseStats: { hp:40,atk:35,def:30,speed:105,special:120 }, level: 42, heldItem: { id: 'eviolite', name: 'Eviolite', icon: '💎' } },
+      { speciesId: 65,  name: 'Alakazam', types: ['Psychic'], baseStats: { hp:55,atk:50,def:45,speed:120,special:135 }, level: 44, heldItem: { id: 'scope_lens', name: 'Scope Lens', icon: '🔭' } },
     ]
   },
   {
-    name: 'Blaine', badge: 'Volcano Badge', type: 'Fire',
+    name: 'Blaine', badge: 'Volcano Badge', type: 'Fire', moveTier: 2,
     team: [
-      { speciesId: 77,  name: 'Ponyta',   types: ['Fire'], baseStats: { hp:50,atk:85,def:55,speed:90,special:65 }, level: 42, heldItem: { id: 'charcoal', name: 'Charcoal', icon: '🔥' } },
-      { speciesId: 58,  name: 'Growlithe',types: ['Fire'], baseStats: { hp:55,atk:70,def:45,speed:60,special:50 }, level: 44, heldItem: { id: 'eviolite', name: 'Eviolite', icon: '💎' } },
-      { speciesId: 78,  name: 'Rapidash', types: ['Fire'], baseStats: { hp:65,atk:100,def:70,speed:105,special:80 }, level: 45, heldItem: { id: 'charcoal', name: 'Charcoal', icon: '🔥' } },
-      { speciesId: 59,  name: 'Arcanine', types: ['Fire'], baseStats: { hp:90,atk:110,def:80,speed:95,special:100 }, level: 50, heldItem: { id: 'life_orb', name: 'Life Orb', icon: '🔮' } },
+      { speciesId: 77,  name: 'Ponyta',   types: ['Fire'], baseStats: { hp:50,atk:85,def:55,speed:90,special:65 }, level: 47, heldItem: { id: 'charcoal', name: 'Charcoal', icon: '🔥' } },
+      { speciesId: 58,  name: 'Growlithe',types: ['Fire'], baseStats: { hp:55,atk:70,def:45,speed:60,special:50 }, level: 47, heldItem: { id: 'eviolite', name: 'Eviolite', icon: '💎' } },
+      { speciesId: 78,  name: 'Rapidash', types: ['Fire'], baseStats: { hp:65,atk:100,def:70,speed:105,special:80 }, level: 48, heldItem: { id: 'charcoal', name: 'Charcoal', icon: '🔥' } },
+      { speciesId: 59,  name: 'Arcanine', types: ['Fire'], baseStats: { hp:90,atk:110,def:80,speed:95,special:100 }, level: 53, heldItem: { id: 'life_orb', name: 'Life Orb', icon: '🔮' } },
     ]
   },
   {
-    name: 'Giovanni', badge: 'Earth Badge', type: 'Ground',
+    name: 'Giovanni', badge: 'Earth Badge', type: 'Ground', moveTier: 2,
     team: [
-      { speciesId: 51,  name: 'Dugtrio',  types: ['Ground'], baseStats: { hp:35,atk:100,def:50,speed:120,special:50 }, level: 51, heldItem: { id: 'soft_sand', name: 'Soft Sand', icon: '🏖️' } },
-      { speciesId: 31,  name: 'Nidoqueen',types: ['Poison','Ground'], baseStats: { hp:90,atk:82,def:87,speed:76,special:75 }, level: 51, heldItem: { id: 'poison_barb', name: 'Poison Barb', icon: '☠️' } },
-      { speciesId: 34,  name: 'Nidoking', types: ['Poison','Ground'], baseStats: { hp:81,atk:92,def:77,speed:85,special:75 }, level: 52, heldItem: { id: 'soft_sand', name: 'Soft Sand', icon: '🏖️' } },
-      { speciesId: 111, name: 'Rhyhorn',  types: ['Ground','Rock'], baseStats: { hp:80,atk:85,def:95,speed:25,special:30 }, level: 52, heldItem: { id: 'hard_stone', name: 'Hard Stone', icon: '🪨' } },
-      { speciesId: 112, name: 'Rhydon',   types: ['Ground','Rock'], baseStats: { hp:105,atk:130,def:120,speed:40,special:45 }, level: 57, heldItem: { id: 'rocky_helmet', name: 'Rocky Helmet', icon: '⛑️' } },
+      { speciesId: 51,  name: 'Dugtrio',  types: ['Ground'], baseStats: { hp:35,atk:100,def:50,speed:120,special:50 }, level: 55, heldItem: { id: 'soft_sand', name: 'Soft Sand', icon: '🏖️' } },
+      { speciesId: 31,  name: 'Nidoqueen',types: ['Poison','Ground'], baseStats: { hp:90,atk:82,def:87,speed:76,special:75 }, level: 53, heldItem: { id: 'poison_barb', name: 'Poison Barb', icon: '☠️' } },
+      { speciesId: 34,  name: 'Nidoking', types: ['Poison','Ground'], baseStats: { hp:81,atk:92,def:77,speed:85,special:75 }, level: 54, heldItem: { id: 'soft_sand', name: 'Soft Sand', icon: '🏖️' } },
+      { speciesId: 111, name: 'Rhyhorn',  types: ['Ground','Rock'], baseStats: { hp:80,atk:85,def:95,speed:25,special:30 }, level: 56, heldItem: { id: 'hard_stone', name: 'Hard Stone', icon: '🪨' } },
+      { speciesId: 112, name: 'Rhydon',   types: ['Ground','Rock'], baseStats: { hp:105,atk:130,def:120,speed:40,special:45 }, level: 60, heldItem: { id: 'rocky_helmet', name: 'Rocky Helmet', icon: '⛑️' } },
     ]
   },
 ];
@@ -297,11 +301,11 @@ const ITEM_POOL = [
   { id: 'life_orb',           name: 'Life Orb',           desc: '+30% damage; holder loses 10% max HP per hit',                       icon: '🔮' },
   { id: 'choice_band',        name: 'Choice Band',        desc: '+40% physical damage, -20% DEF',                                     icon: '🎀' },
   { id: 'choice_specs',       name: 'Choice Specs',       desc: '+40% special damage, -20% Sp.Def',                                   icon: '👓' },
-  { id: 'muscle_band',         name: 'Muscle Band',        desc: '+50% ATK & DEF if your whole team are physical attackers',           icon: '💪' },
-  { id: 'wise_glasses',       name: 'Wise Glasses',       desc: '+50% Sp.Atk & Sp.Def if your whole team are special attackers',      icon: '🔍' },
-  { id: 'metronome',          name: 'Metronome',          desc: '+50% damage if every Pokémon on your team shares a type',            icon: '🎵' },
+  { id: 'muscle_band',         name: 'Muscle Band',        desc: '+50% ATK & DEF if 4+ Pokémon on your team are physical attackers', icon: '💪' },
+  { id: 'wise_glasses',       name: 'Wise Glasses',       desc: '+50% Sp.Atk & Sp.Def if 4+ Pokémon on your team are special attackers', icon: '🔍' },
+  { id: 'metronome',          name: 'Metronome',          desc: '+50% damage if 4+ Pokémon on your team share a type with the attacker', icon: '🎵' },
   { id: 'scope_lens',         name: 'Scope Lens',         desc: '20% crit chance (+50% damage on crit)',                              icon: '🔭' },
-  { id: 'rocky_helmet',       name: 'Rocky Helmet',       desc: 'Attacker takes 15% of their max HP on each hit',                     icon: '⛑️' },
+  { id: 'rocky_helmet',       name: 'Rocky Helmet',       desc: 'Attacker takes 12% of their max HP on each hit',                     icon: '⛑️' },
   { id: 'shell_bell',         name: 'Shell Bell',         desc: 'Heal 25% of damage dealt',                                           icon: '🐚' },
   { id: 'eviolite',           name: 'Eviolite',           desc: '+50% DEF & Sp.Def if holder is not fully evolved',                   icon: '💎' },
   { id: 'sharp_beak',         name: 'Sharp Beak',         desc: '+50% Flying move damage',                                            icon: '🦅' },
@@ -322,10 +326,11 @@ const ITEM_POOL = [
   { id: 'assault_vest',       name: 'Assault Vest',       desc: '+50% Sp.Def',                                                        icon: '🦺' },
   { id: 'choice_scarf',       name: 'Choice Scarf',       desc: '+50% Speed',                                                         icon: '🧣' },
   // Battle effect items
-  { id: 'leftovers',          name: 'Leftovers',          desc: 'Restore 6% max HP per turn',                                         icon: '🍃' },
-  { id: 'expert_belt',        name: 'Expert Belt',        desc: '+20% damage on super effective hits',                                 icon: '🥊' },
-  { id: 'focus_band',         name: 'Focus Band',         desc: '10% chance to survive a KO with 1 HP',                               icon: '🎗️' },
-  { id: 'razor_claw',         name: 'Razor Claw',         desc: '20% crit chance (+50% damage on crit)',                               icon: '🗡️' },
+  { id: 'leftovers',          name: 'Leftovers',          desc: 'Restore 1/16 max HP each round',                                     icon: '🍃' },
+  { id: 'expert_belt',        name: 'Expert Belt',        desc: '+30% damage on super effective hits',                                 icon: '🥊' },
+  { id: 'focus_band',         name: 'Focus Band',         desc: '20% chance to survive a KO with 1 HP',                               icon: '🩹' },
+  { id: 'focus_sash',         name: 'Focus Sash',         desc: 'If at full HP, guaranteed to survive any hit with 1 HP',             icon: '🎗️' },
+  { id: 'wide_lens',          name: 'Wide Lens',          desc: '+20% damage on all moves',                                            icon: '🔎' },
   { id: 'air_balloon',        name: 'Air Balloon',        desc: 'Immune to Ground-type moves',                                         icon: '🎈' },
 ];
 
@@ -375,8 +380,8 @@ const MAP_BST_RANGES = [
 ];
 
 const MAP_LEVEL_RANGES = [
-  [1, 5], [8, 15], [15, 22], [22, 30],
-  [30, 38], [38, 44], [44, 48], [48, 53], [54, 65]
+  [1, 5], [8, 15], [14, 21], [21, 29],
+  [29, 37], [37, 43], [43, 47], [47, 52], [53, 64]
 ];
 
 // PokeAPI cache helpers

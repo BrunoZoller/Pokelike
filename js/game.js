@@ -263,7 +263,7 @@ function getLevelForNode(node) {
 }
 
 async function doBattleNode(node) {
-  const level = getLevelForNode(node);
+  const level = state.currentMap >= 1 ? getLevelForNode(node) - 1 : getLevelForNode(node);
   let choices = await getCatchChoices(state.currentMap);
 
   // On the first layer of the first map, exclude enemies super effective against the starter
@@ -307,7 +307,10 @@ async function doBossNode(node) {
     return;
   }
   const leader = GYM_LEADERS[state.currentMap];
-  const enemyTeam = leader.team.map(p => createInstance(p, p.level, false, 1));
+  const enemyTeam = leader.team.map(p => ({
+    ...createInstance(p, p.level, false, leader.moveTier ?? 1),
+    heldItem: p.heldItem || null,
+  }));
 
   showScreen('battle-screen');
   document.getElementById('battle-title').textContent = `Gym Battle vs ${leader.name}!`;
@@ -359,6 +362,7 @@ function showEliteTransition(defeatedName, nextIndex) {
   });
 }
 
+
 async function doCatchNode(node) {
   showScreen('catch-screen');
   renderTeamBar(state.team, document.getElementById('catch-team-bar'));
@@ -367,6 +371,13 @@ async function doCatchNode(node) {
 
   let choices = await getCatchChoices(state.currentMap);
   const level = (state.currentMap === 0) ? Math.max(4, getLevelForNode(node)) : getLevelForNode(node);
+
+  // Nuzlocke map 1: restrict to curated pool
+  if (state.nuzlockeMode && state.currentMap === 0) {
+    const nuzlockeMap1Ids = new Set([10,11,27,54,56,60,69,72,74,79,81,86,96,98,100,102,111,116,118,120,129,133]);
+    const filtered = choices.filter(sp => nuzlockeMap1Ids.has(sp.id ?? sp.speciesId));
+    if (filtered.length > 0) choices = filtered;
+  }
 
   // Map 1, layer 1: guarantee at least one Grass AND one Water Pokemon (non-nuzlocke only)
   if (!state.nuzlockeMode && state.currentMap === 0 && node.layer === 1) {
@@ -714,6 +725,7 @@ function openUsableItemModal(item, bagIdx) {
       } else if (item.id === 'moon_stone') {
         renderItemBadges(state.items);
         await applyEvolution(pokemon);
+
       }
     });
   });
@@ -957,7 +969,7 @@ async function doTradeNode(node) {
       const species = pool[Math.floor(Math.random() * pool.length)];
       if (!species) { advanceFromNode(state.map, node.id); showMapScreen(); return; }
       const offerLevel = Math.min(100, mine.level + 3);
-      const offer = createInstance(species, offerLevel, false, getMoveТierForMap(state.currentMap));
+      const offer = createInstance(species, offerLevel, false, Math.max(getMoveТierForMap(state.currentMap), mine.moveTier ?? 0));
       const released = state.team[idx];
       if (released.heldItem) state.items.push(released.heldItem);
       state.team.splice(idx, 1, offer);

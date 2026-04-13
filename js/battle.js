@@ -22,6 +22,7 @@ function calcDamage(attacker, defender, move, items, defItems = []) {
   if (typeBoostItem) damage = Math.floor(damage * 1.5);
 
   if (hasItem(items, 'life_orb'))    damage = Math.floor(damage * 1.3);
+  if (hasItem(items, 'wide_lens'))   damage = Math.floor(damage * 1.2);
 
   // Physical/special split items
   if (isSpecial) {
@@ -34,20 +35,20 @@ function calcDamage(attacker, defender, move, items, defItems = []) {
   if (hasItem(items, 'metronome')) {
     const team = typeof state !== 'undefined' ? state.team : [];
     if (team.length > 0) {
-      const sharedType = (attacker.types || []).find(t =>
-        team.every(p => (p.types || []).some(pt => pt.toLowerCase() === t.toLowerCase()))
-      );
+      const sharedType = (attacker.types || []).find(t => {
+        const count = team.filter(p => (p.types || []).some(pt => pt.toLowerCase() === t.toLowerCase())).length;
+        return count >= 4;
+      });
       if (sharedType) damage = Math.floor(damage * 1.5);
     }
   }
 
-  if (hasItem(items, 'expert_belt') && typeEff >= 2) damage = Math.floor(damage * 1.2);
+  if (hasItem(items, 'expert_belt') && typeEff >= 2) damage = Math.floor(damage * 1.3);
   if (hasItem(items, 'air_balloon') && moveType.toLowerCase() === 'ground') damage = 0;
 
   // Crit chance: 6.25% base, +20% with scope_lens or razor_claw
   let critChance = 0.0625;
   if (hasItem(items, 'scope_lens')) critChance = 0.20;
-  if (hasItem(items, 'razor_claw')) critChance = 0.20;
   const crit = Math.random() < critChance;
   if (crit) damage = Math.floor(damage * 1.5);
 
@@ -66,8 +67,10 @@ function getEffectiveStat(pokemon, stat, items) {
   val = Math.floor(val * pokemon.level / 50) + 5;
 
   const team = typeof state !== 'undefined' ? state.team : [];
-  const allPhysical = team.length > 0 && team.every(p => (p.baseStats?.atk || 0) > (p.baseStats?.special || 0));
-  const allSpecial  = team.length > 0 && team.every(p => (p.baseStats?.special || 0) >= (p.baseStats?.atk || 0));
+  const physicalCount = team.filter(p => (p.baseStats?.atk || 0) > (p.baseStats?.special || 0)).length;
+  const specialCount  = team.filter(p => (p.baseStats?.special || 0) >= (p.baseStats?.atk || 0)).length;
+  const allPhysical = team.length > 0 && physicalCount >= 4;
+  const allSpecial  = team.length > 0 && specialCount  >= 4;
 
   if (stat === 'atk') {
     if (hasItem(items, 'muscle_band') && allPhysical) val = Math.floor(val * 1.5);
@@ -204,8 +207,12 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog) {
       const targetPreHp = target.currentHp;
       target.currentHp = Math.max(0, target.currentHp - damage);
 
-      // Focus Band: 10% chance to survive a KO at 1 HP
-      if (target.currentHp === 0 && targetPreHp > 0 && tSide === 'player' && target.heldItem?.id === 'focus_band' && Math.random() < 0.1) {
+      // Focus Band: 20% chance to survive a KO at 1 HP
+      if (target.currentHp === 0 && targetPreHp > 0 && tSide === 'player' && target.heldItem?.id === 'focus_band' && Math.random() < 0.2) {
+        target.currentHp = 1;
+      }
+      // Focus Sash: guaranteed survive from full HP
+      if (target.currentHp === 0 && targetPreHp === target.maxHp && tSide === 'player' && target.heldItem?.id === 'focus_sash') {
         target.currentHp = 1;
       }
 
@@ -238,7 +245,7 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog) {
 
       // Rocky Helmet
       if (target.heldItem?.id === 'rocky_helmet') {
-        const helmet = Math.max(1, Math.floor(attacker.maxHp * 0.15));
+        const helmet = Math.max(1, Math.floor(attacker.maxHp * 0.12));
         attacker.currentHp = Math.max(0, attacker.currentHp - helmet);
         addLog(`Rocky Helmet hurt ${aName} for ${helmet} HP!`, 'log-item');
         detailedLog.push({ type: 'effect', side, idx: aIdx, name: aName,
