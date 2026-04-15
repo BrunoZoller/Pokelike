@@ -1456,3 +1456,19 @@ h1, h2, .pixel-font {
   cursor: pointer;
   flex-shrink: 0;
 }
+
+/* ---- Discord Link ---- */
+.discord-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #5865F2;
+  text-decoration: none;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  opacity: 0.75;
+  margin-top: 10px;
+  transition: opacity 0.15s;
+}
+.discord-link:hover { opacity: 1; }
+.discord-link svg { width: 16px; height: 16px; fill: #5865F2; flex-shrink: 0; }
