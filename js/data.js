@@ -362,7 +362,7 @@ const TYPE_ITEM_MAP = {
 
 // Settings (persisted across runs)
 function getSettings() {
-  return getCached('poke_settings') || { autoSkipLevelUp: false, autoSkipBattles: false, autoSkipAllBattles: false };
+  return getCached('poke_settings') || { autoSkipBattles: false, autoSkipAllBattles: false, autoSkipEvolve: false };
 }
 function saveSettings(s) { setCached('poke_settings', s); }
 
@@ -546,17 +546,6 @@ function createInstance(species, level, isShiny = false, moveTier = 1) {
 // Starters
 const STARTER_IDS = [1, 4, 7];
 
-// NPC trainer pool for trainer battle nodes
-const NPC_TRAINERS = [
-  { name: 'Youngster',    sprite: 'youngster' },
-  { name: 'Hiker',        sprite: 'hiker' },
-  { name: 'Bug Catcher',  sprite: 'bugcatcher' },
-  { name: 'Cool Trainer', sprite: 'acetrainer-gen1' },
-  { name: 'Rocket Grunt', sprite: 'team-rocket-grunt-m' },
-  { name: 'Lass',         sprite: 'lass' },
-  { name: 'Sailor',       sprite: 'sailor' },
-  { name: 'Camper',       sprite: 'camper' },
-];
 
 // Trainer sprites from Pokemon Showdown CDN
 const TRAINER_SVG = {

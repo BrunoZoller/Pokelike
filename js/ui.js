@@ -11,15 +11,15 @@ function showScreen(id) {
 }
 
 function hpBarColor(pct) {
-  if (pct > 0.5) return '#4caf50';
-  if (pct > 0.25) return '#ff9800';
-  return '#f44336';
+  if (pct > 0.5) return '#00FF4A';
+  if (pct > 0.1) return '#EAFF00';
+  return '#FF0000';
 }
 
 function renderHpBar(current, max) {
   const pct = Math.max(0, current / max);
   const color = hpBarColor(pct);
-  return `<div class="hp-bar-bg"><div class="hp-bar-fill" style="width:${Math.floor(pct*100)}%;background:${color}"></div></div>
+  return `<div class="hp-bar-bg"><div class="hp-bar-fill" style="width:${Math.floor(pct*100)}%;background:${color}"><div class="hp-bar-shadow"></div></div></div>
           <span class="hp-text">${Math.max(0,current)}/${max}</span>`;
 }
 
@@ -248,9 +248,10 @@ function renderBattleField(pTeam, eTeam) {
       const fainted = p.currentHp <= 0;
       const active  = i === pActiveIdx;
       return `<div class="battle-pokemon ${fainted?'fainted':''} ${active?'active-pokemon':''}" data-idx="${i}">
-        <img src="${p.spriteUrl||''}" alt="${p.name}" class="battle-sprite" onerror="this.src=''">
         <div class="battle-poke-name">${p.nickname||p.name} Lv${p.level}</div>
         <div class="poke-hp">${renderHpBar(p.currentHp, p.maxHp)}</div>
+        <img src="ui/battleBase.png" class="battle-base" alt="">
+        <img src="${p.spriteUrl||''}" alt="${p.name}" class="battle-sprite" onerror="this.src=''">
       </div>`;
     }).join('');
   }
@@ -259,9 +260,10 @@ function renderBattleField(pTeam, eTeam) {
       const fainted = p.currentHp <= 0;
       const active  = i === eActiveIdx;
       return `<div class="battle-pokemon ${fainted?'fainted':''} ${active?'active-pokemon':''}" data-idx="${i}">
-        <img src="${p.spriteUrl||''}" alt="${p.name}" class="battle-sprite" onerror="this.src=''">
         <div class="battle-poke-name">${p.name} Lv${p.level}</div>
         <div class="poke-hp">${renderHpBar(p.currentHp, p.maxHp)}</div>
+        <img src="ui/battleBase.png" class="battle-base" alt="">
+        <img src="${p.spriteUrl||''}" alt="${p.name}" class="battle-sprite" onerror="this.src=''">
       </div>`;
     }).join('');
   }
@@ -334,6 +336,8 @@ function runCanvas(canvas, ctx, duration, drawFn) {
       const t = Math.min((now - start) / scaledDuration, 1);
       try {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.shadowColor = 'rgba(255,255,255,0.9)';
+        ctx.shadowBlur = 6;
         drawFn(ctx, t);
       } catch(e) {
         canvas.style.display = 'none';
@@ -355,6 +359,8 @@ function runParticleCanvas(canvas, ctx, particles, duration) {
       const elapsed = now - start;
       const scaledElapsed = elapsed * battleSpeedMultiplier;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.shadowColor = 'rgba(255,255,255,0.9)';
+      ctx.shadowBlur = 6;
       let anyAlive = false;
       for (const p of particles) { p.tick(scaledElapsed); if (p.alive) { p.draw(ctx); anyAlive = true; } }
       if (elapsed < scaledDuration || anyAlive) requestAnimationFrame(frame);
@@ -542,7 +548,7 @@ function animIcePunch(canvas, ctx, from, to) {
   });
 }
 
-function animCloseConbat(canvas, ctx, from, to) {
+function animCloseCombat(canvas, ctx, from, to) {
   // 3 rapid hits
   return runCanvas(canvas, ctx, 450, (ctx, t) => {
     const hit = Math.min(Math.floor(t * 3), 2); // clamp to 0,1,2
@@ -1183,7 +1189,7 @@ function playAttackAnimation(moveType, attackerEl, targetEl, isSpecial = true, m
       case 'Thunder Punch':return animThunderPunch(canvas, ctx, from, to);
       case 'Razor Leaf':   return runParticleCanvas(canvas, ctx, buildParticles('grass', from, to), 650);
       case 'Ice Punch':    return animIcePunch(canvas, ctx, from, to);
-      case 'Close Combat': return animCloseConbat(canvas, ctx, from, to);
+      case 'Close Combat': return animCloseCombat(canvas, ctx, from, to);
       case 'Poison Jab':   return animPoisonJab(canvas, ctx, from, to);
       case 'Earthquake':   return animEarthquake(canvas, ctx, from, to);
       case 'Aerial Ace':   return animAerialAce(canvas, ctx, from, to);
@@ -2225,6 +2231,7 @@ function showEeveeChoice(pokemon) {
 
 // Check team for pending evolutions after a won battle and play animations
 async function checkAndEvolveTeam() {
+  if (getSettings().autoSkipEvolve) return;
   for (const pokemon of state.team) {
     if (pokemon.currentHp <= 0) continue;
 
@@ -2358,9 +2365,9 @@ function openSettingsModal() {
           <button class="ach-modal-close" onclick="document.getElementById('settings-modal').remove()">✕</button>
         </div>
         <div class="settings-section-title">Auto-Skip</div>
-        ${row('Level-Ups', 'autoSkipLevelUp')}
         ${row('Regular Trainers', 'autoSkipBattles', s.autoSkipAllBattles)}
         ${row('All Fights', 'autoSkipAllBattles')}
+        ${row('Evolutions', 'autoSkipEvolve')}
       </div>`;
 
     modal.querySelectorAll('.settings-checkbox').forEach(cb => {

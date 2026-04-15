@@ -126,6 +126,7 @@ function showMapScreen() {
   renderItemBadges(state.items);
 
   const mapContainer = document.getElementById('map-container');
+  mapContainer.style.backgroundImage = `url('ui/map${state.currentMap + 1}.png')`;
   renderMap(state.map, mapContainer, onNodeClick);
 
   if (!localStorage.getItem('poke_tutorial_seen')) {
@@ -199,8 +200,6 @@ async function onNodeClick(node) {
     resolvedType = resolveQuestionMark();
   }
 
-  const isTrainerOrBoss = resolvedType === NODE_TYPES.TRAINER || resolvedType === NODE_TYPES.BOSS || resolvedType === NODE_TYPES.ITEM;
-
   switch (resolvedType) {
     case NODE_TYPES.BATTLE:
       await doBattleNode(node);
@@ -233,7 +232,7 @@ async function onNodeClick(node) {
       await doShinyNode(node);
       break;
     case 'mega':
-      doMegaNode(node);
+      doItemNode(node);
       break;
     default:
       await doBattleNode(node);
@@ -1033,9 +1032,6 @@ async function doShinyNode(node) {
   };
 }
 
-function doMegaNode(node) {
-  doItemNode(node);
-}
 
 // ---- Battle Screen ----
 
@@ -1063,7 +1059,6 @@ function runBattleScreen(enemyTeam, isBoss, onWin, onLose, enemyName = null, ene
     // Read auto-skip settings
     const settings = getSettings();
     const autoSkip = settings.autoSkipAllBattles || (!isBoss && settings.autoSkipBattles);
-    const autoSkipLvl = autoSkip || settings.autoSkipLevelUp;
 
     // Set up Skip button
     const skipBtn = document.getElementById('btn-auto-battle');
@@ -1095,17 +1090,16 @@ function runBattleScreen(enemyTeam, isBoss, onWin, onLose, enemyName = null, ene
       const maxEnemyLevel = Math.max(...resultE.map(p => p.level));
       const levelUps = applyLevelGain(state.team, state.nuzlockeMode ? [] : state.items, playerParticipants, maxEnemyLevel, state.nuzlockeMode, baseGainOverride);
       const skipAll = autoSkip || manuallySkipped;
-      const skipLvl = autoSkipLvl || manuallySkipped;
-      battleSpeedMultiplier = skipLvl ? SKIP_SPEED : 1;
+      battleSpeedMultiplier = skipAll ? SKIP_SPEED : 1;
       skipBtn.textContent = 'Skip';
-      skipBtn.style.display = skipLvl ? 'none' : 'block';
-      if (!skipLvl) {
+      skipBtn.style.display = skipAll ? 'none' : 'block';
+      if (!skipAll) {
         skipBtn.disabled = false;
         skipBtn.onclick = () => { battleSpeedMultiplier = SKIP_SPEED; skipBtn.disabled = true; manuallySkipped = true; };
       }
 
       const continueBtn = document.getElementById('btn-continue-battle');
-      if (!skipLvl) {
+      if (!skipAll) {
         continueBtn.style.display = 'block';
         continueBtn.onclick = () => { battleSpeedMultiplier = 1000; manuallySkipped = true; continueBtn.disabled = true; };
       }
