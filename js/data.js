@@ -362,7 +362,7 @@ const TYPE_ITEM_MAP = {
 
 // Settings (persisted across runs)
 function getSettings() {
-  return getCached('poke_settings') || { autoSkipLevelUp: false, autoSkipBattles: false, autoSkipAllBattles: false };
+  return getCached('poke_settings') || { autoSkipBattles: false, autoSkipAllBattles: false, autoSkipEvolve: false };
 }
 function saveSettings(s) { setCached('poke_settings', s); }
 

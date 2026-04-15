@@ -1063,7 +1063,7 @@ function runBattleScreen(enemyTeam, isBoss, onWin, onLose, enemyName = null, ene
     // Read auto-skip settings
     const settings = getSettings();
     const autoSkip = settings.autoSkipAllBattles || (!isBoss && settings.autoSkipBattles);
-    const autoSkipLvl = autoSkip || settings.autoSkipLevelUp;
+
 
     // Set up Skip button
     const skipBtn = document.getElementById('btn-auto-battle');
@@ -1095,17 +1095,16 @@ function runBattleScreen(enemyTeam, isBoss, onWin, onLose, enemyName = null, ene
       const maxEnemyLevel = Math.max(...resultE.map(p => p.level));
       const levelUps = applyLevelGain(state.team, state.nuzlockeMode ? [] : state.items, playerParticipants, maxEnemyLevel, state.nuzlockeMode, baseGainOverride);
       const skipAll = autoSkip || manuallySkipped;
-      const skipLvl = autoSkipLvl || manuallySkipped;
-      battleSpeedMultiplier = skipLvl ? SKIP_SPEED : 1;
+      battleSpeedMultiplier = skipAll ? SKIP_SPEED : 1;
       skipBtn.textContent = 'Skip';
-      skipBtn.style.display = skipLvl ? 'none' : 'block';
-      if (!skipLvl) {
+      skipBtn.style.display = skipAll ? 'none' : 'block';
+      if (!skipAll) {
         skipBtn.disabled = false;
         skipBtn.onclick = () => { battleSpeedMultiplier = SKIP_SPEED; skipBtn.disabled = true; manuallySkipped = true; };
       }
 
       const continueBtn = document.getElementById('btn-continue-battle');
-      if (!skipLvl) {
+      if (!skipAll) {
         continueBtn.style.display = 'block';
         continueBtn.onclick = () => { battleSpeedMultiplier = 1000; manuallySkipped = true; continueBtn.disabled = true; };
       }

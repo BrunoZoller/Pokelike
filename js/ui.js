@@ -2225,6 +2225,7 @@ function showEeveeChoice(pokemon) {
 
 // Check team for pending evolutions after a won battle and play animations
 async function checkAndEvolveTeam() {
+  if (getSettings().autoSkipEvolve) return;
   for (const pokemon of state.team) {
     if (pokemon.currentHp <= 0) continue;
 
@@ -2358,9 +2359,9 @@ function openSettingsModal() {
           <button class="ach-modal-close" onclick="document.getElementById('settings-modal').remove()">✕</button>
         </div>
         <div class="settings-section-title">Auto-Skip</div>
-        ${row('Level-Ups', 'autoSkipLevelUp')}
         ${row('Regular Trainers', 'autoSkipBattles', s.autoSkipAllBattles)}
         ${row('All Fights', 'autoSkipAllBattles')}
+        ${row('Evolutions', 'autoSkipEvolve')}
       </div>`;
 
     modal.querySelectorAll('.settings-checkbox').forEach(cb => {
