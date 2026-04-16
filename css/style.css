@@ -268,16 +268,7 @@ h1, h2, .pixel-font {
   position: relative;
   box-sizing: border-box;
 }
-.hp-bar-bg::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border: 1px solid transparent;
-  border-image: url('../ui/9sliceHealthBar.png') 1 stretch;
-  image-rendering: pixelated;
-  pointer-events: none;
-  z-index: 2;
-}
+.hp-bar-bg::after { display: none; }
 .hp-bar-bg.sm { height: 5px; }
 .hp-bar-fill { height: 100%; border-radius: 0; transition: width 0.3s; display: block; position: relative; }
 .hp-bar-shadow { position: absolute; bottom: 0; left: 0; width: 100%; height: 50%; background: rgba(0,0,0,0.23); pointer-events: none; }
@@ -504,8 +495,6 @@ h1, h2, .pixel-font {
   gap: 16px;
 }
 .battle-side {
-  border: 1px solid var(--border);
-  border-radius: 8px;
   padding: 12px;
   display: flex;
   flex-direction: column;
@@ -1685,11 +1674,11 @@ h1, h2, .pixel-font {
   box-shadow: 2px 2px 0 0 #181410;
 }
 
-/* ---- Battle side (keep dark — battle bg image lives inside) ---- */
+/* ---- Battle side (invisible container) ---- */
 .battle-side {
-  background: #111;
-  border: 2px solid #383838;
-  box-shadow: 3px 3px 0 0 #000;
+  background: none;
+  border: none;
+  box-shadow: none;
 }
 .battle-pokemon { border: 2px solid #2a2a2a; }
 
