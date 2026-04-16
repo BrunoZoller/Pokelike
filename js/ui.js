@@ -2225,13 +2225,13 @@ function showEeveeChoice(pokemon) {
 
 // Check team for pending evolutions after a won battle and play animations
 async function checkAndEvolveTeam() {
-  if (getSettings().autoSkipEvolve) return;
+  const skipAnim = getSettings().autoSkipEvolve;
   for (const pokemon of state.team) {
     if (pokemon.currentHp <= 0) continue;
 
     let evo;
     if (pokemon.speciesId === 133) {
-      // Eevee — show choice at level 36
+      // Eevee — show choice at level 36 (always ask user, even when skipping animation)
       if (pokemon.level < 36) continue;
       evo = await showEeveeChoice(pokemon);
     } else {
@@ -2240,7 +2240,7 @@ async function checkAndEvolveTeam() {
       if (pokemon.speciesId === evo.into) continue;
     }
 
-    await playEvoAnimation(pokemon, evo);
+    if (!skipAnim) await playEvoAnimation(pokemon, evo);
 
     const oldHpRatio = pokemon.currentHp / pokemon.maxHp;
     const newSpecies = await fetchPokemonById(evo.into);

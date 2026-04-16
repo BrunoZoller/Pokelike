@@ -973,6 +973,10 @@ async function doTradeNode(node) {
       const released = state.team[idx];
       if (released.heldItem) state.items.push(released.heldItem);
       state.team.splice(idx, 1, offer);
+      const normalUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${offer.speciesId}.png`;
+      markPokedexCaught(offer.speciesId, offer.name, offer.types, normalUrl);
+      if (offer.isShiny) markShinyDexCaught(offer.speciesId, offer.name, offer.types, offer.spriteUrl);
+      checkDexAchievements();
       advanceFromNode(state.map, node.id);
 
       // Show full-screen reveal
