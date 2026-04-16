@@ -263,10 +263,12 @@ h1, h2, .pixel-font {
   height: 8px;
   background: #111;
   border-radius: 0;
-  overflow: hidden;
+  overflow: visible;
   image-rendering: pixelated;
   position: relative;
   box-sizing: border-box;
+  outline: 2px solid #000;
+  box-shadow: 2px 2px 0 0 #000;
 }
 .hp-bar-bg::after { display: none; }
 .hp-bar-bg.sm { height: 5px; }
@@ -1677,10 +1679,13 @@ h1, h2, .pixel-font {
 /* ---- Battle side ---- */
 .battle-side {
   background: #2e2e2e;
-  border: none;
-  box-shadow: none;
+  border: 2px solid #1a1a1a;
+  box-shadow: 4px 4px 0 0 #000;
 }
-.battle-pokemon { border: 2px solid #2a2a2a; }
+.battle-pokemon {
+  border: 2px solid #1a1a1a;
+  box-shadow: 3px 3px 0 0 #000;
+}
 
 /* ---- Item equip modal ---- */
 .item-equip-box {
