@@ -110,17 +110,18 @@ function showMapScreen() {
       ? `<span>Elite Four & Champion</span>`
       : `<span>Map ${state.currentMap+1}: vs <b>${leader.name}</b> (${leader.type})</span>`;
   }
+  const BASE = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/';
+  const badgeHtml = Array.from({ length: 8 }, (_, i) => {
+    const earned = i < state.badges;
+    const label = GYM_LEADERS[i].badge;
+    return earned
+      ? `<img src="${BASE}${i + 1}.png" alt="${label}" title="${label}" class="badge-icon-img">`
+      : `<span class="badge-icon-empty" title="${label}"></span>`;
+  }).join('');
   const badgeEl = document.getElementById('badge-count');
-  if (badgeEl) {
-    const BASE = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/';
-    badgeEl.innerHTML = Array.from({ length: 8 }, (_, i) => {
-      const earned = i < state.badges;
-      const label = GYM_LEADERS[i].badge;
-      return earned
-        ? `<img src="${BASE}${i + 1}.png" alt="${label}" title="${label}" class="badge-icon-img">`
-        : `<span class="badge-icon-empty" title="${label}"></span>`;
-    }).join('');
-  }
+  if (badgeEl) badgeEl.innerHTML = badgeHtml;
+  const badgePanelEl = document.getElementById('badge-count-panel');
+  if (badgePanelEl) badgePanelEl.innerHTML = badgeHtml;
 
   renderTeamBar(state.team);
   renderItemBadges(state.items);

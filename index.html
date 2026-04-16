@@ -66,6 +66,7 @@
 
 <!-- ===== MAP SCREEN ===== -->
 <div id="map-screen" class="screen">
+  <!-- Mobile-only header -->
   <div class="map-header">
     <div id="map-info"></div>
     <div style="display:flex;align-items:center;gap:8px;">
@@ -76,19 +77,27 @@
     </div>
   </div>
 
-  <div class="hud-bars">
-    <div class="hud-box">
-      <div style="font-size:10px;color:var(--text-dim);margin-bottom:4px;font-family:'Press Start 2P',monospace;">TEAM</div>
+  <!-- Desktop-only top-right buttons -->
+  <div class="map-actions">
+    <button onclick="openPokedexModal()" class="btn-icon-sm" title="Pokédex">📖</button>
+    <button onclick="openAchievementsModal()" class="btn-icon-sm" title="Achievements">🏆</button>
+    <button onclick="openSettingsModal()" class="btn-icon-sm" title="Settings">⚙</button>
+  </div>
+
+  <div class="map-panels">
+    <div class="hud-box map-panel-left">
+      <div class="hud-label">TEAM</div>
       <div id="team-bar"></div>
     </div>
-    <div class="hud-box">
-      <div style="font-size:10px;color:var(--text-dim);margin-bottom:4px;font-family:'Press Start 2P',monospace;">ITEMS</div>
+    <div class="hud-box map-panel-right">
+      <div class="hud-label">ITEMS</div>
       <div id="item-bar"></div>
+      <div class="hud-label map-badges-label">BADGES</div>
+      <div id="badge-count-panel"></div>
     </div>
   </div>
 
-  <div id="map-container" style="flex:1;min-height:320px;"></div>
-
+  <div id="map-container"></div>
 </div>
 
 <!-- ===== BATTLE SCREEN ===== -->
