@@ -538,7 +538,7 @@ h1, h2, .pixel-font {
 }
 .battle-pokemon { background: url('../ui/battleBackground.png') center bottom / 100% auto no-repeat !important; background-clip: padding-box !important; }
 .battle-pokemon.fainted { opacity: 0.3; }
-.battle-sprite { width: 88px; height: 88px; image-rendering: pixelated; position: absolute; bottom: 22px; left: 50%; transform: translateX(-50%); z-index: 3; }
+.battle-sprite { width: 88px; height: 88px; image-rendering: pixelated; position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); z-index: 3; }
 #player-side .battle-sprite { transform: translateX(-50%) scaleX(-1); }
 .battle-poke-name { font-size: 7px; font-family: 'Press Start 2P', monospace; color: #fff; -webkit-text-stroke: 2px #000; paint-order: stroke fill; margin-bottom: 8px; }
 
