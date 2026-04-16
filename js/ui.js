@@ -2491,11 +2491,11 @@ function openPokedexModal(initialTab = 'normal') {
         <button class="ach-modal-close" onclick="document.getElementById('pokedex-modal').remove()">✕</button>
       </div>
       <div style="display:flex;align-items:center;gap:8px;padding:8px 12px 4px;">
-        <div style="flex:1;background:var(--border);border-radius:6px;height:28px;overflow:hidden;position:relative;">
-          <div id="dex-progress-bar" style="height:100%;background:repeating-linear-gradient(60deg,#e8920a 0px,#e8920a 16px,#f5b942 16px,#f5b942 32px);border-radius:6px;transition:width 0.3s;width:0%"></div>
-          <span id="dex-progress-label" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.6);pointer-events:none;"></span>
+        <div style="flex:1;background:#2a0010;height:26px;overflow:hidden;position:relative;border:2px solid #550000;">
+          <div id="dex-progress-bar" style="height:100%;background:repeating-linear-gradient(60deg,#cc1111 0px,#cc1111 16px,#ee3333 16px,#ee3333 32px);transition:width 0.3s;width:0%"></div>
+          <span id="dex-progress-label" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Press Start 2P',monospace;font-size:8px;font-weight:bold;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.8);pointer-events:none;"></span>
         </div>
-        <div id="dex-charm-icon" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:6px;background:var(--bg-card);flex-shrink:0;" title="Shiny Charm — complete the Pokédex to unlock. Doubles all shiny rates.">
+        <div id="dex-charm-icon" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:2px solid #550000;background:#1a0004;flex-shrink:0;" title="Shiny Charm — complete the Pokédex to unlock. Doubles all shiny rates.">
           <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/shiny-charm.png" alt="Shiny Charm" style="width:24px;height:24px;image-rendering:pixelated;" onerror="this.style.display='none'">
         </div>
       </div>
