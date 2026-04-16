@@ -509,7 +509,7 @@ h1, h2, .pixel-font {
   padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 20px;
 }
 .battle-side-label {
   font-family: 'Press Start 2P', monospace;
@@ -523,7 +523,7 @@ h1, h2, .pixel-font {
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  padding: 8px 8px 48px;
+  padding: 8px 8px 72px;
   position: relative;
 }
 .battle-base {
@@ -536,19 +536,43 @@ h1, h2, .pixel-font {
   transform: translateX(-50%);
   z-index: 2;
 }
-.battle-pokemon { background: url('../ui/battleBackground.png') center / cover no-repeat !important; background-clip: padding-box !important; }
+.battle-pokemon { background: url('../ui/battleBackground.png') center bottom / 100% auto no-repeat !important; background-clip: padding-box !important; }
 .battle-pokemon.fainted { opacity: 0.3; }
-.battle-sprite { width: 64px; height: 64px; image-rendering: pixelated; position: absolute; bottom: 7px; left: 50%; transform: translateX(-50%); z-index: 3; }
+.battle-sprite { width: 64px; height: 64px; image-rendering: pixelated; position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 3; }
 #player-side .battle-sprite { transform: translateX(-50%) scaleX(-1); }
 .battle-poke-name { font-size: 7px; font-family: 'Press Start 2P', monospace; color: #fff; -webkit-text-stroke: 2px #000; paint-order: stroke fill; margin-bottom: 8px; }
 
 .battle-controls {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   justify-content: center;
   align-items: center;
-  padding: 8px;
+  padding: 4px 8px;
 }
+
+/* Battle action buttons — light panel style with pixel shadow */
+#btn-auto-battle {
+  background: #e8e4d8;
+  border: 2px solid #181410;
+  box-shadow: 2px 2px 0 0 #181410;
+  color: #181410;
+  padding: 8px 20px;
+  font-size: 10px;
+}
+#btn-auto-battle:hover  { box-shadow: 3px 3px 0 0 #181410; transform: none; }
+#btn-auto-battle:active { box-shadow: 1px 1px 0 0 #181410; transform: translate(1px,1px); }
+#btn-auto-battle:disabled { opacity: 0.35; box-shadow: 2px 2px 0 0 #181410; }
+
+#btn-continue-battle {
+  background: #e8e4d8;
+  border: 2px solid #181410;
+  box-shadow: 2px 2px 0 0 #181410;
+  color: #181410;
+  padding: 10px 28px;
+  font-size: 10px;
+}
+#btn-continue-battle:hover  { box-shadow: 3px 3px 0 0 #181410; transform: none; }
+#btn-continue-battle:active { box-shadow: 1px 1px 0 0 #181410; transform: translate(1px,1px); }
 
 
 /* ---- Catch Screen ---- */
@@ -1665,9 +1689,9 @@ h1, h2, .pixel-font {
 .battle-side {
   background: #111;
   border: 2px solid #383838;
-  box-shadow: 2px 2px 0 0 #000;
+  box-shadow: 3px 3px 0 0 #000;
 }
-.battle-pokemon { border: 2px solid #383838; }
+.battle-pokemon { border: 2px solid #2a2a2a; }
 
 /* ---- Item equip modal ---- */
 .item-equip-box {
