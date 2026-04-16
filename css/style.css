@@ -1674,9 +1674,9 @@ h1, h2, .pixel-font {
   box-shadow: 2px 2px 0 0 #181410;
 }
 
-/* ---- Battle side (invisible container) ---- */
+/* ---- Battle side ---- */
 .battle-side {
-  background: none;
+  background: #2e2e2e;
   border: none;
   box-shadow: none;
 }
