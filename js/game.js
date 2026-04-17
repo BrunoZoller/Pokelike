@@ -26,8 +26,13 @@ async function initGame() {
 }
 
 async function startNewRun(nuzlockeMode = false) {
-  state = { currentMap: 0, currentNode: null, team: [], items: [], badges: 0, map: null, eliteIndex: 0, trainer: 'boy', starterSpeciesId: null, maxTeamSize: 1, nuzlockeMode, usedPokecenter: false, pickedUpItem: false };
-  await showTrainerSelect();
+  const savedTrainer = localStorage.getItem('poke_trainer') || null;
+  state = { currentMap: 0, currentNode: null, team: [], items: [], badges: 0, map: null, eliteIndex: 0, trainer: savedTrainer || 'boy', starterSpeciesId: null, maxTeamSize: 1, nuzlockeMode, usedPokecenter: false, pickedUpItem: false };
+  if (savedTrainer) {
+    await showStarterSelect();
+  } else {
+    await showTrainerSelect();
+  }
 }
 
 async function showTrainerSelect() {
@@ -38,7 +43,11 @@ async function showTrainerSelect() {
   girlCard.querySelector('.trainer-icon-wrap').innerHTML = TRAINER_SVG.girl;
 
   await new Promise(resolve => {
-    function pick(gender) { state.trainer = gender; resolve(); }
+    function pick(gender) {
+      state.trainer = gender;
+      localStorage.setItem('poke_trainer', gender);
+      resolve();
+    }
     boyCard.onclick   = () => pick('boy');
     boyCard.onkeydown = e => { if (e.key==='Enter'||e.key===' ') pick('boy'); };
     girlCard.onclick   = () => pick('girl');

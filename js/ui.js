@@ -2651,6 +2651,8 @@ const PATCH_NOTES = [
           'Normal Mode button highlighted in blue, Nuzlocke in red',
           'Removed redundant "Defeated [Leader]" line from the badge screen',
           'Battle background now fills the full cell on mobile',
+          'Gender selection is saved — you only need to pick once across all runs',
+          'Settings button is now accessible from the main menu',
         ],
       },
       {
