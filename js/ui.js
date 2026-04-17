@@ -11,15 +11,15 @@ function showScreen(id) {
 }
 
 function hpBarColor(pct) {
-  if (pct > 0.5) return '#4caf50';
-  if (pct > 0.25) return '#ff9800';
-  return '#f44336';
+  if (pct > 0.5) return '#00FF4A';
+  if (pct > 0.1) return '#EAFF00';
+  return '#FF0000';
 }
 
 function renderHpBar(current, max) {
   const pct = Math.max(0, current / max);
   const color = hpBarColor(pct);
-  return `<div class="hp-bar-bg"><div class="hp-bar-fill" style="width:${Math.floor(pct*100)}%;background:${color}"></div></div>
+  return `<div class="hp-bar-bg"><div class="hp-bar-fill" style="width:${Math.floor(pct*100)}%;background:${color}"><div class="hp-bar-shadow"></div></div></div>
           <span class="hp-text">${Math.max(0,current)}/${max}</span>`;
 }
 
@@ -248,9 +248,10 @@ function renderBattleField(pTeam, eTeam) {
       const fainted = p.currentHp <= 0;
       const active  = i === pActiveIdx;
       return `<div class="battle-pokemon ${fainted?'fainted':''} ${active?'active-pokemon':''}" data-idx="${i}">
-        <img src="${p.spriteUrl||''}" alt="${p.name}" class="battle-sprite" onerror="this.src=''">
         <div class="battle-poke-name">${p.nickname||p.name} Lv${p.level}</div>
         <div class="poke-hp">${renderHpBar(p.currentHp, p.maxHp)}</div>
+        <img src="ui/battleBase.png" class="battle-base" alt="">
+        <img src="${p.spriteUrl||''}" alt="${p.name}" class="battle-sprite" onerror="this.src=''">
       </div>`;
     }).join('');
   }
@@ -259,9 +260,10 @@ function renderBattleField(pTeam, eTeam) {
       const fainted = p.currentHp <= 0;
       const active  = i === eActiveIdx;
       return `<div class="battle-pokemon ${fainted?'fainted':''} ${active?'active-pokemon':''}" data-idx="${i}">
-        <img src="${p.spriteUrl||''}" alt="${p.name}" class="battle-sprite" onerror="this.src=''">
         <div class="battle-poke-name">${p.name} Lv${p.level}</div>
         <div class="poke-hp">${renderHpBar(p.currentHp, p.maxHp)}</div>
+        <img src="ui/battleBase.png" class="battle-base" alt="">
+        <img src="${p.spriteUrl||''}" alt="${p.name}" class="battle-sprite" onerror="this.src=''">
       </div>`;
     }).join('');
   }
@@ -334,6 +336,8 @@ function runCanvas(canvas, ctx, duration, drawFn) {
       const t = Math.min((now - start) / scaledDuration, 1);
       try {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.shadowColor = 'rgba(255,255,255,0.9)';
+        ctx.shadowBlur = 6;
         drawFn(ctx, t);
       } catch(e) {
         canvas.style.display = 'none';
@@ -355,6 +359,8 @@ function runParticleCanvas(canvas, ctx, particles, duration) {
       const elapsed = now - start;
       const scaledElapsed = elapsed * battleSpeedMultiplier;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.shadowColor = 'rgba(255,255,255,0.9)';
+      ctx.shadowBlur = 6;
       let anyAlive = false;
       for (const p of particles) { p.tick(scaledElapsed); if (p.alive) { p.draw(ctx); anyAlive = true; } }
       if (elapsed < scaledDuration || anyAlive) requestAnimationFrame(frame);
@@ -542,7 +548,7 @@ function animIcePunch(canvas, ctx, from, to) {
   });
 }
 
-function animCloseConbat(canvas, ctx, from, to) {
+function animCloseCombat(canvas, ctx, from, to) {
   // 3 rapid hits
   return runCanvas(canvas, ctx, 450, (ctx, t) => {
     const hit = Math.min(Math.floor(t * 3), 2); // clamp to 0,1,2
@@ -1183,7 +1189,7 @@ function playAttackAnimation(moveType, attackerEl, targetEl, isSpecial = true, m
       case 'Thunder Punch':return animThunderPunch(canvas, ctx, from, to);
       case 'Razor Leaf':   return runParticleCanvas(canvas, ctx, buildParticles('grass', from, to), 650);
       case 'Ice Punch':    return animIcePunch(canvas, ctx, from, to);
-      case 'Close Combat': return animCloseConbat(canvas, ctx, from, to);
+      case 'Close Combat': return animCloseCombat(canvas, ctx, from, to);
       case 'Poison Jab':   return animPoisonJab(canvas, ctx, from, to);
       case 'Earthquake':   return animEarthquake(canvas, ctx, from, to);
       case 'Aerial Ace':   return animAerialAce(canvas, ctx, from, to);
@@ -1230,7 +1236,7 @@ function playAttackAnimation(moveType, attackerEl, targetEl, isSpecial = true, m
         // Use existing buildParticles for remaining special moves (Flamethrower, Surf, Thunderbolt, Ice Beam, Psychic)
         const type = (moveType || 'normal').toLowerCase();
         const particles = buildParticles(type, from, to);
-        const duration = type === 'electric' ? 550 : type === 'psychic' ? 700 : 650;
+        const duration = type === 'electric' ? 550 : type === 'psychic' ? 700 : type === 'fire' ? 800 : 650;
         return runParticleCanvas(canvas, ctx, particles, duration);
       }
     }
@@ -1249,61 +1255,103 @@ function buildParticles(type, from, to) {
   const ps = [];
 
   if (type === 'fire') {
-    // Flamethrower: sustained jet of fire streaming from attacker to target.
-    // 60 particles staggered every ~8ms so the stream looks continuous.
-    const travelAngle = Math.atan2(dy, dx);
-    for (let i = 0; i < 60; i++) {
-      const delay = i * 8;
-      // Travel close to the target direction with a small cone that widens over time
-      const spreadDeg = rnd(-6, 6);
-      const spreadRad = spreadDeg * Math.PI / 180;
-      const baseSpeed = rnd(1.6, 2.2); // pixels per frame-equivalent
-      const vx = Math.cos(travelAngle + spreadRad) * baseSpeed;
-      const vy = Math.sin(travelAngle + spreadRad) * baseSpeed;
-      const life = rnd(260, 380);
-      // size grows as particle ages (flame billows outward)
-      const startSize = rnd(3, 6);
-      const endSize   = startSize * rnd(2.5, 4.0);
-      let px = from.x + rnd(-4, 4), py = from.y + rnd(-4, 4);
-      let age = -delay;
-      ps.push({
-        alive: true,
-        tick(ms) {
-          age = ms - delay; if (age < 0) { this.alive = true; return; }
-          // slight upward drift (hot air rises)
-          px += vx * 2.0;
-          py += vy * 2.0 - 0.06 * (age / life) * 20;
-          this.alive = age < life;
-        },
+    // Fireball: glowing orb travels from attacker to target with ember trail, then explodes
+    const TRAVEL = 400;
+
+    // Main fireball orb
+    let fbx = from.x, fby = from.y, fbAge = 0;
+    ps.push({ alive: true,
+      tick(ms) { fbAge = ms;
+        const t = Math.min(ms / TRAVEL, 1);
+        fbx = lerp(from.x, to.x, t); fby = lerp(from.y, to.y, t);
+        this.alive = ms < TRAVEL + 80; },
+      draw(ctx) {
+        const a = Math.max(0, 1 - Math.max(0, fbAge - TRAVEL) / 80);
+        // outer heat glow
+        const glow = ctx.createRadialGradient(fbx, fby, 0, fbx, fby, 26);
+        glow.addColorStop(0, `rgba(255,120,0,${a * 0.35})`);
+        glow.addColorStop(1, `rgba(180,30,0,0)`);
+        ctx.beginPath(); ctx.arc(fbx, fby, 26, 0, Math.PI * 2);
+        ctx.fillStyle = glow; ctx.fill();
+        // inner fireball
+        const core = ctx.createRadialGradient(fbx, fby, 0, fbx, fby, 13);
+        core.addColorStop(0,   `rgba(255,255,200,${a})`);
+        core.addColorStop(0.3, `rgba(255,160,20,${a})`);
+        core.addColorStop(0.7, `rgba(220,50,0,${a * 0.85})`);
+        core.addColorStop(1,   `rgba(80,0,0,0)`);
+        ctx.beginPath(); ctx.arc(fbx, fby, 13, 0, Math.PI * 2);
+        ctx.fillStyle = core; ctx.fill();
+      }
+    });
+
+    // Ember trail — particles spawned at positions along the fireball's path
+    for (let i = 0; i < 38; i++) {
+      const spawnFrac = i / 38;
+      const spawnMs   = spawnFrac * TRAVEL;
+      const spawnX    = lerp(from.x, to.x, spawnFrac);
+      const spawnY    = lerp(from.y, to.y, spawnFrac);
+      const evx = rnd(-0.5, 0.5);
+      const evy = rnd(-1.4, 0.2); // hot air rises
+      const life = rnd(180, 340);
+      const startSize = rnd(3, 8);
+      let age = -spawnMs;
+      ps.push({ alive: true,
+        tick(ms) { age = ms - spawnMs; this.alive = age < life; },
         draw(ctx) {
           if (age < 0) return;
           const t = age / life;
-          const a = Math.max(0, t < 0.15 ? t / 0.15 : 1 - (t - 0.15) / 0.85);
-          const s = lerp(startSize, endSize, t);
-          // colour: white-yellow core → orange → red → transparent
+          const a = Math.max(0, t < 0.12 ? t / 0.12 : 1 - (t - 0.12) / 0.88);
+          const ex = spawnX + evx * age * 0.05;
+          const ey = spawnY + evy * age * 0.05;
+          const s  = lerp(startSize, startSize * 2.8, t);
+          const grad = ctx.createRadialGradient(ex, ey, 0, ex, ey, s);
+          grad.addColorStop(0,   `rgba(255,230,120,${a * 0.95})`);
+          grad.addColorStop(0.4, `rgba(240,90,10,${a * 0.75})`);
+          grad.addColorStop(1,   `rgba(120,20,0,0)`);
+          ctx.beginPath(); ctx.arc(ex, ey, s, 0, Math.PI * 2);
+          ctx.fillStyle = grad; ctx.fill();
+        }
+      });
+    }
+
+    // Impact explosion burst
+    for (let i = 0; i < 20; i++) {
+      const delay = TRAVEL + i * 10;
+      const angle = rnd(0, Math.PI * 2);
+      const speed = rnd(1.0, 2.4);
+      const life  = rnd(220, 380);
+      const size  = rnd(5, 12);
+      let px = to.x, py = to.y, age = -delay;
+      ps.push({ alive: true,
+        tick(ms) { age = ms - delay; if (age < 0) { this.alive = true; return; }
+          px += Math.cos(angle) * speed * 1.6;
+          py += Math.sin(angle) * speed * 1.6 - age * 0.0012;
+          this.alive = age < life; },
+        draw(ctx) {
+          if (age < 0) return;
+          const t = age / life;
+          const a = Math.max(0, t < 0.1 ? t / 0.1 : 1 - (t - 0.1) / 0.9);
+          const s = lerp(size, size * 2.4, t);
           const grad = ctx.createRadialGradient(px, py, 0, px, py, s);
-          grad.addColorStop(0,   `rgba(255,255,200,${a})`);
-          grad.addColorStop(0.25,`rgba(255,180,30,${a * 0.95})`);
-          grad.addColorStop(0.6, `rgba(220,60,0,${a * 0.7})`);
-          grad.addColorStop(1,   `rgba(100,10,0,0)`);
+          grad.addColorStop(0,   `rgba(255,240,160,${a})`);
+          grad.addColorStop(0.3, `rgba(255,110,15,${a * 0.9})`);
+          grad.addColorStop(0.7, `rgba(180,35,0,${a * 0.5})`);
+          grad.addColorStop(1,   `rgba(60,0,0,0)`);
           ctx.beginPath(); ctx.arc(px, py, s, 0, Math.PI * 2);
           ctx.fillStyle = grad; ctx.fill();
         }
       });
     }
-    // Heat-glow line along the jet axis
-    let heatAge = 0;
+
+    // Impact shockwave ring
+    let impactAge = -TRAVEL;
     ps.push({ alive: true,
-      tick(ms) { heatAge = ms; this.alive = ms < 580; },
+      tick(ms) { impactAge = ms - TRAVEL; this.alive = impactAge < 360; },
       draw(ctx) {
-        const growT = Math.min(heatAge / 220, 1);
-        const fadeA = Math.max(0, 1 - Math.max(0, heatAge - 400) / 180);
-        const ex = lerp(from.x, to.x, growT), ey = lerp(from.y, to.y, growT);
-        const grad = ctx.createLinearGradient(from.x, from.y, ex, ey);
-        grad.addColorStop(0, `rgba(255,220,80,${fadeA * 0.55})`);
-        grad.addColorStop(1, `rgba(220,60,0,0)`);
-        ctx.beginPath(); ctx.moveTo(from.x, from.y); ctx.lineTo(ex, ey);
-        ctx.strokeStyle = grad; ctx.lineWidth = 8; ctx.stroke();
+        if (impactAge < 0) return;
+        const t = impactAge / 360;
+        ctx.beginPath(); ctx.arc(to.x, to.y, t * 40, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(255,110,0,${(1 - t) * 0.6})`; ctx.lineWidth = 3 * (1 - t) + 1; ctx.stroke();
       }
     });
 
@@ -1549,12 +1597,40 @@ function buildParticles(type, from, to) {
     });
 
   } else if (type === 'fighting') {
-    // Close Combat: red impact star burst at target
+    // Mach Punch: glowing red orb travels from attacker to target, then impact burst
+    const fTravelTime = 240;
+    let fpx = from.x, fpy = from.y, fAge = 0;
+    ps.push({ alive: true,
+      tick(ms) { fAge = ms;
+        const t = Math.min(ms / fTravelTime, 1);
+        fpx = lerp(from.x, to.x, t); fpy = lerp(from.y, to.y, t);
+        this.alive = ms < fTravelTime + 60; },
+      draw(ctx) {
+        const tTravel = Math.min(fAge / fTravelTime, 1);
+        const a = Math.max(0, 1 - Math.max(0, fAge - fTravelTime) / 60);
+        // motion trail
+        for (let ti = 0; ti < tTravel; ti += 0.09) {
+          if (tTravel - ti > 0.4) continue;
+          const tx = lerp(from.x, to.x, ti), ty = lerp(from.y, to.y, ti);
+          const ta = ((ti - (tTravel - 0.4)) / 0.4) * a * 0.45;
+          ctx.beginPath(); ctx.arc(tx, ty, 10 * ta, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(220,40,40,${ta})`; ctx.fill();
+        }
+        const s = 14;
+        const grad = ctx.createRadialGradient(fpx, fpy, 0, fpx, fpy, s);
+        grad.addColorStop(0, `rgba(255,200,200,${a})`);
+        grad.addColorStop(0.4, `rgba(220,40,40,${a * 0.9})`);
+        grad.addColorStop(1, `rgba(100,0,0,0)`);
+        ctx.beginPath(); ctx.arc(fpx, fpy, s, 0, Math.PI * 2);
+        ctx.fillStyle = grad; ctx.fill();
+      }
+    });
+    // Impact burst after travel
     for (let i = 0; i < 6; i++) {
-      const delay = i * 60;
+      const delay = fTravelTime + i * 40;
       const angle = (i / 6) * Math.PI * 2 + rnd(0, 0.5);
       const speed = rnd(1.0, 1.8);
-      const life  = rnd(280, 380);
+      const life  = rnd(220, 320);
       let px = to.x, py = to.y, age = -delay;
       ps.push({
         alive: true,
@@ -1576,11 +1652,12 @@ function buildParticles(type, from, to) {
         }
       });
     }
-    // shockwave ring
-    let ringAge = 0;
+    // shockwave ring at impact
+    let ringAge = -fTravelTime;
     ps.push({ alive: true,
-      tick(ms) { ringAge = ms; this.alive = ms < 350; },
+      tick(ms) { ringAge = ms - fTravelTime; this.alive = ringAge < 350; },
       draw(ctx) {
+        if (ringAge < 0) return;
         const t = ringAge / 350;
         ctx.beginPath(); ctx.arc(to.x, to.y, Math.max(0, t * 45), 0, Math.PI * 2);
         ctx.strokeStyle = `rgba(255,80,80,${(1 - t) * 0.8})`; ctx.lineWidth = 3; ctx.stroke();
@@ -1875,12 +1952,39 @@ function buildParticles(type, from, to) {
     }
 
   } else if (type === 'steel') {
-    // Flash Cannon / Iron Head: silver spark burst at target
+    // Flash Cannon: silver metallic orb travels from attacker to target, then spark burst
+    const sTravelTime = 270;
+    let spx = from.x, spy = from.y, sAge2 = 0;
+    ps.push({ alive: true,
+      tick(ms) { sAge2 = ms;
+        const t = Math.min(ms / sTravelTime, 1);
+        spx = lerp(from.x, to.x, t); spy = lerp(from.y, to.y, t);
+        this.alive = ms < sTravelTime + 60; },
+      draw(ctx) {
+        const tTravel = Math.min(sAge2 / sTravelTime, 1);
+        const a = Math.max(0, 1 - Math.max(0, sAge2 - sTravelTime) / 60);
+        // trailing gleam
+        for (let ti = Math.max(0, tTravel - 0.38); ti < tTravel; ti += 0.07) {
+          const tx = lerp(from.x, to.x, ti), ty = lerp(from.y, to.y, ti);
+          const ta = ((ti - (tTravel - 0.38)) / 0.38) * a * 0.5;
+          ctx.beginPath(); ctx.arc(tx, ty, 9 * ta, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(180,200,220,${ta})`; ctx.fill();
+        }
+        const s = 12;
+        const grad = ctx.createRadialGradient(spx - s * 0.3, spy - s * 0.3, s * 0.1, spx, spy, s);
+        grad.addColorStop(0, `rgba(255,255,255,${a})`);
+        grad.addColorStop(0.4, `rgba(200,215,230,${a * 0.9})`);
+        grad.addColorStop(1, `rgba(100,120,150,0)`);
+        ctx.beginPath(); ctx.arc(spx, spy, s, 0, Math.PI * 2);
+        ctx.fillStyle = grad; ctx.fill();
+      }
+    });
+    // Spark burst on impact
     for (let i = 0; i < 20; i++) {
-      const delay = i * 18;
+      const delay = sTravelTime + i * 15;
       const angle = rnd(0, Math.PI * 2);
       const speed = rnd(0.8, 2.0);
-      const life  = rnd(250, 400);
+      const life  = rnd(200, 360);
       let px = to.x, py = to.y, age = -delay;
       ps.push({
         alive: true,
@@ -2335,6 +2439,10 @@ function _runToastQueue() {
 
 // ---- Settings Modal ----
 
+function applyDarkMode() {
+  document.body.classList.toggle('dark-mode', !!getSettings().darkMode);
+}
+
 function openSettingsModal() {
   const existing = document.getElementById('settings-modal');
   if (existing) { existing.remove(); return; }
@@ -2358,6 +2466,8 @@ function openSettingsModal() {
           <span>Settings</span>
           <button class="ach-modal-close" onclick="document.getElementById('settings-modal').remove()">✕</button>
         </div>
+        <div class="settings-section-title">Display</div>
+        ${row('Dark Mode', 'darkMode')}
         <div class="settings-section-title">Auto-Skip</div>
         ${row('Regular Trainers', 'autoSkipBattles', s.autoSkipAllBattles)}
         ${row('All Fights', 'autoSkipAllBattles')}
@@ -2369,6 +2479,7 @@ function openSettingsModal() {
         const s2 = getSettings();
         s2[cb.dataset.key] = cb.checked;
         saveSettings(s2);
+        applyDarkMode();
         render();
       };
     });
@@ -2485,11 +2596,11 @@ function openPokedexModal(initialTab = 'normal') {
         <button class="ach-modal-close" onclick="document.getElementById('pokedex-modal').remove()">✕</button>
       </div>
       <div style="display:flex;align-items:center;gap:8px;padding:8px 12px 4px;">
-        <div style="flex:1;background:var(--border);border-radius:6px;height:28px;overflow:hidden;position:relative;">
-          <div id="dex-progress-bar" style="height:100%;background:repeating-linear-gradient(60deg,#e8920a 0px,#e8920a 16px,#f5b942 16px,#f5b942 32px);border-radius:6px;transition:width 0.3s;width:0%"></div>
-          <span id="dex-progress-label" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.6);pointer-events:none;"></span>
+        <div style="flex:1;background:#2a0010;height:26px;overflow:hidden;position:relative;border:2px solid #550000;">
+          <div id="dex-progress-bar" style="height:100%;background:repeating-linear-gradient(60deg,#cc1111 0px,#cc1111 16px,#ee3333 16px,#ee3333 32px);transition:width 0.3s;width:0%"></div>
+          <span id="dex-progress-label" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Press Start 2P',monospace;font-size:8px;font-weight:bold;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.8);pointer-events:none;"></span>
         </div>
-        <div id="dex-charm-icon" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:6px;background:var(--bg-card);flex-shrink:0;" title="Shiny Charm — complete the Pokédex to unlock. Doubles all shiny rates.">
+        <div id="dex-charm-icon" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:2px solid #550000;background:#1a0004;flex-shrink:0;" title="Shiny Charm — complete the Pokédex to unlock. Doubles all shiny rates.">
           <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/shiny-charm.png" alt="Shiny Charm" style="width:24px;height:24px;image-rendering:pixelated;" onerror="this.style.display='none'">
         </div>
       </div>
@@ -2525,6 +2636,60 @@ function openShinyDexModal() { openPokedexModal('shiny'); }
 // ---- Patch Notes Modal ----
 
 const PATCH_NOTES = [
+  {
+    version: '1.3',
+    title: 'Visual Rework & Achievements Update',
+    date: '2026-04-17',
+    sections: [
+      {
+        heading: 'Visual Rework',
+        entries: [
+          'New retro GBA-style light panel aesthetic across all cards, HUD boxes, and modals',
+          'Pixel-art hard shadows on cards, HP bars, battle divs, and buttons',
+          'Battle Pokémon cells are taller with bigger sprites and a larger base platform',
+          'All primary buttons redesigned to match the retro panel style',
+          'Normal Mode button highlighted in blue, Nuzlocke in red',
+          'Removed redundant "Defeated [Leader]" line from the badge screen',
+          'Battle background now fills the full cell on mobile',
+        ],
+      },
+      {
+        heading: 'Dark Mode',
+        entries: [
+          'Dark mode toggle added to Settings — switches to a warm dark palette and a separate background',
+          'Preference is saved and restored across sessions',
+          'All panels, modals, buttons, Pokédex, and achievements support dark mode',
+        ],
+      },
+      {
+        heading: 'Attack Animations',
+        entries: [
+          'Fire: overhauled to a glowing fireball traveling to the target with an ember trail and impact explosion',
+          'Fighting: red impact orb now travels from attacker to target before the burst',
+          'Steel: silver metallic orb travels to the target before sparks fly on impact',
+          'Hit flash brightness reduced across all types — less obnoxious on bright panels',
+        ],
+      },
+      {
+        heading: 'New Achievements',
+        entries: [
+          '🦅 Bird Keeper — beat the game with all 3 legendary birds on your team',
+          '🏃 No Rest for the Wicked — beat the game without using a Pokémon Center',
+          '🎒 Minimalist — beat the game without picking up any items',
+          '🔣 Type Supremacy — beat the game with 4 of 6 Pokémon sharing a type',
+          '💫 Shiny Squad — beat the game with a full team of shiny Pokémon',
+          '🔁 On a Roll — beat the game two runs in a row',
+        ],
+      },
+      {
+        heading: 'Bug Fixes',
+        entries: [
+          'Pokémon no longer skip evolution entirely when "Skip Evolutions" is on — only the animation is skipped',
+          'Pokémon obtained by trading are now correctly registered in the Pokédex',
+        ],
+      },
+    ],
+  },
   {
     version: '1.2',
     title: 'Combat & Maps Update',

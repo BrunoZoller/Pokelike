@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pokemon Roguelike</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7248020241477812"
        crossorigin="anonymous"></script>
   <!-- Google tag (gtag.js) -->
@@ -26,7 +29,7 @@
 <div id="title-screen" class="screen">
   <div class="game-logo">POKELIKE</div>
   <div class="game-subtitle">Pokemon Roguelike</div>
-  <div style="color:var(--text-dim);font-size:9px;margin-bottom:6px;cursor:pointer;" onclick="openPatchNotesModal()">v1.2 — patch notes</div>
+  <div style="color:var(--text-dim);font-size:9px;margin-bottom:6px;cursor:pointer;" onclick="openPatchNotesModal()">v1.3 — patch notes</div>
   <button id="btn-new-run" class="btn-primary">Normal Mode</button>
   <button id="btn-hard-run" class="btn-primary" style="margin-top:6px;">Nuzlocke</button>
   <div style="display:flex;gap:8px;margin-top:8px;">
@@ -69,29 +72,38 @@
 
 <!-- ===== MAP SCREEN ===== -->
 <div id="map-screen" class="screen">
+  <!-- Mobile-only header -->
   <div class="map-header">
     <div id="map-info"></div>
     <div style="display:flex;align-items:center;gap:8px;">
       <div id="badge-count"></div>
-      <button onclick="openPokedexModal()" class="btn-icon-sm" title="Pokédex">📖</button>
-      <button onclick="openAchievementsModal()" class="btn-icon-sm" title="Achievements">🏆</button>
-      <button onclick="openSettingsModal()" class="btn-icon-sm" title="Settings">⚙</button>
+      <button onclick="openPokedexModal()" class="btn-icon-sm" title="Pokédex"><img src="ui/pokedex.png" alt="Pokédex"></button>
+      <button onclick="openAchievementsModal()" class="btn-icon-sm" title="Achievements"><img src="ui/achievements.png" alt="Achievements"></button>
+      <button onclick="openSettingsModal()" class="btn-icon-sm" title="Settings"><img src="ui/settings.png" alt="Settings"></button>
     </div>
   </div>
 
-  <div class="hud-bars">
-    <div style="flex:1">
-      <div style="font-size:10px;color:var(--text-dim);margin-bottom:4px;font-family:'Press Start 2P',monospace;">TEAM</div>
+  <!-- Desktop-only top-right buttons -->
+  <div class="map-actions">
+    <button onclick="openPokedexModal()" class="btn-icon-sm" title="Pokédex"><img src="ui/pokedex.png" alt="Pokédex"></button>
+    <button onclick="openAchievementsModal()" class="btn-icon-sm" title="Achievements"><img src="ui/achievements.png" alt="Achievements"></button>
+    <button onclick="openSettingsModal()" class="btn-icon-sm" title="Settings"><img src="ui/settings.png" alt="Settings"></button>
+  </div>
+
+  <div class="map-panels">
+    <div class="hud-box map-panel-left">
+      <div class="hud-label">TEAM</div>
       <div id="team-bar"></div>
     </div>
-    <div style="flex:1">
-      <div style="font-size:10px;color:var(--text-dim);margin-bottom:4px;font-family:'Press Start 2P',monospace;">ITEMS</div>
+    <div class="hud-box map-panel-right">
+      <div class="hud-label">ITEMS</div>
       <div id="item-bar"></div>
+      <div class="hud-label map-badges-label">BADGES</div>
+      <div id="badge-count-panel"></div>
     </div>
   </div>
 
-  <div id="map-container" style="flex:1;min-height:320px;"></div>
-
+  <div id="map-container"></div>
 </div>
 
 <!-- ===== BATTLE SCREEN ===== -->

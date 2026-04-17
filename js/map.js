@@ -289,15 +289,16 @@ function renderMap(map, container, onNodeClick) {
   svg.style.height = '100%';
 
   const layerCount = map.layers.length;
-  const layerGap = H / (layerCount + 1);
+  const padY = 28;
 
   const positions = {};
   for (let l = 0; l < map.layers.length; l++) {
     const layer = map.layers[l];
-    const y = layerGap * (l + 1);
-    const nodeGap = W / (layer.length + 1);
+    const y = layerCount > 1 ? padY + (l / (layerCount - 1)) * (H - 2 * padY) : H / 2;
+    const nodeGap = W / (layer.length + 0.2);
     for (let c = 0; c < layer.length; c++) {
-      positions[layer[c].id] = { x: nodeGap * (c + 1), y };
+      const x = layer.length === 1 ? W / 2 : W / 2 + (c - (layer.length - 1) / 2) * nodeGap;
+      positions[layer[c].id] = { x, y };
     }
   }
 
@@ -335,8 +336,9 @@ function renderMap(map, container, onNodeClick) {
     const isInaccessible = !node.accessible && !node.visited;
 
     g.style.cursor = isClickable ? 'pointer' : 'default';
-    if (isInaccessible) g.style.opacity = '0.45';
-    if (node.visited) g.style.opacity = '0.3';
+    if (isInaccessible) { g.style.opacity = '0.75'; }
+    if (node.visited) g.style.filter = 'grayscale(0.5) brightness(0.75)';
+    if (isClickable) g.style.filter = 'drop-shadow(0 0 6px #fff) drop-shadow(0 0 3px #ffe066)';
 
     const isBossNode = node.type === NODE_TYPES.BOSS;
     const sprite = getNodeSprite(node);
