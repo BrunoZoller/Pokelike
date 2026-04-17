@@ -1806,16 +1806,19 @@ h1, h2, .pixel-font {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: #5865F2;
+  color: #fff;
   text-decoration: none;
   font-family: 'Press Start 2P', monospace;
   font-size: 8px;
-  opacity: 0.75;
+  opacity: 0.85;
   margin-top: 10px;
   transition: opacity 0.15s;
+  background: #5865F2;
+  padding: 6px 10px;
+  border-radius: 4px;
 }
 .discord-link:hover { opacity: 1; }
-.discord-link svg { width: 16px; height: 16px; fill: #5865F2; flex-shrink: 0; }
+.discord-link svg { width: 16px; height: 16px; fill: #fff; flex-shrink: 0; }
 
 /* ======================================================
    DARK MODE
