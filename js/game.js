@@ -19,6 +19,8 @@ let state = {
 async function initGame() {
   applyDarkMode();
   showScreen('title-screen');
+  if (typeof initFirebase === 'function') initFirebase();
+  if (typeof syncToCloud === 'function') syncToCloud();
   document.getElementById('btn-new-run').addEventListener('click', () => startNewRun(false));
 
   const hardBtn = document.getElementById('btn-hard-run');
@@ -1181,6 +1183,7 @@ function showBadgeScreen(leader) {
 
 function showGameOver() {
   localStorage.setItem('poke_last_run_won', 'false');
+  if (typeof syncToCloud === 'function') syncToCloud();
   initGame();
 }
 
@@ -1272,6 +1275,8 @@ function showWinScreen() {
     const ach = unlockAchievement('back_to_back');
     if (ach) setTimeout(() => showAchievementToast(ach), 2400);
   }
+
+  if (typeof syncToCloud === 'function') syncToCloud();
 }
 
 // ---- Boot ----
