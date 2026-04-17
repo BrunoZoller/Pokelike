@@ -362,7 +362,8 @@ const TYPE_ITEM_MAP = {
 
 // Settings (persisted across runs)
 function getSettings() {
-  return getCached('poke_settings') || { autoSkipBattles: false, autoSkipAllBattles: false, autoSkipEvolve: false };
+  const defaults = { autoSkipBattles: false, autoSkipAllBattles: false, autoSkipEvolve: false, darkMode: false };
+  return Object.assign({}, defaults, getCached('poke_settings') || {});
 }
 function saveSettings(s) { setCached('poke_settings', s); }
 
@@ -707,6 +708,12 @@ const ACHIEVEMENTS = [
   { id: 'pokedex_complete',  name: 'Gotta Catch \'Em All', desc: 'Complete the regular Pokédex',                          icon: '📖' },
   { id: 'shinydex_complete', name: 'Shiny Hunter',          desc: 'Complete the Shiny Pokédex',                            icon: '✨' },
   { id: 'nuzlocke_win',      name: 'True Master',           desc: 'Beat the game on Nuzlocke Mode', icon: '☠️' },
+  { id: 'three_birds',      name: 'Bird Keeper',           desc: 'Beat the game with all 3 legendary birds on your team', icon: '🦅' },
+  { id: 'no_pokecenter',    name: 'No Rest for the Wicked', desc: 'Beat the game without using a Pokémon Center', icon: '🏃' },
+  { id: 'no_items',         name: 'Minimalist',            desc: 'Beat the game without picking up any items', icon: '🎒' },
+  { id: 'type_quartet',     name: 'Type Supremacy',        desc: 'Beat the game with 4 of 6 Pokémon sharing a type', icon: '🔣' },
+  { id: 'all_shiny_win',    name: 'Shiny Squad',           desc: 'Beat the game with a full team of shiny Pokémon', icon: '💫' },
+  { id: 'back_to_back',     name: 'On a Roll',             desc: 'Beat the game two runs in a row', icon: '🔁' },
 ];
 
 function getUnlockedAchievements() {

@@ -17,6 +17,7 @@ let state = {
 // ---- Initialization ----
 
 async function initGame() {
+  applyDarkMode();
   showScreen('title-screen');
   document.getElementById('btn-new-run').addEventListener('click', () => startNewRun(false));
 
@@ -25,7 +26,7 @@ async function initGame() {
 }
 
 async function startNewRun(nuzlockeMode = false) {
-  state = { currentMap: 0, currentNode: null, team: [], items: [], badges: 0, map: null, eliteIndex: 0, trainer: 'boy', starterSpeciesId: null, maxTeamSize: 1, nuzlockeMode };
+  state = { currentMap: 0, currentNode: null, team: [], items: [], badges: 0, map: null, eliteIndex: 0, trainer: 'boy', starterSpeciesId: null, maxTeamSize: 1, nuzlockeMode, usedPokecenter: false, pickedUpItem: false };
   await showTrainerSelect();
 }
 
@@ -524,6 +525,7 @@ function doItemNode(node) {
       ${item.usable ? '<div style="font-size:9px;color:#4af;margin-top:4px;">USABLE ITEM</div>' : ''}`;
     div.style.cursor = 'pointer';
     div.addEventListener('click', () => {
+      state.pickedUpItem = true;
       if (item.usable) {
         state.items.push({ ...item });
         advanceFromNode(state.map, node.id);
@@ -768,6 +770,7 @@ async function applyEvolution(pokemon) {
 }
 
 function doPokeCenterNode(node) {
+  state.usedPokecenter = true;
   for (const p of state.team) p.currentHp = p.maxHp;
   advanceFromNode(state.map, node.id);
   showMapScreen();
@@ -1148,7 +1151,7 @@ function runBattleScreen(enemyTeam, isBoss, onWin, onLose, enemyName = null, ene
 function showBadgeScreen(leader) {
   showScreen('badge-screen');
   document.getElementById('badge-msg').textContent = `You earned the ${leader.badge}!`;
-  document.getElementById('badge-leader').textContent = `Defeated ${leader.name}!`;
+  document.getElementById('badge-leader').textContent = '';
   document.getElementById('badge-count-display').textContent = `Badges: ${state.badges}/8`;
   const badgeImg = document.getElementById('badge-icon-img');
   if (badgeImg) badgeImg.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/${state.badges}.png`;
@@ -1164,6 +1167,7 @@ function showBadgeScreen(leader) {
 }
 
 function showGameOver() {
+  localStorage.setItem('poke_last_run_won', 'false');
   initGame();
 }
 
@@ -1207,6 +1211,53 @@ function showWinScreen() {
   if (state.nuzlockeMode) {
     const ach = unlockAchievement('nuzlocke_win');
     if (ach) setTimeout(() => showAchievementToast(ach), 2200);
+  }
+
+  // All 3 legendary birds on team
+  const birdIds = [144, 145, 146];
+  if (birdIds.every(id => state.team.some(p => p.speciesId === id))) {
+    const ach = unlockAchievement('three_birds');
+    if (ach) setTimeout(() => showAchievementToast(ach), 800);
+  }
+
+  // No Pokémon Center used
+  if (!state.usedPokecenter) {
+    const ach = unlockAchievement('no_pokecenter');
+    if (ach) setTimeout(() => showAchievementToast(ach), 1000);
+  }
+
+  // No items picked up
+  if (!state.pickedUpItem) {
+    const ach = unlockAchievement('no_items');
+    if (ach) setTimeout(() => showAchievementToast(ach), 1200);
+  }
+
+  // 4 of 6 Pokémon share a type
+  if (state.team.length === 6) {
+    const typeCounts = {};
+    for (const p of state.team) {
+      for (const t of p.types) {
+        typeCounts[t] = (typeCounts[t] || 0) + 1;
+      }
+    }
+    if (Object.values(typeCounts).some(c => c >= 4)) {
+      const ach = unlockAchievement('type_quartet');
+      if (ach) setTimeout(() => showAchievementToast(ach), 1600);
+    }
+  }
+
+  // Full team of shinies
+  if (state.team.length === 6 && state.team.every(p => p.isShiny)) {
+    const ach = unlockAchievement('all_shiny_win');
+    if (ach) setTimeout(() => showAchievementToast(ach), 2000);
+  }
+
+  // Back-to-back wins
+  const lastWon = localStorage.getItem('poke_last_run_won') === 'true';
+  localStorage.setItem('poke_last_run_won', 'true');
+  if (lastWon) {
+    const ach = unlockAchievement('back_to_back');
+    if (ach) setTimeout(() => showAchievementToast(ach), 2400);
   }
 }
 
