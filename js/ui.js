@@ -8,6 +8,8 @@ function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   const s = document.getElementById(id);
   if (s) s.classList.add('active');
+  const tt = document.getElementById('map-node-tooltip');
+  if (tt) tt.classList.remove('visible');
 }
 
 function hpBarColor(pct) {

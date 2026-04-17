@@ -852,7 +852,10 @@ async function doTrainerNode(node) {
 // ---- Legendary Node ----
 
 async function doLegendaryNode(node) {
-  const legendId = LEGENDARY_IDS[Math.floor(Math.random() * LEGENDARY_IDS.length)];
+  const teamLegendIds = state.team.map(p => p.speciesId);
+  const available = LEGENDARY_IDS.filter(id => !teamLegendIds.includes(id));
+  if (available.length === 0) { advanceFromNode(state.map, node.id); showMapScreen(); return; }
+  const legendId = available[Math.floor(Math.random() * available.length)];
   const species = await fetchPokemonById(legendId);
   if (!species) { advanceFromNode(state.map, node.id); showMapScreen(); return; }
 

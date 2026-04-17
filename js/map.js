@@ -22,11 +22,11 @@ const NODE_WEIGHTS = [
   // L3
   { battle: 16, catch: 14, item: 12, trainer: 27, question: 13, pokecenter: 0,  move_tutor: 9, trade: 9, legendary: 0 },
   // L4
-  { battle: 13, catch: 12, item: 10, trainer: 27, question: 13, pokecenter: 9,  move_tutor: 8, trade: 8, legendary: 0 },
+  { battle: 13, catch: 12, item: 10, trainer: 27, question: 13, pokecenter: 0,  move_tutor: 8, trade: 8, legendary: 0 },
   // L5
-  { battle: 13, catch: 10, item:  8, trainer: 27, question: 18, pokecenter: 9,  move_tutor: 8, trade: 7, legendary: 0 },
-  // L6 — pokecenter appears by weight
-  { battle: 20, catch:  9, item: 14, trainer: 18, question:  9, pokecenter: 30, move_tutor: 0, trade: 0, legendary: 0 },
+  { battle: 13, catch: 10, item:  8, trainer: 27, question: 18, pokecenter: 0,  move_tutor: 8, trade: 7, legendary: 0 },
+  // L6
+  { battle: 20, catch:  9, item: 14, trainer: 18, question:  9, pokecenter: 0,  move_tutor: 0, trade: 0, legendary: 0 },
 ];
 
 function weightedRandom(weights) {
@@ -334,10 +334,11 @@ function renderMap(map, container, onNodeClick) {
 
     const isClickable = node.accessible && !node.visited;
     const isInaccessible = !node.accessible && !node.visited;
+    const isCurrent = state.currentNode && node.id === state.currentNode.id;
 
     g.style.cursor = isClickable ? 'pointer' : 'default';
     if (isInaccessible) { g.style.opacity = '0.75'; }
-    if (node.visited) g.style.filter = 'grayscale(0.5) brightness(0.75)';
+    if (node.visited) g.style.filter = 'grayscale(0.5) brightness(0.62)';
     if (isClickable) g.style.filter = 'drop-shadow(0 0 6px #fff) drop-shadow(0 0 3px #ffe066)';
 
     const isBossNode = node.type === NODE_TYPES.BOSS;
@@ -394,6 +395,16 @@ function renderMap(map, container, onNodeClick) {
         g.insertBefore(shadow, img); // behind sprite
       }
 
+      if (isCurrent) {
+        const check = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        check.setAttribute('text-anchor', 'middle');
+        check.setAttribute('dominant-baseline', 'central');
+        check.setAttribute('font-size', '16');
+        check.setAttribute('fill', '#fff');
+        check.textContent = '✓';
+        g.appendChild(check);
+      }
+
     } else {
       // ---- Circle-based node ----
       const r = isBossNode ? 22 : 18;
@@ -418,7 +429,7 @@ function renderMap(map, container, onNodeClick) {
       text.setAttribute('dominant-baseline', 'central');
       text.setAttribute('font-size', '14');
       text.setAttribute('fill', isInaccessible ? '#aaa' : '#fff');
-      text.textContent = node.visited ? '✓' : getNodeIcon(node);
+      text.textContent = isCurrent ? '✓' : getNodeIcon(node);
       g.appendChild(text);
     }
 

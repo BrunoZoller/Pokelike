@@ -300,6 +300,8 @@ h1, h2, .pixel-font {
   flex: 1;
   padding: 8px;
 }
+.map-panel-left  { flex: 2; }
+.map-panel-right { flex: 1; }
 .hud-label {
   font-size: 10px;
   color: var(--text-dim);
@@ -311,7 +313,8 @@ h1, h2, .pixel-font {
 .map-actions,
 .map-badges-label,
 #badge-count-panel { display: none; }
-#team-bar { display: flex; gap: 20px; flex-wrap: wrap; }
+#team-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+#team-bar .poke-card { width: 100%; }
 .screen-team-bar {
   display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;
   margin-top: 16px; padding-top: 12px;
@@ -465,8 +468,8 @@ h1, h2, .pixel-font {
   border: 1px solid var(--border);
   font-size: 12px;
 }
-#map-info { font-family: 'Press Start 2P', monospace; font-size: 9px; color: var(--gold); }
-#badge-count { display: grid; grid-template-columns: repeat(4, auto); gap: 3px; }
+#map-info { display: none; }
+#badge-count { display: grid; grid-template-columns: repeat(8, auto); gap: 3px; }
 .badge-icon-img { width: 22px; height: 22px; image-rendering: pixelated; }
 .badge-icon-empty { display: inline-block; width: 22px; height: 22px; border-radius: 50%; border: 1px dashed var(--border); opacity: 0.3; }
 
@@ -832,7 +835,8 @@ h1, h2, .pixel-font {
     overflow-y: auto;
   }
 
-  #team-bar { flex-direction: column; gap: 8px; }
+  #team-bar { display: flex; flex-direction: column; gap: 8px; }
+  #team-bar .poke-card { width: auto; }
 
   .map-actions {
     display: flex;
