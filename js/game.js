@@ -853,18 +853,18 @@ const TRAINER_BATTLE_CONFIG = {
                  pool: [10,11,12,13,14,15,46,47,48,49,123,127] },
   hiker:       { name: 'Hiker',         sprite: 'hiker',
                  pool: [27,28,50,51,66,67,68,74,75,76,95,111,112] },
-  fisher:      { name: 'Fisherman',     sprite: 'sailor',
+  fisher:      { name: 'Fisherman',     sprite: 'fisherman',
                  pool: [54,55,60,61,62,72,73,86,87,90,91,98,99,116,117,118,119,129,130] },
-  Scientist:   { name: 'Scientist',     sprite: 'scientist-gen1',
+  Scientist:   { name: 'Scientist',     sprite: 'scientist',
                  pool: [81,82,88,89,92,93,94,100,101,137] },
-  teamRocket:  { name: 'Rocket Grunt',  sprite: 'team-rocket-grunt-m',
+  teamRocket:  { name: 'Rocket Grunt',  sprite: 'teamrocket',
                  pool: [19,20,23,24,41,42,52,53,88,89,109,110] },
   policeman:   { name: 'Officer',       sprite: 'policeman',
                  pool: [58,59] },
-  fireSpitter: { name: 'Fire Trainer',  sprite: 'firebreather',
+  fireSpitter: { name: 'Fire Trainer',  sprite: 'burglar',
                  pool: [4,5,6,37,38,58,59,77,78,126,136] },
-  aceTrainer:  { name: 'Ace Trainer',   sprite: 'acetrainer-gen1', pool: null },
-  oldGuy:      { name: 'Old Man',       sprite: 'camper',       pool: null },
+  aceTrainer:  { name: 'Ace Trainer',   sprite: 'acetrainer', pool: null },
+  oldGuy:      { name: 'Old Man',       sprite: 'gentleman',    pool: null },
 };
 
 async function doTrainerNode(node) {
@@ -1323,7 +1323,7 @@ function showWinScreen() {
   }
 
   // Full team of shinies
-  if (state.team.length === 6 && state.team.every(p => p.isShiny)) {
+  if (state.team.length >= 3 && state.team.every(p => p.isShiny)) {
     const ach = unlockAchievement('all_shiny_win');
     if (ach) setTimeout(() => showAchievementToast(ach), 2000);
   }

@@ -556,7 +556,7 @@ const TRAINER_SVG = {
 };
 
 // Name overrides for Pokemon Showdown trainer sprite filenames
-const SHOWDOWN_NAME_MAP = { 'gary': 'blue', 'lt. surge': 'lt-surge', 'lorelei': 'lorelei-gen1', 'agatha': 'agatha-gen1' };
+const SHOWDOWN_NAME_MAP = { 'gary': 'blue', 'lt. surge': 'ltsurge', 'lorelei': 'lorelei-gen3', 'agatha': 'agatha-gen3' };
 
 function getTrainerImgHtml(trainerName) {
   // Local sprite path (e.g. "sprites/hiker.png") — use directly
@@ -690,30 +690,30 @@ const EEVEE_EVOLUTIONS = [
 // ---- Achievements ----
 
 const ACHIEVEMENTS = [
-  { id: 'gym_0', name: 'Boulder Basher',    desc: 'Defeat Brock for the first time',          icon: '🪨' },
-  { id: 'gym_1', name: 'Cascade Crusher',   desc: 'Defeat Misty for the first time',          icon: '💧' },
-  { id: 'gym_2', name: 'Thunder Tamer',     desc: 'Defeat Lt. Surge for the first time',      icon: '⚡' },
-  { id: 'gym_3', name: 'Rainbow Ranger',    desc: 'Defeat Erika for the first time',          icon: '🌿' },
-  { id: 'gym_4', name: 'Soul Crusher',      desc: 'Defeat Koga for the first time',           icon: '💜' },
-  { id: 'gym_5', name: 'Mind Breaker',      desc: 'Defeat Sabrina for the first time',        icon: '🔮' },
-  { id: 'gym_6', name: 'Volcano Victor',    desc: 'Defeat Blaine for the first time',         icon: '🌋' },
-  { id: 'gym_7', name: 'Earth Shaker',      desc: 'Defeat Giovanni for the first time',       icon: '🌍' },
-  { id: 'elite_four', name: 'Pokemon Master', desc: 'Defeat the Elite Four & Champion',       icon: '👑' },
-  { id: 'elite_10',   name: 'Champion League',   desc: 'Defeat the Elite Four 10 times',      icon: '🏆' },
-  { id: 'elite_100',  name: 'Immortal Champion', desc: 'Defeat the Elite Four 100 times',     icon: '💎' },
-  { id: 'starter_1', name: 'Grass Champion',  desc: 'Beat the game starting with Bulbasaur',  icon: '🌱' },
-  { id: 'starter_4', name: 'Fire Champion',   desc: 'Beat the game starting with Charmander', icon: '🔥' },
-  { id: 'starter_7', name: 'Water Champion',  desc: 'Beat the game starting with Squirtle',   icon: '🌊' },
-  { id: 'solo_run',    name: 'One is Enough',   desc: 'Beat the game with only 1 Pokemon on your team', icon: '⭐' },
-  { id: 'pokedex_complete',  name: 'Gotta Catch \'Em All', desc: 'Complete the regular Pokédex',                          icon: '📖' },
-  { id: 'shinydex_complete', name: 'Shiny Hunter',          desc: 'Complete the Shiny Pokédex',                            icon: '✨' },
-  { id: 'nuzlocke_win',      name: 'True Master',           desc: 'Beat the game on Nuzlocke Mode', icon: '☠️' },
-  { id: 'three_birds',      name: 'Bird Keeper',           desc: 'Beat the game with all 3 legendary birds on your team', icon: '🦅' },
-  { id: 'no_pokecenter',    name: 'No Rest for the Wicked', desc: 'Beat the game without using a Pokémon Center', icon: '🏃' },
-  { id: 'no_items',         name: 'Minimalist',            desc: 'Beat the game without picking up any items', icon: '🎒' },
-  { id: 'type_quartet',     name: 'Type Supremacy',        desc: 'Beat the game with 4 of 6 Pokémon sharing a type', icon: '🔣' },
-  { id: 'all_shiny_win',    name: 'Shiny Squad',           desc: 'Beat the game with a full team of shiny Pokémon', icon: '💫' },
-  { id: 'back_to_back',     name: 'On a Roll',             desc: 'Beat the game two runs in a row', icon: '🔁' },
+  { id: 'gym_0', name: 'Boulder Basher',    desc: 'Clear Map 1 and defeat Brock',                                           icon: '🪨' },
+  { id: 'gym_1', name: 'Cascade Crusher',   desc: 'Clear Map 2 and defeat Misty',                                           icon: '💧' },
+  { id: 'gym_2', name: 'Thunder Tamer',     desc: 'Clear Map 3 and defeat Lt. Surge',                                       icon: '⚡' },
+  { id: 'gym_3', name: 'Rainbow Ranger',    desc: 'Clear Map 4 and defeat Erika',                                           icon: '🌿' },
+  { id: 'gym_4', name: 'Soul Crusher',      desc: 'Clear Map 5 and defeat Koga',                                            icon: '💜' },
+  { id: 'gym_5', name: 'Mind Breaker',      desc: 'Clear Map 6 and defeat Sabrina',                                         icon: '🔮' },
+  { id: 'gym_6', name: 'Volcano Victor',    desc: 'Clear Map 7 and defeat Blaine',                                          icon: '🌋' },
+  { id: 'gym_7', name: 'Earth Shaker',      desc: 'Clear Map 8 and defeat Giovanni',                                        icon: '🌍' },
+  { id: 'elite_four', name: 'Pokemon Master',    desc: 'Defeat all 4 Elite Four members and the Champion to beat the game', icon: '👑' },
+  { id: 'elite_10',   name: 'Champion League',   desc: 'Beat the game 10 times total',                                      icon: '🏆' },
+  { id: 'elite_100',  name: 'Immortal Champion', desc: 'Beat the game 100 times total',                                     icon: '💎' },
+  { id: 'starter_1', name: 'Grass Champion',  desc: 'Choose Bulbasaur as your starter and beat the game',                   icon: '🌱' },
+  { id: 'starter_4', name: 'Fire Champion',   desc: 'Choose Charmander as your starter and beat the game',                  icon: '🔥' },
+  { id: 'starter_7', name: 'Water Champion',  desc: 'Choose Squirtle as your starter and beat the game',                    icon: '🌊' },
+  { id: 'solo_run',    name: 'One is Enough',        desc: 'Beat the game while keeping only 1 Pokémon on your team',       icon: '⭐' },
+  { id: 'pokedex_complete',  name: 'Gotta Catch \'Em All', desc: 'Encounter all 151 Gen 1 Pokémon across any number of runs', icon: '📖' },
+  { id: 'shinydex_complete', name: 'Shiny Hunter',   desc: 'Encounter a shiny version of all 151 Gen 1 Pokémon',            icon: '✨' },
+  { id: 'nuzlocke_win',      name: 'True Master',    desc: 'Enable Nuzlocke Mode in Settings, then beat the game — if any Pokémon faints, it\'s gone for good', icon: '☠️' },
+  { id: 'three_birds',       name: 'Bird Keeper',    desc: 'Beat the game with Articuno, Zapdos, and Moltres all on your team', icon: '🦅' },
+  { id: 'no_pokecenter',     name: 'No Rest for the Wicked', desc: 'Beat the game without stopping at a Pokémon Center',   icon: '🏃' },
+  { id: 'no_items',          name: 'Minimalist',     desc: 'Beat the game without picking up a single item',                icon: '🎒' },
+  { id: 'type_quartet',      name: 'Type Supremacy', desc: 'Beat the game with at least 4 of your 6 Pokémon sharing the same type', icon: '🔣' },
+  { id: 'all_shiny_win',     name: 'Shiny Squad',    desc: 'Beat the game with every Pokémon on your team being shiny (minimum 3)',             icon: '💫' },
+  { id: 'back_to_back',      name: 'On a Roll',      desc: 'Beat the game twice in a row without losing a run in between',  icon: '🔁' },
 ];
 
 function getUnlockedAchievements() {

@@ -2507,7 +2507,7 @@ function openAchievementsModal() {
           return `<div class="ach-card ${done ? 'unlocked' : 'locked'}">
             <div class="ach-icon">${a.icon}</div>
             <div class="ach-name">${a.name}</div>
-            <div class="ach-desc">${done ? a.desc : '???'}</div>
+            <div class="ach-desc">${a.desc}</div>
           </div>`;
         }).join('')}
       </div>
