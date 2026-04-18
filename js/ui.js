@@ -7,12 +7,22 @@ let battleSpeedMultiplier = 1;
 let _hoverEnabled = true;
 document.addEventListener('mousemove', () => { _hoverEnabled = true; }, { capture: true, passive: true });
 
+const _itemTooltip = (() => {
+  let el = null;
+  const get = () => el || (el = document.getElementById('item-tooltip'));
+  return {
+    show(text, x, y) { const t = get(); if (!t) return; t.textContent = text; t.style.left = x + 'px'; t.style.top = y + 'px'; t.classList.add('visible'); },
+    hide() { const t = get(); if (t) t.classList.remove('visible'); },
+  };
+})();
+
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   const s = document.getElementById(id);
   if (s) s.classList.add('active');
   const tt = document.getElementById('map-node-tooltip');
   if (tt) tt.classList.remove('visible');
+  _itemTooltip.hide();
   _hoverEnabled = false;
 }
 
@@ -132,12 +142,14 @@ function renderTeamBar(team, el) {
       <div class="team-slot-name">${p.nickname||p.name}</div>
       <div class="team-slot-lv">Lv${p.level}</div>
       <div class="hp-bar-bg sm"><div class="hp-bar-fill" style="width:${Math.floor(pct*100)}%;background:${color}"></div></div>
-      ${p.heldItem ? `<div class="team-slot-item" title="${p.heldItem.name}: ${p.heldItem.desc}">${itemIconHtml(p.heldItem, 16)}</div>` : ''}`;
+      ${p.heldItem ? `<div class="team-slot-item">${itemIconHtml(p.heldItem, 16)}</div>` : ''}`;
     slot.addEventListener('mouseenter', () => { if (_hoverEnabled) showTeamHoverCard(p, slot); });
     slot.addEventListener('mousemove',  () => { if (_hoverEnabled) showTeamHoverCard(p, slot); });
     slot.addEventListener('mouseleave', () => hideTeamHoverCard());
     if (isMain && p.heldItem) {
       const itemEl = slot.querySelector('.team-slot-item');
+      itemEl?.addEventListener('mousemove', e => { if (_hoverEnabled) _itemTooltip.show(`${p.heldItem.name}: ${p.heldItem.desc}`, e.clientX, e.clientY); });
+      itemEl?.addEventListener('mouseleave', () => _itemTooltip.hide());
       itemEl?.addEventListener('click', e => {
         e.stopPropagation();
         hideTeamHoverCard();
@@ -173,26 +185,34 @@ function renderTeamBar(team, el) {
           if (target && target !== slot) target.classList.add('team-slot-dragover');
         };
 
-        const onUp = (ev) => {
+        const cleanup = () => {
           ghost.remove();
           slot.style.opacity = '';
           document.querySelectorAll('.team-slot-dragover').forEach(s => s.classList.remove('team-slot-dragover'));
+          _dragIdx = null;
+          slot.removeEventListener('pointermove', onMove);
+          slot.removeEventListener('pointerup', onUp);
+          slot.removeEventListener('pointercancel', cleanup);
+        };
+
+        const onUp = (ev) => {
           const target = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('.team-slot');
           if (target && target !== slot) {
             const slots = [...el.querySelectorAll('.team-slot')];
             const targetIdx = slots.indexOf(target);
             if (_dragIdx !== null && targetIdx !== -1 && targetIdx !== _dragIdx) {
               [team[_dragIdx], team[targetIdx]] = [team[targetIdx], team[_dragIdx]];
+              cleanup();
               renderTeamBar(team);
+              return;
             }
           }
-          _dragIdx = null;
-          slot.removeEventListener('pointermove', onMove);
-          slot.removeEventListener('pointerup', onUp);
+          cleanup();
         };
 
         slot.addEventListener('pointermove', onMove);
         slot.addEventListener('pointerup', onUp);
+        slot.addEventListener('pointercancel', cleanup);
       });
     }
     el.appendChild(slot);
@@ -210,12 +230,10 @@ function renderItemBadges(items) {
   items.forEach((it, idx) => {
     const span = document.createElement('span');
     span.className = 'item-badge';
-    span.dataset.tooltip = it.desc;
     span.innerHTML = `${itemIconHtml(it, 18)} ${it.name}`;
     span.style.cursor = 'pointer';
-    span.title = it.usable
-      ? `${it.name}: ${it.desc} — click to use`
-      : `${it.name}: ${it.desc} — click to equip`;
+    span.addEventListener('mousemove', e => { if (_hoverEnabled) _itemTooltip.show(it.desc, e.clientX, e.clientY); });
+    span.addEventListener('mouseleave', () => _itemTooltip.hide());
 
     span.addEventListener('click', () => {
       if (it.usable) {

@@ -350,32 +350,26 @@ h1, h2, .pixel-font {
   border-radius: 4px;
   font-size: 11px;
   cursor: help;
-  position: relative;
 }
-.item-badge::after {
-  content: attr(data-tooltip);
-  position: absolute;
-  bottom: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%);
-  border: 1px solid var(--accent);
-  color: var(--text);
-  font-size: 10px;
-  font-family: 'Press Start 2P', monospace;
-  line-height: 1.6;
-  padding: 6px 10px;
-  border-radius: 6px;
-  white-space: normal;
-  width: 180px;
-  text-align: center;
+#item-tooltip {
+  position: fixed;
   pointer-events: none;
+  background: #0e0b06;
+  border: 2px solid #c8b070;
+  box-shadow: 0 0 0 1px #000, 3px 3px 0 0 #000;
+  color: var(--text);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  line-height: 1.9;
+  padding: 8px 12px;
+  white-space: normal;
+  max-width: 200px;
+  z-index: 200;
   opacity: 0;
-  transition: opacity 0.15s;
-  z-index: 100;
+  transition: opacity 0.1s;
+  transform: translate(-50%, calc(-100% - 12px));
 }
-.item-badge:hover::after {
-  opacity: 1;
-}
+#item-tooltip.visible { opacity: 1; }
 
 /* Prevent native long-press image popup on mobile */
 #map-svg image { -webkit-touch-callout: none; }
@@ -1666,7 +1660,7 @@ h1, h2, .pixel-font {
   border: 1px solid #c0bcb0;
   color: #181410;
 }
-.item-badge::after {
+#item-tooltip {
   background: #e8e4d8;
   border: 2px solid #181410;
   color: #181410;
@@ -1874,7 +1868,7 @@ body.dark-mode .item-badge {
   border-color: #3a3428;
   color: #e0dcd0;
 }
-body.dark-mode .item-badge::after {
+body.dark-mode #item-tooltip {
   background: #252118;
   border-color: #4a4438;
   color: #e0dcd0;
