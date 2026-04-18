@@ -1,5 +1,16 @@
 // game.js - Central game state and entry point
 
+// Seeded PRNG (mulberry32) — use rng() instead of Math.random() for all game logic
+let _rngSeed = 0;
+function rng() {
+  _rngSeed = (_rngSeed + 0x6D2B79F5) | 0;
+  let t = Math.imul(_rngSeed ^ (_rngSeed >>> 15), 1 | _rngSeed);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
+function seedRng(seed) { _rngSeed = seed >>> 0; }
+function getRngSeed() { return _rngSeed >>> 0; }
+
 let state = {
   currentMap: 0,
   currentNode: null,
@@ -14,6 +25,33 @@ let state = {
   nuzlockeMode: false,
 };
 
+// ---- Run persistence ----
+
+function saveRun() {
+  try {
+    const saved = { ...state, currentNodeId: state.currentNode?.id || null, currentNode: null, rngSeed: getRngSeed() };
+    localStorage.setItem('poke_current_run', JSON.stringify(saved));
+  } catch {}
+}
+
+function loadRun() {
+  try {
+    const raw = localStorage.getItem('poke_current_run');
+    if (!raw) return false;
+    const saved = JSON.parse(raw);
+    if (saved.rngSeed) seedRng(saved.rngSeed);
+    state = saved;
+    state.currentNode = saved.currentNodeId ? (state.map?.nodes?.[saved.currentNodeId] || null) : null;
+    delete state.currentNodeId;
+    delete state.rngSeed;
+    return true;
+  } catch { return false; }
+}
+
+function clearSavedRun() {
+  localStorage.removeItem('poke_current_run');
+}
+
 // ---- Initialization ----
 
 async function initGame() {
@@ -21,15 +59,31 @@ async function initGame() {
   showScreen('title-screen');
   if (typeof initFirebase === 'function') initFirebase();
   if (typeof syncToCloud === 'function') syncToCloud();
-  document.getElementById('btn-new-run').addEventListener('click', () => startNewRun(false));
+  document.getElementById('btn-new-run').onclick = () => startNewRun(false);
+  document.getElementById('btn-hard-run').onclick = () => startNewRun(true);
 
-  const hardBtn = document.getElementById('btn-hard-run');
-  hardBtn.addEventListener('click', () => startNewRun(true));
+  const continueBtn = document.getElementById('btn-continue-run');
+  if (localStorage.getItem('poke_current_run')) {
+    continueBtn.style.display = '';
+    continueBtn.onclick = async () => {
+      if (!loadRun()) return;
+      if (state.currentNode && !state.currentNode.visited) {
+        showMapScreen();
+        await onNodeClick(state.currentNode);
+      } else {
+        showMapScreen();
+      }
+    };
+  } else {
+    continueBtn.style.display = 'none';
+  }
 }
 
 async function startNewRun(nuzlockeMode = false) {
   const savedTrainer = localStorage.getItem('poke_trainer') || null;
-  state = { currentMap: 0, currentNode: null, team: [], items: [], badges: 0, map: null, eliteIndex: 0, trainer: savedTrainer || 'boy', starterSpeciesId: null, maxTeamSize: 1, nuzlockeMode, usedPokecenter: false, pickedUpItem: false };
+  const seed = (Date.now() ^ (Math.random() * 0x100000000 | 0)) >>> 0;
+  seedRng(seed);
+  state = { currentMap: 0, currentNode: null, team: [], items: [], badges: 0, map: null, eliteIndex: 0, trainer: savedTrainer || 'boy', starterSpeciesId: null, maxTeamSize: 1, nuzlockeMode, usedPokecenter: false, pickedUpItem: false, runSeed: seed };
   if (savedTrainer) {
     await showStarterSelect();
   } else {
@@ -69,7 +123,7 @@ async function showStarterSelect() {
   container.innerHTML = '';
   for (const species of starters) {
     if (!species) continue;
-    const isShiny = Math.random() < 0.01; // 1/100 shiny chance for starters
+    const isShiny = rng() < (hasShinyCharm() ? 0.02 : 0.01);
     const inst = createInstance(species, startLevel, isShiny, 0);
     const wrapper = document.createElement('div');
     wrapper.innerHTML = renderPokemonCard(inst, true, false);
@@ -141,6 +195,7 @@ function showMapScreen() {
   const mapContainer = document.getElementById('map-container');
   mapContainer.style.backgroundImage = `url('ui/map${state.currentMap + 1}.png')`;
   renderMap(state.map, mapContainer, onNodeClick);
+  saveRun();
 
   if (!localStorage.getItem('poke_tutorial_seen')) {
     showTutorialOverlay();
@@ -207,6 +262,7 @@ function showItemFoundToast(icon, name) {
 
 async function onNodeClick(node) {
   state.currentNode = node;
+  saveRun();
   let resolvedType = node.type;
 
   if (node.type === NODE_TYPES.QUESTION) {
@@ -254,7 +310,7 @@ async function onNodeClick(node) {
 }
 
 function resolveQuestionMark() {
-  const r = Math.random();
+  const r = rng();
   if (r < 0.22) return NODE_TYPES.BATTLE;
   if (r < 0.42) return NODE_TYPES.TRAINER;
   if (r < 0.52) return state.nuzlockeMode ? NODE_TYPES.BATTLE : NODE_TYPES.CATCH;
@@ -271,7 +327,7 @@ function getLevelForNode(node) {
   const t = Math.min(1, Math.max(0, (node.layer - 1) / 5)); // 0.0 at layer 1, 1.0 at layer 6
   const base = Math.round(minL + t * (maxL - minL));
   const spread = Math.max(1, Math.round((maxL - minL) / 8));
-  return Math.min(maxL, Math.max(minL, base + Math.floor(Math.random() * spread)));
+  return Math.min(maxL, Math.max(minL, base + Math.floor(rng() * spread)));
 }
 
 async function doBattleNode(node) {
@@ -294,7 +350,7 @@ async function doBattleNode(node) {
     }
   }
 
-  const enemySpecies = choices[Math.floor(Math.random() * choices.length)];
+  const enemySpecies = choices[Math.floor(rng() * choices.length)];
   if (!enemySpecies) {
     advanceFromNode(state.map, node.id);
     showMapScreen();
@@ -396,12 +452,12 @@ async function doCatchNode(node) {
     const grassIds = [43, 69, 102]; // Oddish, Bellsprout, Exeggcute
     const waterIds = [54, 60, 72, 79, 86, 98, 116, 118, 120, 129];
     if (!choices.some(p => p.types?.includes('Grass'))) {
-      const id = grassIds[Math.floor(Math.random() * grassIds.length)];
+      const id = grassIds[Math.floor(rng() * grassIds.length)];
       const r = await fetchPokemonById(id);
       if (r) choices[0] = r;
     }
     if (!choices.some(p => p.types?.includes('Water'))) {
-      const id = waterIds[Math.floor(Math.random() * waterIds.length)];
+      const id = waterIds[Math.floor(rng() * waterIds.length)];
       const r = await fetchPokemonById(id);
       if (r) {
         const slot = choices.findIndex(p => !p.types?.includes('Grass'));
@@ -415,7 +471,7 @@ async function doCatchNode(node) {
     const filtered = choices.filter(sp => !teamIds.has(sp.id));
     choices = (filtered.length > 0 ? filtered : choices).slice(0, 1);
   }
-  const instances = choices.map(sp => createInstance(sp, level, Math.random() < (hasShinyCharm() ? 0.02 : 0.01), getMoveТierForMap(state.currentMap)));
+  const instances = choices.map(sp => createInstance(sp, level, rng() < (hasShinyCharm() ? 0.02 : 0.01), getMoveТierForMap(state.currentMap)));
 
   choicesEl.innerHTML = '';
   const dex = getPokedex();
@@ -522,7 +578,7 @@ function doItemNode(node) {
   });
 
   const available = [...heldAvailable, ...usableAvailable];
-  const shuffled = [...available].sort(() => Math.random() - 0.5);
+  const shuffled = [...available].sort(() => rng() - 0.5);
   const picks = shuffled.slice(0, 3);
 
   const el = document.getElementById('item-choices');
@@ -824,7 +880,7 @@ async function doTrainerNode(node) {
     const eligible = [...new Set(config.pool)]
       .filter(id => minLevelForSpecies(id) <= level);
     const pool = eligible.length ? eligible : [...new Set(config.pool)]; // fallback: use full pool
-    const shuffled = pool.sort(() => Math.random() - 0.5);
+    const shuffled = pool.sort(() => rng() - 0.5);
     const ids = Array.from({ length: teamSize }, (_, i) => shuffled[i % shuffled.length]);
     const fetched = await Promise.all(ids.map(id => fetchPokemonById(id)));
     speciesList = fetched.filter(Boolean);
@@ -855,12 +911,12 @@ async function doLegendaryNode(node) {
   const teamLegendIds = state.team.map(p => p.speciesId);
   const available = LEGENDARY_IDS.filter(id => !teamLegendIds.includes(id));
   if (available.length === 0) { advanceFromNode(state.map, node.id); showMapScreen(); return; }
-  const legendId = available[Math.floor(Math.random() * available.length)];
+  const legendId = available[Math.floor(rng() * available.length)];
   const species = await fetchPokemonById(legendId);
   if (!species) { advanceFromNode(state.map, node.id); showMapScreen(); return; }
 
   const level = MAP_LEVEL_RANGES[state.currentMap][1]; // top of map range
-  const legendary = createInstance(species, level, Math.random() < (hasShinyCharm() ? 0.02 : 0.01), 2);
+  const legendary = createInstance(species, level, rng() < (hasShinyCharm() ? 0.02 : 0.01), 2);
 
   const titleEl = document.getElementById('battle-title');
   const subEl = document.getElementById('battle-subtitle');
@@ -983,10 +1039,10 @@ async function doTradeNode(node) {
     const idx = i;
     const doTrade = async () => {
       const pool = await getCatchChoices(state.currentMap);
-      const species = pool[Math.floor(Math.random() * pool.length)];
+      const species = pool[Math.floor(rng() * pool.length)];
       if (!species) { advanceFromNode(state.map, node.id); showMapScreen(); return; }
       const offerLevel = Math.min(100, mine.level + 3);
-      const offer = createInstance(species, offerLevel, false, Math.max(getMoveТierForMap(state.currentMap), mine.moveTier ?? 0));
+      const offer = createInstance(species, offerLevel, rng() < (hasShinyCharm() ? 0.02 : 0.01), Math.max(getMoveТierForMap(state.currentMap), mine.moveTier ?? 0));
       const released = state.team[idx];
       if (released.heldItem) state.items.push(released.heldItem);
       state.team.splice(idx, 1, offer);
@@ -1186,6 +1242,7 @@ function showBadgeScreen(leader) {
 
 function showGameOver() {
   localStorage.setItem('poke_last_run_won', 'false');
+  clearSavedRun();
   if (typeof syncToCloud === 'function') syncToCloud();
   initGame();
 }
@@ -1279,6 +1336,7 @@ function showWinScreen() {
     if (ach) setTimeout(() => showAchievementToast(ach), 2400);
   }
 
+  clearSavedRun();
   if (typeof syncToCloud === 'function') syncToCloud();
 }
 

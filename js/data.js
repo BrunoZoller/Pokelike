@@ -297,7 +297,7 @@ const ELITE_4 = [
 
 // Item pool
 const ITEM_POOL = [
-  { id: 'lucky_egg',          name: 'Lucky Egg',          desc: 'Holder gains +1 extra level after winning wild battles',             icon: '🥚', minMap: 4 },
+  { id: 'lucky_egg',          name: 'Lucky Egg',          desc: 'Holder gains +1 extra level after every battle',                   icon: '🥚', minMap: 4 },
   { id: 'life_orb',           name: 'Life Orb',           desc: '+30% damage; holder loses 10% max HP per hit',                       icon: '🔮' },
   { id: 'choice_band',        name: 'Choice Band',        desc: '+40% physical damage, -20% DEF',                                     icon: '🎀' },
   { id: 'choice_specs',       name: 'Choice Specs',       desc: '+40% special damage, -20% Sp.Def',                                   icon: '👓' },
@@ -509,7 +509,7 @@ async function getCatchChoices(mapIndex) {
 
   // Shuffle and pick 3 (filter legendaries as safety net)
   const filtered = bucket.filter(id => !LEGENDARY_IDS.includes(id));
-  const shuffled = [...filtered].sort(() => Math.random() - 0.5);
+  const shuffled = [...filtered].sort(() => (typeof rng === 'function' ? rng() : Math.random()) - 0.5);
   const ids = shuffled.slice(0, 3);
 
   const results = await Promise.all(ids.map(id => fetchPokemonById(id)));

@@ -4,12 +4,16 @@
 const SKIP_SPEED = 3;
 let battleSpeedMultiplier = 1;
 
+let _hoverEnabled = true;
+document.addEventListener('mousemove', () => { _hoverEnabled = true; }, { capture: true, passive: true });
+
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   const s = document.getElementById(id);
   if (s) s.classList.add('active');
   const tt = document.getElementById('map-node-tooltip');
   if (tt) tt.classList.remove('visible');
+  _hoverEnabled = false;
 }
 
 function hpBarColor(pct) {
@@ -129,7 +133,8 @@ function renderTeamBar(team, el) {
       <div class="team-slot-lv">Lv${p.level}</div>
       <div class="hp-bar-bg sm"><div class="hp-bar-fill" style="width:${Math.floor(pct*100)}%;background:${color}"></div></div>
       ${p.heldItem ? `<div class="team-slot-item" title="${p.heldItem.name}: ${p.heldItem.desc}">${itemIconHtml(p.heldItem, 16)}</div>` : ''}`;
-    slot.addEventListener('mouseenter', () => showTeamHoverCard(p, slot));
+    slot.addEventListener('mouseenter', () => { if (_hoverEnabled) showTeamHoverCard(p, slot); });
+    slot.addEventListener('mousemove',  () => { if (_hoverEnabled) showTeamHoverCard(p, slot); });
     slot.addEventListener('mouseleave', () => hideTeamHoverCard());
     if (isMain && p.heldItem) {
       const itemEl = slot.querySelector('.team-slot-item');
@@ -223,6 +228,7 @@ function renderItemBadges(items) {
     span.title = it.usable
       ? `${it.name}: ${it.desc} — click to use`
       : `${it.name}: ${it.desc} — click to equip`;
+
     span.addEventListener('click', () => {
       if (it.usable) {
         openUsableItemModal(it, idx);
@@ -233,6 +239,7 @@ function renderItemBadges(items) {
         });
       }
     });
+
     el.appendChild(span);
   });
 }
@@ -2638,6 +2645,56 @@ function openShinyDexModal() { openPokedexModal('shiny'); }
 // ---- Patch Notes Modal ----
 
 const PATCH_NOTES = [
+  {
+    version: '1.3.1',
+    title: 'Cloud Saves & QoL Update',
+    date: '2026-04-18',
+    sections: [
+      {
+        heading: 'Cloud Saves',
+        entries: [
+          'Sign in with Google to sync your save across devices — button on the title screen',
+          'Progress is automatically pushed to the cloud after each run and on wins',
+          'On a new device, cloud save loads automatically if it is newer than local',
+        ],
+      },
+      {
+        heading: 'Run Persistence',
+        entries: [
+          'Your run is now saved to local storage — closing the tab mid-run no longer loses progress',
+          'Continue Run button appears on the title screen when a saved run exists',
+          'Reloading during a fight brings you back to the same fight with the same encounter',
+        ],
+      },
+      {
+        heading: 'Seeded Randomness',
+        entries: [
+          'Each run now has a seed — encounters, map layout, and battle outcomes are fully deterministic',
+          'Reloading during a fight produces identical crits, damage rolls, and Pokémon choices',
+        ],
+      },
+      {
+        heading: 'Map & Mobile',
+        entries: [
+          'Visited nodes are now greyed out — your last visited node shows a ✓',
+          'Node tooltips now correctly disappear when entering a battle on mobile',
+          'Team bar on mobile now uses a 3-column grid layout',
+          'Team panel takes 2/3 width, item panel takes 1/3 on mobile',
+          'Map header no longer shows the map name — badges display in a single row',
+          'Random Pokémon Center nodes removed — only the guaranteed one remains',
+        ],
+      },
+      {
+        heading: 'Bug Fixes',
+        entries: [
+          'You can no longer encounter a legendary already on your team',
+          'Starters now correctly benefit from the Shiny Charm',
+          'Traded Pokémon can now be shiny',
+          'Discord link is now readable regardless of background color',
+        ],
+      },
+    ],
+  },
   {
     version: '1.3',
     title: 'Visual Rework & Achievements Update',

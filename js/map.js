@@ -31,7 +31,7 @@ const NODE_WEIGHTS = [
 
 function weightedRandom(weights) {
   const total = Object.values(weights).reduce((a, b) => a + b, 0);
-  let r = Math.random() * total;
+  let r = rng() * total;
   for (const [k, v] of Object.entries(weights)) {
     r -= v;
     if (r <= 0) return k;
@@ -127,7 +127,7 @@ function generateMap(mapIndex, nuzlockeMode = false) {
 
     // Guarantee a pokecenter in the last content layer
     if (ci === CONTENT_SIZES.length - 1 && !layer.some(n => n.type === NODE_TYPES.POKECENTER)) {
-      const idx = Math.floor(Math.random() * size);
+      const idx = Math.floor(rng() * size);
       layer[idx].type = NODE_TYPES.POKECENTER;
     }
 
@@ -257,6 +257,7 @@ const _mapTooltip = (() => {
   let el = null;
   return {
     show(label, x, y) {
+      if (!document.getElementById('map-screen')?.classList.contains('active')) return;
       if (!el) el = document.getElementById('map-node-tooltip');
       if (!el) return;
       el.innerHTML = label;
@@ -309,7 +310,7 @@ function renderMap(map, container, onNodeClick) {
     if (!from || !to) continue;
     const fromNode = map.nodes[edge.from];
     const toNode   = map.nodes[edge.to];
-    // "on path" = both endpoints are visited or accessible
+    const travelled = fromNode.visited && toNode.visited;
     const onPath = (fromNode.visited || fromNode.accessible) && (toNode.visited || toNode.accessible);
 
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -317,7 +318,7 @@ function renderMap(map, container, onNodeClick) {
     line.setAttribute('y1', from.y);
     line.setAttribute('x2', to.x);
     line.setAttribute('y2', to.y);
-    line.setAttribute('stroke', onPath ? '#999' : '#333');
+    line.setAttribute('stroke', travelled ? '#333' : onPath ? '#999' : '#222');
     line.setAttribute('stroke-width', onPath ? '2.5' : '1.5');
     if (!onPath) line.setAttribute('stroke-dasharray', '4,5');
     svg.appendChild(line);
@@ -434,9 +435,34 @@ function renderMap(map, container, onNodeClick) {
     }
 
     const label = getNodeLabel(node);
-    g.addEventListener('mouseenter', e => _mapTooltip.show(label, e.clientX, e.clientY));
-    g.addEventListener('mousemove',  e => _mapTooltip.move(e.clientX, e.clientY));
+    g.addEventListener('mouseenter', e => { if (_hoverEnabled) _mapTooltip.show(label, e.clientX, e.clientY); });
+    g.addEventListener('mousemove',  e => { _mapTooltip.move(e.clientX, e.clientY); if (_hoverEnabled) _mapTooltip.show(label, e.clientX, e.clientY); });
     g.addEventListener('mouseleave', () => _mapTooltip.hide());
+
+    // Touch: long press shows tooltip, short tap enters node
+    let _lpTimer = null;
+    let _lpFired = false;
+    g.addEventListener('touchstart', e => {
+      _lpFired = false;
+      const touch = e.touches[0];
+      _lpTimer = setTimeout(() => {
+        _lpFired = true;
+        _mapTooltip.show(label, touch.clientX, touch.clientY);
+      }, 400);
+    }, { passive: true });
+    g.addEventListener('touchmove', () => {
+      clearTimeout(_lpTimer);
+      _mapTooltip.hide();
+    }, { passive: true });
+    g.addEventListener('touchend', e => {
+      clearTimeout(_lpTimer);
+      if (_lpFired) {
+        _mapTooltip.hide();
+      } else if (isClickable) {
+        onNodeClick(node);
+      }
+      e.preventDefault();
+    });
 
     if (isClickable) {
       g.addEventListener('click', () => onNodeClick(node));

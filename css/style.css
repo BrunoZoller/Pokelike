@@ -2,7 +2,7 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
 
 :root {
   --bg: #0e0e0e;
@@ -783,6 +783,7 @@ h1, h2, .pixel-font {
   .battle-field { grid-template-columns: 1fr 1fr; }
   .poke-card { width: 150px; }
 }
+
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; }

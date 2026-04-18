@@ -49,11 +49,11 @@ function calcDamage(attacker, defender, move, items, defItems = []) {
   // Crit chance: 6.25% base, +20% with scope_lens or razor_claw
   let critChance = 0.0625;
   if (hasItem(items, 'scope_lens')) critChance = 0.20;
-  const crit = Math.random() < critChance;
+  const crit = rng() < critChance;
   if (crit) damage = Math.floor(damage * 1.5);
 
-  const rng = 0.85 + Math.random() * 0.15;
-  damage = typeEff === 0 ? 0 : Math.max(1, Math.floor(damage * rng));
+  const dmgVariance = 0.85 + rng() * 0.15;
+  damage = typeEff === 0 ? 0 : Math.max(1, Math.floor(damage * dmgVariance));
 
   return { damage, typeEff, moveType, crit };
 }
@@ -208,7 +208,7 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog) {
       target.currentHp = Math.max(0, target.currentHp - damage);
 
       // Focus Band: 20% chance to survive a KO at 1 HP
-      if (target.currentHp === 0 && targetPreHp > 0 && tSide === 'player' && target.heldItem?.id === 'focus_band' && Math.random() < 0.2) {
+      if (target.currentHp === 0 && targetPreHp > 0 && tSide === 'player' && target.heldItem?.id === 'focus_band' && rng() < 0.2) {
         target.currentHp = 1;
       }
       // Focus Sash: guaranteed survive from full HP
