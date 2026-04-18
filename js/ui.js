@@ -148,63 +148,50 @@ function renderTeamBar(team, el) {
       });
     }
     if (isMain) {
-      // ── Mouse / desktop drag ──
-      slot.draggable = true;
-      slot.addEventListener('dragstart', (e) => {
+      slot.style.touchAction = 'none';
+      slot.addEventListener('pointerdown', (e) => {
+        if (e.button !== undefined && e.button !== 0) return;
+        e.preventDefault();
+        slot.setPointerCapture(e.pointerId);
         _dragIdx = i;
-        e.dataTransfer.effectAllowed = 'move';
-        setTimeout(() => slot.classList.add('team-slot-dragging'), 0);
-      });
-      slot.addEventListener('dragend', () => {
-        slot.classList.remove('team-slot-dragging');
-        document.querySelectorAll('.team-slot-dragover').forEach(s => s.classList.remove('team-slot-dragover'));
-        _dragIdx = null;
-      });
-      slot.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        slot.classList.add('team-slot-dragover');
-      });
-      slot.addEventListener('dragleave', () => {
-        slot.classList.remove('team-slot-dragover');
-      });
-      slot.addEventListener('drop', (e) => {
-        e.preventDefault();
-        slot.classList.remove('team-slot-dragover');
-        if (_dragIdx !== null && _dragIdx !== i) {
-          [team[_dragIdx], team[i]] = [team[i], team[_dragIdx]];
-          renderTeamBar(team);
-        }
-      });
 
-      // ── Touch / mobile drag ──
-      slot.addEventListener('touchstart', (e) => {
-        _dragIdx = i;
-        slot.classList.add('team-slot-dragging');
-      }, { passive: true });
+        const rect = slot.getBoundingClientRect();
+        const offsetX = e.clientX - rect.left;
+        const offsetY = e.clientY - rect.top;
 
-      slot.addEventListener('touchmove', (e) => {
-        e.preventDefault();
-        const touch = e.touches[0];
-        const target = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('.team-slot');
-        document.querySelectorAll('.team-slot-dragover').forEach(s => s.classList.remove('team-slot-dragover'));
-        if (target && target !== slot) target.classList.add('team-slot-dragover');
-      }, { passive: false });
+        const ghost = slot.cloneNode(true);
+        ghost.style.cssText = `position:fixed;pointer-events:none;z-index:9999;width:${rect.width}px;opacity:0.85;left:${e.clientX - offsetX}px;top:${e.clientY - offsetY}px;transform:scale(1.05);transition:none;`;
+        document.body.appendChild(ghost);
+        slot.style.opacity = '0.3';
 
-      slot.addEventListener('touchend', (e) => {
-        slot.classList.remove('team-slot-dragging');
-        const touch = e.changedTouches[0];
-        const target = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('.team-slot');
-        document.querySelectorAll('.team-slot-dragover').forEach(s => s.classList.remove('team-slot-dragover'));
-        if (target) {
-          const slots = [...el.querySelectorAll('.team-slot')];
-          const targetIdx = slots.indexOf(target);
-          if (_dragIdx !== null && targetIdx !== -1 && targetIdx !== _dragIdx) {
-            [team[_dragIdx], team[targetIdx]] = [team[targetIdx], team[_dragIdx]];
-            renderTeamBar(team);
+        const onMove = (ev) => {
+          ghost.style.left = (ev.clientX - offsetX) + 'px';
+          ghost.style.top  = (ev.clientY - offsetY) + 'px';
+          document.querySelectorAll('.team-slot-dragover').forEach(s => s.classList.remove('team-slot-dragover'));
+          const target = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('.team-slot');
+          if (target && target !== slot) target.classList.add('team-slot-dragover');
+        };
+
+        const onUp = (ev) => {
+          ghost.remove();
+          slot.style.opacity = '';
+          document.querySelectorAll('.team-slot-dragover').forEach(s => s.classList.remove('team-slot-dragover'));
+          const target = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('.team-slot');
+          if (target && target !== slot) {
+            const slots = [...el.querySelectorAll('.team-slot')];
+            const targetIdx = slots.indexOf(target);
+            if (_dragIdx !== null && targetIdx !== -1 && targetIdx !== _dragIdx) {
+              [team[_dragIdx], team[targetIdx]] = [team[targetIdx], team[_dragIdx]];
+              renderTeamBar(team);
+            }
           }
-        }
-        _dragIdx = null;
+          _dragIdx = null;
+          slot.removeEventListener('pointermove', onMove);
+          slot.removeEventListener('pointerup', onUp);
+        };
+
+        slot.addEventListener('pointermove', onMove);
+        slot.addEventListener('pointerup', onUp);
       });
     }
     el.appendChild(slot);
