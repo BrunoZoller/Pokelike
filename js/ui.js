@@ -2664,11 +2664,20 @@ const PATCH_NOTES = [
         heading: 'Map & Mobile',
         entries: [
           'Visited nodes are now greyed out — your last visited node shows a ✓',
+          'Edges you have already travelled are visually darker than available paths',
+          'Long press a node on mobile to see what it is before committing',
           'Node tooltips now correctly disappear when entering a battle on mobile',
+          'Hovering over Pokémon or nodes no longer triggers accidentally after a screen transition',
           'Team bar on mobile now uses a 3-column grid layout',
           'Team panel takes 2/3 width, item panel takes 1/3 on mobile',
           'Map header no longer shows the map name — badges display in a single row',
           'Random Pokémon Center nodes removed — only the guaranteed one remains',
+        ],
+      },
+      {
+        heading: 'Pokémon Reordering',
+        entries: [
+          'Team drag and drop now uses pointer events — feels smooth and precise on both desktop and mobile',
         ],
       },
       {
@@ -2677,6 +2686,7 @@ const PATCH_NOTES = [
           'You can no longer encounter a legendary already on your team',
           'Starters now correctly benefit from the Shiny Charm',
           'Traded Pokémon can now be shiny',
+          'Lucky Egg description corrected — it boosts XP after every battle, not just wild ones',
           'Discord link is now readable regardless of background color',
         ],
       },

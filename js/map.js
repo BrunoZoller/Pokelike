@@ -439,6 +439,9 @@ function renderMap(map, container, onNodeClick) {
     g.addEventListener('mousemove',  e => { _mapTooltip.move(e.clientX, e.clientY); if (_hoverEnabled) _mapTooltip.show(label, e.clientX, e.clientY); });
     g.addEventListener('mouseleave', () => _mapTooltip.hide());
 
+    // Prevent native long-press image menu on mobile
+    g.addEventListener('contextmenu', e => e.preventDefault());
+
     // Touch: long press shows tooltip, short tap enters node
     let _lpTimer = null;
     let _lpFired = false;

@@ -377,6 +377,9 @@ h1, h2, .pixel-font {
   opacity: 1;
 }
 
+/* Prevent native long-press image popup on mobile */
+#map-svg image { -webkit-touch-callout: none; }
+
 /* ---- Map Node Tooltip ---- */
 #map-node-tooltip {
   position: fixed;
@@ -394,7 +397,7 @@ h1, h2, .pixel-font {
   z-index: 200;
   opacity: 0;
   transition: opacity 0.1s;
-  transform: translate(14px, -50%);
+  transform: translate(-50%, calc(-100% - 12px));
 }
 #map-node-tooltip.visible { opacity: 1; }
 
