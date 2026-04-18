@@ -151,6 +151,7 @@ function renderTeamBar(team, el) {
       slot.style.touchAction = 'none';
       slot.addEventListener('pointerdown', (e) => {
         if (e.button !== undefined && e.button !== 0) return;
+        if (e.target.closest('.team-slot-item')) return;
         e.preventDefault();
         slot.setPointerCapture(e.pointerId);
         _dragIdx = i;
