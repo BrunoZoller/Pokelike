@@ -68,10 +68,10 @@ const AudioManager = (() => {
   }
 
   function syncMuteBtn() {
-    const icon = (audio && audio.muted) ? '🔇' : '🔊';
+    const src = (audio && audio.muted) ? 'ui/soundOff.png' : 'ui/soundOn.png';
     ['mute-btn', 'mute-btn-desktop'].forEach(id => {
-      const btn = document.getElementById(id);
-      if (btn) btn.textContent = icon;
+      const img = document.querySelector(`#${id} img`);
+      if (img) img.src = src;
     });
   }
 
