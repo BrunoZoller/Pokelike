@@ -83,6 +83,13 @@ const AudioManager = (() => {
     syncMuteBtn();
   }
 
+  function onFirstInteraction() {
+    if (audio && audio.paused) audio.play().catch(() => {});
+    document.removeEventListener('click', onFirstInteraction);
+    document.removeEventListener('keydown', onFirstInteraction);
+    document.removeEventListener('touchstart', onFirstInteraction);
+  }
+
   function init() {
     if (ready) return;
     ready = true;
@@ -92,6 +99,9 @@ const AudioManager = (() => {
     audio.addEventListener('ended', onEnded);
     applySettings();
     playTrack(0);
+    document.addEventListener('click', onFirstInteraction);
+    document.addEventListener('keydown', onFirstInteraction);
+    document.addEventListener('touchstart', onFirstInteraction);
   }
 
   return { init, applySettings };
