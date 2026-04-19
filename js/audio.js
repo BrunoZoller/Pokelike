@@ -84,10 +84,10 @@ const AudioManager = (() => {
   }
 
   function onFirstInteraction() {
-    if (audio && audio.paused) audio.play().catch(() => {});
     document.removeEventListener('click', onFirstInteraction);
     document.removeEventListener('keydown', onFirstInteraction);
     document.removeEventListener('touchstart', onFirstInteraction);
+    playTrack(0);
   }
 
   function init() {
@@ -98,7 +98,6 @@ const AudioManager = (() => {
     shuffled = fisherYates(TRACKS);
     audio.addEventListener('ended', onEnded);
     applySettings();
-    playTrack(0);
     document.addEventListener('click', onFirstInteraction);
     document.addEventListener('keydown', onFirstInteraction);
     document.addEventListener('touchstart', onFirstInteraction);
