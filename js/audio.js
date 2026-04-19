@@ -1,38 +1,38 @@
-// audio.js - Background music manager using timestamp-based track seeking
+// audio.js - Background music manager with per-track file loading
 
 const TRACKS = [
-  { start:    0, name: 'Littleroot Town' },
-  { start:  117, name: 'Route 101' },
-  { start:  194, name: 'Oldale Town' },
-  { start:  282, name: 'Rustboro City' },
-  { start:  414, name: 'Dewford Town' },
-  { start:  558, name: 'Oceanic Museum' },
-  { start:  713, name: 'Verdanturf Town' },
-  { start:  815, name: 'Fallabor Town' },
-  { start:  932, name: 'Surf (RSE)' },
-  { start: 1084, name: 'Lilycove City' },
-  { start: 1207, name: 'Dive' },
-  { start: 1366, name: 'Ending Theme (RSE)' },
-  { start: 1540, name: 'New Bark Town' },
-  { start: 1611, name: 'Azalea Town' },
-  { start: 1674, name: 'Goldenrod City' },
-  { start: 1720, name: 'Nature Park' },
-  { start: 1842, name: 'Surfing (HGSS)' },
-  { start: 1924, name: 'Cianwood City' },
-  { start: 2008, name: 'Vermilion City (HGSS)' },
-  { start: 2069, name: 'Pewter City' },
-  { start: 2150, name: 'Route 47' },
-  { start: 2229, name: 'Route 201' },
-  { start: 2297, name: 'Floaroma Town' },
-  { start: 2446, name: 'Route 209' },
-  { start: 2603, name: 'Canalave City' },
-  { start: 2771, name: 'Ending (DPPt)' },
-  { start: 3046, name: 'Pallet Town' },
-  { start: 3143, name: 'Cerulean City' },
-  { start: 3219, name: 'Vermilion City (FRLG)' },
-  { start: 3304, name: 'Cycling' },
-  { start: 3382, name: 'Celadon City' },
-  { start: 3468, name: 'Ending Theme (FRLG)' },
+  'audio/01-littleroot-town.mp3',
+  'audio/02-route-101.mp3',
+  'audio/03-oldale-town.mp3',
+  'audio/04-rustboro-city.mp3',
+  'audio/05-dewford-town.mp3',
+  'audio/06-oceanic-museum.mp3',
+  'audio/07-verdanturf-town.mp3',
+  'audio/08-fallabor-town.mp3',
+  'audio/09-surf-rse.mp3',
+  'audio/10-lilycove-city.mp3',
+  'audio/11-dive.mp3',
+  'audio/12-ending-rse.mp3',
+  'audio/13-new-bark-town.mp3',
+  'audio/14-azalea-town.mp3',
+  'audio/15-goldenrod-city.mp3',
+  'audio/16-nature-park.mp3',
+  'audio/17-surfing-hgss.mp3',
+  'audio/18-cianwood-city.mp3',
+  'audio/19-vermilion-hgss.mp3',
+  'audio/20-pewter-city.mp3',
+  'audio/21-route-47.mp3',
+  'audio/22-route-201.mp3',
+  'audio/23-floaroma-town.mp3',
+  'audio/24-route-209.mp3',
+  'audio/25-canalave-city.mp3',
+  'audio/26-ending-dppt.mp3',
+  'audio/27-pallet-town.mp3',
+  'audio/28-cerulean-city.mp3',
+  'audio/29-vermilion-frlg.mp3',
+  'audio/30-cycling.mp3',
+  'audio/31-celadon-city.mp3',
+  'audio/32-ending-frlg.mp3',
 ];
 
 const AudioManager = (() => {
@@ -50,29 +50,20 @@ const AudioManager = (() => {
     return a;
   }
 
-  function trackEndTime(idx) {
-    if (idx + 1 < shuffled.length) return TRACKS[shuffled[idx + 1]].start;
-    return audio ? audio.duration : Infinity;
-  }
-
   function playTrack(idx) {
     if (!audio) return;
     currentIdx = idx;
-    audio.currentTime = TRACKS[shuffled[idx]].start;
+    audio.src = shuffled[idx];
     audio.play().catch(() => {});
   }
 
-  function onTimeUpdate() {
-    if (!audio || isNaN(audio.duration)) return;
-    const end = trackEndTime(currentIdx);
-    if (audio.currentTime >= end - 0.3) {
-      const next = currentIdx + 1;
-      if (next >= shuffled.length) {
-        shuffled = fisherYates(TRACKS.map((_, i) => i));
-        playTrack(0);
-      } else {
-        playTrack(next);
-      }
+  function onEnded() {
+    const next = currentIdx + 1;
+    if (next >= shuffled.length) {
+      shuffled = fisherYates(TRACKS);
+      playTrack(0);
+    } else {
+      playTrack(next);
     }
   }
 
@@ -97,8 +88,8 @@ const AudioManager = (() => {
     ready = true;
     audio = document.getElementById('bg-music');
     if (!audio) return;
-    shuffled = fisherYates(TRACKS.map((_, i) => i));
-    audio.addEventListener('timeupdate', onTimeUpdate);
+    shuffled = fisherYates(TRACKS);
+    audio.addEventListener('ended', onEnded);
     applySettings();
     playTrack(0);
   }
