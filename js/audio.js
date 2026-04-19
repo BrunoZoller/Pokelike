@@ -40,6 +40,7 @@ const AudioManager = (() => {
   let shuffled = [];
   let currentIdx = 0;
   let ready = false;
+  let started = false;
 
   function fisherYates(arr) {
     const a = [...arr];
@@ -54,7 +55,9 @@ const AudioManager = (() => {
     if (!audio) return;
     currentIdx = idx;
     audio.src = shuffled[idx];
-    audio.play().catch(() => {});
+    // Wait for enough data before playing — required on Android
+    audio.addEventListener('canplay', () => audio.play().catch(() => {}), { once: true });
+    audio.load();
   }
 
   function onEnded() {
@@ -84,9 +87,16 @@ const AudioManager = (() => {
   }
 
   function onFirstInteraction() {
+    if (started) return;
+    started = true;
     document.removeEventListener('click', onFirstInteraction);
     document.removeEventListener('keydown', onFirstInteraction);
-    document.removeEventListener('touchstart', onFirstInteraction);
+    document.removeEventListener('touchend', onFirstInteraction);
+    // Resume AudioContext if suspended (required on some Android browsers)
+    if (window.AudioContext || window.webkitAudioContext) {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      ctx.resume().then(() => ctx.close());
+    }
     playTrack(0);
   }
 
@@ -100,7 +110,7 @@ const AudioManager = (() => {
     applySettings();
     document.addEventListener('click', onFirstInteraction);
     document.addEventListener('keydown', onFirstInteraction);
-    document.addEventListener('touchstart', onFirstInteraction);
+    document.addEventListener('touchend', onFirstInteraction);
   }
 
   return { init, applySettings };
