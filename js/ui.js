@@ -2487,6 +2487,15 @@ function openSettingsModal() {
         ${row('Regular Trainers', 'autoSkipBattles', s.autoSkipAllBattles)}
         ${row('All Fights', 'autoSkipAllBattles')}
         ${row('Evolutions', 'autoSkipEvolve')}
+        <div class="settings-section-title">Music</div>
+        <label class="settings-row">
+          <span class="settings-label">Enabled</span>
+          <input type="checkbox" class="settings-checkbox" data-key="musicEnabled" ${s.musicEnabled !== false ? 'checked' : ''}>
+        </label>
+        <label class="settings-row">
+          <span class="settings-label">Volume</span>
+          <input type="range" class="settings-volume" min="0" max="1" step="0.05" value="${s.musicVolume ?? 0.5}">
+        </label>
       </div>`;
 
     modal.querySelectorAll('.settings-checkbox').forEach(cb => {
@@ -2495,9 +2504,20 @@ function openSettingsModal() {
         s2[cb.dataset.key] = cb.checked;
         saveSettings(s2);
         applyDarkMode();
+        if (typeof AudioManager !== 'undefined') AudioManager.applySettings();
         render();
       };
     });
+
+    const volSlider = modal.querySelector('.settings-volume');
+    if (volSlider) {
+      volSlider.oninput = () => {
+        const s2 = getSettings();
+        s2.musicVolume = parseFloat(volSlider.value);
+        saveSettings(s2);
+        if (typeof AudioManager !== 'undefined') AudioManager.applySettings();
+      };
+    }
   }
 
   render();

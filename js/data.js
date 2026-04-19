@@ -362,7 +362,7 @@ const TYPE_ITEM_MAP = {
 
 // Settings (persisted across runs)
 function getSettings() {
-  const defaults = { autoSkipBattles: false, autoSkipAllBattles: false, autoSkipEvolve: false, darkMode: false };
+  const defaults = { autoSkipBattles: false, autoSkipAllBattles: false, autoSkipEvolve: false, darkMode: false, musicEnabled: true, musicVolume: 0.5 };
   return Object.assign({}, defaults, getCached('poke_settings') || {});
 }
 function saveSettings(s) { setCached('poke_settings', s); }

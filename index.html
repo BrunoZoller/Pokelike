@@ -22,6 +22,8 @@
 </head>
 <body>
 
+<audio id="bg-music" src="audio/soundtrack.mp3" preload="auto"></audio>
+
 <!-- Team hover card popup -->
 <div id="team-hover-card"></div>
 
@@ -85,6 +87,7 @@
     <div id="map-info"></div>
     <div style="display:flex;align-items:center;gap:8px;">
       <div id="badge-count"></div>
+      <button id="mute-btn" onclick="toggleMusicMute()" class="btn-icon-sm" title="Toggle Music">🔊</button>
       <button onclick="openPokedexModal()" class="btn-icon-sm" title="Pokédex"><img src="ui/pokedex.png" alt="Pokédex"></button>
       <button onclick="openAchievementsModal()" class="btn-icon-sm" title="Achievements"><img src="ui/achievements.png" alt="Achievements"></button>
       <button onclick="openSettingsModal()" class="btn-icon-sm" title="Settings"><img src="ui/settings.png" alt="Settings"></button>
@@ -93,6 +96,7 @@
 
   <!-- Desktop-only top-right buttons -->
   <div class="map-actions">
+    <button id="mute-btn-desktop" onclick="toggleMusicMute()" class="btn-icon-sm" title="Toggle Music">🔊</button>
     <button onclick="openPokedexModal()" class="btn-icon-sm" title="Pokédex"><img src="ui/pokedex.png" alt="Pokédex"></button>
     <button onclick="openAchievementsModal()" class="btn-icon-sm" title="Achievements"><img src="ui/achievements.png" alt="Achievements"></button>
     <button onclick="openSettingsModal()" class="btn-icon-sm" title="Settings"><img src="ui/settings.png" alt="Settings"></button>
@@ -256,6 +260,7 @@
 <script src="js/map.js"></script>
 <script src="js/battle.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/audio.js"></script>
 <script src="js/game.js"></script>
 <!-- Firebase (loaded last so game functions are available) -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>

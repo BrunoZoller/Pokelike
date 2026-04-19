@@ -1562,6 +1562,17 @@ h1, h2, .pixel-font {
   cursor: pointer;
   flex-shrink: 0;
 }
+.settings-volume {
+  flex: 1;
+  max-width: 120px;
+  accent-color: #3a8ae0;
+  cursor: pointer;
+}
+#mute-btn, #mute-btn-desktop {
+  font-size: 18px;
+  line-height: 1;
+  padding: 2px 4px;
+}
 
 /* =================================================
    RETRO PIXEL STYLE — pure CSS, no 9-slice
