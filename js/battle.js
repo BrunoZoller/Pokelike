@@ -161,19 +161,29 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog) {
   const traitFx = (typeof state !== 'undefined' && state.isEndless && typeof getEndlessTraitEffects === 'function')
     ? getEndlessTraitEffects(state.team) : null;
 
-  // Poison trait tier 3: enemy pokemon start combat with Toxic
-  if (traitFx?.poisonStartCombat) {
-    for (const ep of eTeam) {
-      _applyStatus(ep, 'toxic');
-      ep._toxicStacks = 1;
+  // Normal trait: boost player team max HP for the duration of this battle
+  let normalHpMult = 1;
+  if (traitFx?.normalMaxHpBonus > 0) {
+    normalHpMult = 1 + traitFx.normalMaxHpBonus;
+    for (const p of pTeam) {
+      const ratio = p.maxHp > 0 ? p.currentHp / p.maxHp : 1;
+      p.maxHp = Math.floor(p.maxHp * normalHpMult);
+      p.currentHp = Math.max(0, Math.min(p.maxHp, Math.round(ratio * p.maxHp)));
     }
+  }
+
+  // Fighting trait: reset first-attack flag for all player pokemon
+  if (traitFx?.fightingFirstBonus > 0) {
+    for (const p of pTeam) p._fightingUsedFirstAttack = false;
+  }
+
+  // Rock trait: reset sturdy flag for all player pokemon
+  if (traitFx?.rockSturdy) {
+    for (const p of pTeam) p._sturdyUsed = false;
   }
 
   // Dragon trait: accumulate damage bonus per KO this fight
   let dragonDmgBonus = 0;
-
-  // Ghost trait: count KO saves used this fight
-  let ghostSavesUsed = 0;
 
   // Artifact: Warden's Teeth — damage bonus per kill
   let wardenDmgBonus = 0;
@@ -231,10 +241,9 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog) {
     const pActiveItems = pActive.heldItem ? [pActive.heldItem] : [];
     const eActiveItems = eActive.heldItem ? [eActive.heldItem] : [];
 
-    // Speed determines turn order (Ground trait reduces enemy speed)
+    // Speed determines turn order
     const pSpeed = getEffectiveStat(pActive, 'speed', pActiveItems);
-    let eSpeed = getEffectiveStat(eActive, 'speed', eActiveItems);
-    if (traitFx?.enemySpeedReduce > 0) eSpeed = Math.max(1, Math.floor(eSpeed * (1 - traitFx.enemySpeedReduce)));
+    const eSpeed = getEffectiveStat(eActive, 'speed', eActiveItems);
 
     // If both active Pokemon can only use noDamage moves, force Struggle to break the stalemate
     const pMove = getBestMove(pActive.types || ['Normal'], pActive.baseStats, pActive.speciesId, pActive.moveTier ?? 1);
@@ -312,20 +321,32 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog) {
         continue;
       }
 
-      // Fighting trait crit bonus applies to player attacks
-      const critBonus = (side === 'player' && traitFx?.critBonus > 0) ? traitFx.critBonus : 0;
-      let { damage, typeEff, moveType, crit, isSpecial } = calcDamage(attacker, target, move, attackerItems, defenderItems, critBonus);
+      let { damage, typeEff, moveType, crit, isSpecial } = calcDamage(attacker, target, move, attackerItems, defenderItems, 0);
 
-      // Normal trait: common player pokemon deal extra damage
-      if (side === 'player' && traitFx?.normalCommonBonus > 0
-          && typeof getPokemonRarity === 'function'
-          && getPokemonRarity(attacker.speciesId) === 'common') {
-        damage = Math.floor(damage * (1 + traitFx.normalCommonBonus));
+      // Fire trait: additive damage bonus for player attacks
+      if (side === 'player' && traitFx?.fireDmgBonus > 0) {
+        damage = Math.floor(damage * (1 + traitFx.fireDmgBonus));
+      }
+
+      // Fighting trait: first attack per pokemon deals bonus damage
+      if (side === 'player' && traitFx?.fightingFirstBonus > 0 && !attacker._fightingUsedFirstAttack) {
+        damage = Math.floor(damage * (1 + traitFx.fightingFirstBonus));
+        attacker._fightingUsedFirstAttack = true;
       }
 
       // Dragon trait: accumulated bonus from KOs this fight
       if (side === 'player' && dragonDmgBonus > 0) {
         damage = Math.floor(damage * (1 + dragonDmgBonus));
+      }
+
+      // Water trait: reduce incoming damage to player
+      if (side === 'enemy' && traitFx?.waterDmgReduce > 0) {
+        damage = Math.max(1, Math.floor(damage * (1 - traitFx.waterDmgReduce)));
+      }
+
+      // Ground trait: reduce incoming damage to player (defence boost modelled as flat reduction)
+      if (side === 'enemy' && traitFx?.groundDefBonus > 0) {
+        damage = Math.max(1, Math.floor(damage / (1 + traitFx.groundDefBonus)));
       }
 
       if (typeof hasArtifact === 'function') {
@@ -378,15 +399,33 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog) {
         detailedLog.push({ type: 'effect', side: 'player', idx: tIdx, name: tName, hpChange: 0, hpAfter: 1, reason: `Go-Goggles protected ${tName}!` });
       }
 
-      // Ghost trait: first N player pokemon that would faint instead go to back at 1 HP
+      // Rock Sturdy: player pokemon survives one lethal hit at 1 HP per battle
       if (target.currentHp === 0 && targetPreHp > 0 && tSide === 'player'
-          && traitFx?.ghostSurviveCount > 0 && ghostSavesUsed < traitFx.ghostSurviveCount) {
+          && traitFx?.rockSturdy && !target._sturdyUsed) {
         target.currentHp = 1;
-        target._ghostDeferred = true;
-        ghostSavesUsed++;
-        addLog(`Phantom saved ${tName}! (1 HP — sent to back)`, 'log-item');
+        target._sturdyUsed = true;
+        addLog(`Fortify protected ${tName}! (Sturdy — 1 HP)`, 'log-item');
         detailedLog.push({ type: 'effect', side: 'player', idx: tIdx, name: tName,
-          hpChange: 0, hpAfter: 1, reason: `Phantom saved ${tName}!` });
+          hpChange: 0, hpAfter: 1, reason: `Fortify protected ${tName}!` });
+      }
+
+      // Rock Reflect: when player is hit, reflect damage back to attacker
+      if (side === 'enemy' && traitFx?.rockReflectPct > 0 && damage > 0 && target.currentHp > 0) {
+        const reflected = Math.max(1, Math.floor(damage * traitFx.rockReflectPct));
+        attacker.currentHp = Math.max(0, attacker.currentHp - reflected);
+        addLog(`${tName} reflected ${reflected} damage back!`, 'log-item');
+        detailedLog.push({ type: 'effect', side: 'enemy', idx: aIdx, name: aName,
+          hpChange: -reflected, hpAfter: attacker.currentHp, reason: `Fortify reflect!` });
+      }
+
+      // Ghost Execute: instantly defeat enemies below threshold HP
+      if (side === 'player' && traitFx?.ghostExecuteThreshold > 0
+          && target.currentHp > 0 && tSide === 'enemy'
+          && target.currentHp / target.maxHp < traitFx.ghostExecuteThreshold) {
+        target.currentHp = 0;
+        addLog(`${tName} was executed by Phantom!`, 'log-item');
+        detailedLog.push({ type: 'effect', side: 'enemy', idx: tIdx, name: tName,
+          hpChange: -target.maxHp, hpAfter: 0, reason: 'Phantom execute' });
       }
 
       // Artifact: Silph Scope — execute enemies below 5% HP
@@ -463,7 +502,7 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog) {
         }
       }
 
-      // Psychic trait: 10% splash to other enemies after player hits
+      // Psychic trait: splash damage + hit effects to other enemies after player hits
       if (side === 'player' && traitFx?.splashPct > 0 && damage > 0 && target.currentHp > 0) {
         const splash = Math.max(1, Math.floor(damage * traitFx.splashPct));
         for (let si = 0; si < eTeam.length; si++) {
@@ -473,6 +512,18 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog) {
           addLog(`${sp.name} took ${splash} Mindscape splash!`, 'log-item');
           detailedLog.push({ type: 'effect', side: 'enemy', idx: si, name: sp.name,
             hpChange: -splash, hpAfter: sp.currentHp, reason: `Mindscape splash!` });
+          // Splash also triggers on-hit effects
+          if (sp.currentHp > 0) {
+            if (traitFx?.freezeChance > 0 && rng() < traitFx.freezeChance && !_hasStatus(sp, 'freeze')) {
+              _applyStatus(sp, 'freeze');
+              addLog(`${sp.name} was frozen by splash!`, 'log-item');
+            }
+            if (traitFx?.poisonTier > 0 && rng() < 0.25 && !_hasStatus(sp, 'toxic') && !_hasStatus(sp, 'poisoned')) {
+              _applyStatus(sp, 'toxic');
+              sp._toxicStacks = 1;
+              sp._poisonSeverity = traitFx.poisonTier;
+            }
+          }
           if (sp.currentHp <= 0) {
             addLog(`${sp.name} fainted!`, 'log-faint');
             detailedLog.push({ type: 'faint', side: 'enemy', idx: si, name: sp.name });
@@ -482,34 +533,37 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog) {
 
       // Post-hit status applications (player attacking enemy only)
       if (side === 'player' && damage > 0 && target.currentHp > 0) {
-        // Electric: paralyze
-        if (traitFx?.paralyzeChance > 0 && rng() < traitFx.paralyzeChance && !_hasStatus(target, 'paralysis')) {
-          _applyStatus(target, 'paralysis');
-          addLog(`${tName} was paralyzed!`, 'log-item');
-          detailedLog.push({ type: 'status_apply', side: 'enemy', idx: tIdx, name: tName, status: 'paralysis' });
-        }
-        // Fire: burn
-        if (traitFx?.burnChance > 0 && rng() < traitFx.burnChance && !_hasStatus(target, 'burn')) {
-          _applyStatus(target, 'burn');
-          addLog(`${tName} was burned!`, 'log-item');
-          detailedLog.push({ type: 'status_apply', side: 'enemy', idx: tIdx, name: tName, status: 'burn' });
-        }
         // Ice: freeze
         if (traitFx?.freezeChance > 0 && rng() < traitFx.freezeChance && !_hasStatus(target, 'freeze')) {
           _applyStatus(target, 'freeze');
           addLog(`${tName} was frozen!`, 'log-item');
           detailedLog.push({ type: 'status_apply', side: 'enemy', idx: tIdx, name: tName, status: 'freeze' });
         }
-        // Poison: toxic
-        if (traitFx?.poisonApplyChance > 0 && rng() < traitFx.poisonApplyChance && !_hasStatus(target, 'toxic')) {
+        // Poison: 25% fixed chance, tier determines DOT severity
+        if (traitFx?.poisonTier > 0 && rng() < 0.25 && !_hasStatus(target, 'toxic') && !_hasStatus(target, 'poisoned')) {
           _applyStatus(target, 'toxic');
           target._toxicStacks = 1;
-          addLog(`${tName} was badly poisoned!`, 'log-item');
+          target._poisonSeverity = traitFx.poisonTier;
+          const poisonDesc = traitFx.poisonTier === 3 ? 'extreme' : traitFx.poisonTier === 2 ? 'toxic' : 'standard';
+          addLog(`${tName} was poisoned (${poisonDesc})!`, 'log-item');
           detailedLog.push({ type: 'status_apply', side: 'enemy', idx: tIdx, name: tName, status: 'toxic' });
         }
-        // Rock: flinch
-        if (traitFx?.flinchChance > 0 && rng() < traitFx.flinchChance) {
-          target._flinched = true;
+      }
+
+      // Electric trait: chance to strike twice (player attacks only)
+      if (side === 'player' && traitFx?.electricDoubleStrike > 0 && damage > 0 && target.currentHp > 0
+          && rng() < traitFx.electricDoubleStrike) {
+        const bonusDmg = damage;
+        const preHpElec = target.currentHp;
+        target.currentHp = Math.max(0, target.currentHp - bonusDmg);
+        addLog(`${aName} struck again → ${tName} took ${bonusDmg} dmg! (Double Strike)`, 'log-player');
+        detailedLog.push({ type: 'attack', side, attackerIdx: aIdx, attackerName: aName,
+          targetSide: tSide, targetIdx: tIdx, targetName: tName,
+          moveName: move.name, moveType, damage: bonusDmg, typeEff, crit: false, isSpecial: move.isSpecial ?? isSpecial,
+          attackerHpAfter: attacker.currentHp, targetHpAfter: target.currentHp });
+        if (target.currentHp <= 0 && preHpElec > 0) {
+          addLog(`${tName} fainted!`, 'log-faint');
+          detailedLog.push({ type: 'faint', side: tSide, idx: tIdx, name: tName });
         }
       }
 
@@ -619,13 +673,15 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog) {
       }
     }
 
-    // Toxic damage (doubles each turn)
+    // Toxic damage (doubles each turn; severity from Poison trait)
     for (const [team, teamSide] of [[pTeam, 'player'], [eTeam, 'enemy']]) {
       for (let i = 0; i < team.length; i++) {
         const p = team[i];
         if (p.currentHp <= 0 || !_hasStatus(p, 'toxic')) continue;
         if (!p._toxicStacks) p._toxicStacks = 1;
         let dot = Math.max(1, Math.floor(p.maxHp * p._toxicStacks / 16));
+        if (p._poisonSeverity === 2) dot *= 2;
+        else if (p._poisonSeverity === 3) dot *= 4;
         if (typeof hasArtifact === 'function' && teamSide === 'enemy' && hasArtifact('lunar_wing')) dot = Math.floor(dot * 1.5);
         p.currentHp = Math.max(0, p.currentHp - dot);
         p._toxicStacks = Math.min(p._toxicStacks * 2, 16); // cap at 16/16
@@ -647,26 +703,6 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog) {
       }
     }
 
-    // Water trait: heal active player pokemon each turn
-    if (traitFx?.waterHealPct > 0) {
-      const active = pTeam.map((p, i) => ({ p, i })).find(x => x.p.currentHp > 0 && !x.p._ghostDeferred)
-                  ?? pTeam.map((p, i) => ({ p, i })).find(x => x.p.currentHp > 0);
-      if (active) {
-        const heal = Math.max(1, Math.floor(active.p.maxHp * traitFx.waterHealPct));
-        const actual = Math.min(heal, active.p.maxHp - active.p.currentHp);
-        if (actual > 0) {
-          active.p.currentHp += actual;
-          const n = active.p.nickname || active.p.name;
-          addLog(`${n} healed ${actual} HP from Torrent!`, 'log-item');
-          detailedLog.push({ type: 'effect', side: 'player', idx: active.i, name: n,
-            hpChange: actual, hpAfter: active.p.currentHp, reason: `Torrent healed ${actual} HP` });
-          if (typeof hasArtifact === 'function' && hasArtifact('gracidea') && rng() < 0.25) {
-            active.p._gracideaDefStage   = Math.min(6, (active.p._gracideaDefStage   || 0) + 1);
-            active.p._gracideaSpDefStage = Math.min(6, (active.p._gracideaSpDefStage || 0) + 1);
-          }
-        }
-      }
-    }
 
     // Leftovers: heal active player pokemon 1/16 maxHP each round (if they hold it)
     const activeP = pTeam.map((p, i) => ({ p, i })).find(x => x.p.currentHp > 0);
@@ -690,6 +726,14 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog) {
   const playerWon = pTeam.some(p => p.currentHp > 0) && !eTeam.some(p => p.currentHp > 0);
   addLog(playerWon ? '--- Victory! ---' : '--- Defeat! ---', playerWon ? 'log-win' : 'log-lose');
   detailedLog.push({ type: 'result', playerWon });
+
+  // Normal trait: scale currentHp back to original maxHp basis so state.team sync is correct
+  if (normalHpMult > 1) {
+    for (const p of pTeam) {
+      p.maxHp = Math.round(p.maxHp / normalHpMult);
+      p.currentHp = Math.min(p.maxHp, Math.max(0, Math.round(p.currentHp / normalHpMult)));
+    }
+  }
 
   return { playerWon, log, detailedLog, pTeam, eTeam, playerParticipants };
 }

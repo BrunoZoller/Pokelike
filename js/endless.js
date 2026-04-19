@@ -29,50 +29,50 @@ function hasArtifact(id) {
 
 const ENDLESS_TRAITS = {
   Grass:    { name: 'Overgrowth',    icon: '🌿', tiers: [2,4,6],
-    descs: ['Heal 5% of damage dealt', 'Heal 10% of damage dealt', 'Heal 25% of damage dealt'],
-    values: { lifestealPct: [0.05, 0.10, 0.25] } },
+    descs: ['Heal 10% of damage dealt', 'Heal 20% of damage dealt', 'Heal 40% of damage dealt'],
+    values: { lifestealPct: [0.10, 0.20, 0.40] } },
   Fire:     { name: 'Blaze',         icon: '🔥', tiers: [2,4,6],
-    descs: ['30% burn on hit', '60% burn on hit', '100% burn on hit (halves enemy phys dmg, burns each round)'],
-    values: { burnChance: [0.30, 0.60, 1.00] } },
+    descs: ['+20% Damage', '+40% Damage', '+60% Damage'],
+    values: { fireDmgBonus: [0.20, 0.40, 0.60] } },
   Water:    { name: 'Torrent',       icon: '💧', tiers: [2,4,6],
-    descs: ['Heal 5% max HP each turn', 'Heal 10% max HP each turn', 'Heal 20% max HP each turn'],
-    values: { waterHealPct: [0.05, 0.10, 0.20] } },
+    descs: ['Reduce incoming damage by 10%', 'Reduce incoming damage by 20%', 'Reduce incoming damage by 30%'],
+    values: { waterDmgReduce: [0.10, 0.20, 0.30] } },
   Electric: { name: 'Static',        icon: '⚡', tiers: [2,4,6],
-    descs: ['30% paralyze on hit', '60% paralyze on hit', '100% paralyze on hit'],
-    values: { paralyzeChance: [0.30, 0.60, 1.00] } },
+    descs: ['20% chance to strike twice', '40% chance to strike twice', '60% chance to strike twice'],
+    values: { electricDoubleStrike: [0.20, 0.40, 0.60] } },
   Ice:      { name: 'Deep Freeze',   icon: '❄️', tiers: [2,4,6],
-    descs: ['15% freeze on hit', '30% freeze on hit', '50% freeze on hit'],
-    values: { freezeChance: [0.15, 0.30, 0.50] } },
+    descs: ['10% freeze on hit', '20% freeze on hit', '40% freeze on hit'],
+    values: { freezeChance: [0.10, 0.20, 0.40] } },
   Fighting: { name: 'Brawler',       icon: '🥊', tiers: [2,4,6],
-    descs: ['+10% crit chance', '+25% crit chance', '+50% crit chance'],
-    values: { critBonus: [0.10, 0.25, 0.50] } },
+    descs: ['+50% damage on first attack each battle', '+100% damage on first attack', '+200% damage on first attack'],
+    values: { fightingFirstBonus: [0.50, 1.00, 2.00] } },
   Poison:   { name: 'Toxin',         icon: '☠️', tiers: [2,4,6],
-    descs: ['60% chance Toxic on hit', 'Always apply Toxic on hit', 'Enemies start combat Toxic'],
-    values: { poisonApplyChance: [0.60, 1.00, 1.00], poisonStartCombat: [false, false, true] } },
+    descs: ['25% chance to Poison on hit (standard DOT)', '25% chance to Toxic on hit (2× DOT)', '25% chance to Toxic on hit (4× DOT)'],
+    values: { poisonTier: [1, 2, 3] } },
   Ground:   { name: 'Tremor',        icon: '🌍', tiers: [2,4,6],
-    descs: ['Enemy speed -5%', 'Enemy speed -25%', 'Enemy speed -50%'],
-    values: { enemySpeedReduce: [0.05, 0.25, 0.50] } },
+    descs: ['+20% Defense', '+40% Defense', '+60% Defense'],
+    values: { groundDefBonus: [0.20, 0.40, 0.60] } },
   Flying:   { name: 'Tailwind',      icon: '🦅', tiers: [2,4,6],
-    descs: ['10% dodge chance', '20% dodge chance', '40% dodge chance'],
-    values: { dodgeChance: [0.10, 0.20, 0.40] } },
+    descs: ['20% dodge chance', '40% dodge chance', '60% dodge chance'],
+    values: { dodgeChance: [0.20, 0.40, 0.60] } },
   Psychic:  { name: 'Mindscape',     icon: '🔮', tiers: [2,4,6],
-    descs: ['10% splash dmg to enemy team', '10% splash dmg to enemy team', '10% splash dmg to enemy team'],
-    values: { splashPct: [0.10, 0.10, 0.10] } },
+    descs: ['10% splash dmg + hit effects to enemy team', '20% splash dmg + hit effects', '30% splash dmg + hit effects'],
+    values: { splashPct: [0.10, 0.20, 0.30] } },
   Bug:      { name: 'Swarm',         icon: '🐛', tiers: [2,4,6],
-    descs: ['5% chance +1 Level after fight', '10% chance +1 Level after fight', '20% chance +1 Level after fight'],
-    values: { bonusLevelChance: [0.05, 0.10, 0.20] } },
+    descs: ['10% chance +1 Level after fight', '20% chance +1 Level after fight', '30% chance +1 Level after fight'],
+    values: { bonusLevelChance: [0.10, 0.20, 0.30] } },
   Rock:     { name: 'Fortify',       icon: '🪨', tiers: [2,4,6],
-    descs: ['10% flinch on hit', '25% flinch on hit', '50% flinch on hit'],
-    values: { flinchChance: [0.10, 0.25, 0.50] } },
+    descs: ['Each Pokémon survives one lethal hit at 1 HP', 'Sturdy + reflect 25% damage back', 'Sturdy + reflect 50% damage back'],
+    values: { rockSturdy: [true, true, true], rockReflectPct: [0, 0.25, 0.50] } },
   Ghost:    { name: 'Phantom',       icon: '👻', tiers: [2,4,6],
-    descs: ['1 KO save (1 HP, back of team)', '2 KO saves per combat', '3 KO saves per combat'],
-    values: { ghostSurviveCount: [1, 2, 3] } },
+    descs: ['Enemies below 10% HP are instantly defeated', 'Enemies below 20% HP are instantly defeated', 'Enemies below 40% HP are instantly defeated'],
+    values: { ghostExecuteThreshold: [0.10, 0.20, 0.40] } },
   Dragon:   { name: 'Ascendant',     icon: '🐉', tiers: [2,4,6],
     descs: ['+10% dmg after each KO', '+20% dmg after each KO', '+40% dmg after each KO'],
     values: { dragonKoBonus: [0.10, 0.20, 0.40] } },
   Normal:   { name: 'Pack Tactics',  icon: '⚔️', tiers: [2,4,6],
-    descs: ['Common Pokémon +20% dmg', 'Common Pokémon +50% dmg', 'Common Pokémon +100% dmg'],
-    values: { normalCommonBonus: [0.20, 0.50, 1.00] } },
+    descs: ['+20% max HP for your team', '+50% max HP for your team', '+100% max HP for your team'],
+    values: { normalMaxHpBonus: [0.20, 0.50, 1.00] } },
 };
 
 // Strategy pool — shuffled per run
@@ -220,87 +220,80 @@ function getActiveTraits(team) {
 function getEndlessTraitEffects(team) {
   const fx = {
     lifestealPct: 0,
-    burnChance: 0,
-    waterHealPct: 0,
-    paralyzeChance: 0,
+    fireDmgBonus: 0,
+    waterDmgReduce: 0,
+    electricDoubleStrike: 0,
     freezeChance: 0,
-    critBonus: 0,
-    poisonApplyChance: 0,
-    poisonStartCombat: false,
-    enemySpeedReduce: 0,
+    fightingFirstBonus: 0,
+    poisonTier: 0,
+    groundDefBonus: 0,
     dodgeChance: 0,
     splashPct: 0,
     bonusLevelChance: 0,
-    flinchChance: 0,
-    ghostSurviveCount: 0,
+    rockSturdy: false,
+    rockReflectPct: 0,
+    ghostExecuteThreshold: 0,
     dragonKoBonus: 0,
-    normalCommonBonus: 0,
+    normalMaxHpBonus: 0,
   };
   const activeTraitList = getActiveTraits(team);
   for (const { tier, def } of activeTraitList) {
     const v = def.values;
-    if (v.lifestealPct)        fx.lifestealPct       += v.lifestealPct[tier];
-    if (v.burnChance)          fx.burnChance          = Math.min(1.0, fx.burnChance + v.burnChance[tier]);
-    if (v.waterHealPct)        fx.waterHealPct       += v.waterHealPct[tier];
-    if (v.paralyzeChance)      fx.paralyzeChance      = Math.min(1.0, fx.paralyzeChance + v.paralyzeChance[tier]);
-    if (v.freezeChance)        fx.freezeChance        = Math.min(0.80, fx.freezeChance + v.freezeChance[tier]);
-    if (v.critBonus)           fx.critBonus          += v.critBonus[tier];
-    if (v.poisonApplyChance)   fx.poisonApplyChance   = Math.max(fx.poisonApplyChance, v.poisonApplyChance[tier]);
-    if (v.poisonStartCombat)   fx.poisonStartCombat   = fx.poisonStartCombat || v.poisonStartCombat[tier];
-    if (v.enemySpeedReduce)    fx.enemySpeedReduce    = Math.min(0.90, fx.enemySpeedReduce + v.enemySpeedReduce[tier]);
-    if (v.dodgeChance)         fx.dodgeChance         = Math.min(0.80, fx.dodgeChance + v.dodgeChance[tier]);
-    if (v.splashPct)           fx.splashPct          += v.splashPct[tier];
-    if (v.bonusLevelChance)    fx.bonusLevelChance    = Math.max(fx.bonusLevelChance, v.bonusLevelChance[tier]);
-    if (v.flinchChance)        fx.flinchChance        = Math.min(0.80, fx.flinchChance + v.flinchChance[tier]);
-    if (v.ghostSurviveCount)   fx.ghostSurviveCount   = Math.max(fx.ghostSurviveCount, v.ghostSurviveCount[tier]);
-    if (v.dragonKoBonus)       fx.dragonKoBonus       = Math.max(fx.dragonKoBonus, v.dragonKoBonus[tier]);
-    if (v.normalCommonBonus)   fx.normalCommonBonus   = Math.max(fx.normalCommonBonus, v.normalCommonBonus[tier]);
+    if (v.lifestealPct)           fx.lifestealPct          += v.lifestealPct[tier];
+    if (v.fireDmgBonus)           fx.fireDmgBonus          += v.fireDmgBonus[tier];
+    if (v.waterDmgReduce)         fx.waterDmgReduce         = Math.min(0.90, fx.waterDmgReduce + v.waterDmgReduce[tier]);
+    if (v.electricDoubleStrike)   fx.electricDoubleStrike   = Math.min(0.90, fx.electricDoubleStrike + v.electricDoubleStrike[tier]);
+    if (v.freezeChance)           fx.freezeChance           = Math.min(0.80, fx.freezeChance + v.freezeChance[tier]);
+    if (v.fightingFirstBonus)     fx.fightingFirstBonus     = Math.max(fx.fightingFirstBonus, v.fightingFirstBonus[tier]);
+    if (v.poisonTier)             fx.poisonTier             = Math.max(fx.poisonTier, v.poisonTier[tier]);
+    if (v.groundDefBonus)         fx.groundDefBonus        += v.groundDefBonus[tier];
+    if (v.dodgeChance)            fx.dodgeChance            = Math.min(0.80, fx.dodgeChance + v.dodgeChance[tier]);
+    if (v.splashPct)              fx.splashPct             += v.splashPct[tier];
+    if (v.bonusLevelChance)       fx.bonusLevelChance       = Math.max(fx.bonusLevelChance, v.bonusLevelChance[tier]);
+    if (v.rockSturdy)             fx.rockSturdy             = fx.rockSturdy || v.rockSturdy[tier];
+    if (v.rockReflectPct)         fx.rockReflectPct         = Math.max(fx.rockReflectPct, v.rockReflectPct[tier]);
+    if (v.ghostExecuteThreshold)  fx.ghostExecuteThreshold  = Math.max(fx.ghostExecuteThreshold, v.ghostExecuteThreshold[tier]);
+    if (v.dragonKoBonus)          fx.dragonKoBonus          = Math.max(fx.dragonKoBonus, v.dragonKoBonus[tier]);
+    if (v.normalMaxHpBonus)       fx.normalMaxHpBonus       = Math.max(fx.normalMaxHpBonus, v.normalMaxHpBonus[tier]);
   }
 
   // Enigma Stone: all percent-based chances +5%
   if (hasArtifact('enigma_stone')) {
-    fx.burnChance         = Math.min(1.0,  fx.burnChance         + 0.05);
-    fx.paralyzeChance     = Math.min(1.0,  fx.paralyzeChance     + 0.05);
-    fx.freezeChance       = Math.min(0.80, fx.freezeChance       + 0.05);
-    fx.dodgeChance        = Math.min(0.80, fx.dodgeChance        + 0.05);
-    fx.flinchChance       = Math.min(0.80, fx.flinchChance       + 0.05);
-    fx.poisonApplyChance  = Math.min(1.0,  fx.poisonApplyChance  + 0.05);
-    fx.critBonus         += 0.05;
-    fx.bonusLevelChance   = Math.min(1.0,  fx.bonusLevelChance   + 0.05);
-    fx.splashPct         += 0.05;
-    fx.lifestealPct      += 0.05;
+    fx.freezeChance            = Math.min(0.80, fx.freezeChance          + 0.05);
+    fx.dodgeChance             = Math.min(0.80, fx.dodgeChance           + 0.05);
+    fx.electricDoubleStrike    = Math.min(0.90, fx.electricDoubleStrike  + 0.05);
+    fx.bonusLevelChance        = Math.min(1.0,  fx.bonusLevelChance      + 0.05);
+    fx.splashPct              += 0.05;
+    fx.lifestealPct           += 0.05;
+    fx.ghostExecuteThreshold  += 0.05;
   }
 
   // Prison Bottle: single active trait is 50% stronger
   if (hasArtifact('prison_bottle') && activeTraitList.length === 1) {
-    fx.lifestealPct      *= 1.5;
-    fx.burnChance         = Math.min(1.0,  fx.burnChance         * 1.5);
-    fx.waterHealPct      *= 1.5;
-    fx.paralyzeChance     = Math.min(1.0,  fx.paralyzeChance     * 1.5);
-    fx.freezeChance       = Math.min(0.80, fx.freezeChance       * 1.5);
-    fx.critBonus         *= 1.5;
-    fx.poisonApplyChance  = Math.min(1.0,  fx.poisonApplyChance  * 1.5);
-    fx.enemySpeedReduce   = Math.min(0.90, fx.enemySpeedReduce   * 1.5);
-    fx.dodgeChance        = Math.min(0.80, fx.dodgeChance        * 1.5);
-    fx.splashPct         *= 1.5;
-    fx.flinchChance       = Math.min(0.80, fx.flinchChance       * 1.5);
-    fx.dragonKoBonus     *= 1.5;
-    fx.normalCommonBonus *= 1.5;
+    fx.lifestealPct          *= 1.5;
+    fx.fireDmgBonus          *= 1.5;
+    fx.waterDmgReduce         = Math.min(0.90, fx.waterDmgReduce        * 1.5);
+    fx.electricDoubleStrike   = Math.min(0.90, fx.electricDoubleStrike  * 1.5);
+    fx.freezeChance           = Math.min(0.80, fx.freezeChance          * 1.5);
+    fx.fightingFirstBonus    *= 1.5;
+    fx.groundDefBonus        *= 1.5;
+    fx.dodgeChance            = Math.min(0.80, fx.dodgeChance           * 1.5);
+    fx.splashPct             *= 1.5;
+    fx.ghostExecuteThreshold *= 1.5;
+    fx.dragonKoBonus         *= 1.5;
+    fx.normalMaxHpBonus      *= 1.5;
+    fx.rockReflectPct        *= 1.5;
   }
 
   return fx;
 }
 
-// Level range for any map index — enemies are +5 levels vs normal mode
-function getEndlessLevelRange(mapIndex) {
-  const region = Math.floor(mapIndex / 5);
-  const bonus = Math.max(0, (region - 1) * 8);
-  if (mapIndex < MAP_LEVEL_RANGES.length) {
-    const [min, max] = MAP_LEVEL_RANGES[mapIndex];
-    return [min + bonus, max + bonus];
-  }
-  const extra = mapIndex - MAP_LEVEL_RANGES.length + 1;
-  return [58 + extra * 20 + bonus, 69 + extra * 20 + bonus];
+// Level range for any map index — smooth curve, +20 per stage
+function getEndlessLevelRange(mapIndex, stage = 0) {
+  const stageBonus = stage * 20;
+  const min = Math.min(100, 5 + Math.floor(mapIndex * 4.5) + stageBonus);
+  const max = Math.min(100, min + 10);
+  return [min, max];
 }
 
 function getEndlessStrategy(mapIndex) {
@@ -316,7 +309,7 @@ function getEndlessStrategy(mapIndex) {
 // Build the enemy team for an endless boss node
 async function buildEndlessBossTeam(mapIndex) {
   const strategy = getEndlessStrategy(mapIndex);
-  const [minLvl, maxLvl] = getEndlessLevelRange(mapIndex);
+  const [minLvl, maxLvl] = getEndlessLevelRange(mapIndex, typeof state !== 'undefined' ? (state.endlessStage || 0) : 0);
   const level = maxLvl + 3;
   const teamSize = Math.min(6, 2 + Math.floor(mapIndex / 3));
   const moveTier = mapIndex <= 2 ? 0 : 1;
@@ -610,7 +603,7 @@ async function showEndlessStarterSelect() {
 }
 
 // Entry point for endless mode
-async function startEndlessRun() {
+async function startEndlessRun(stage = 0) {
   const savedTrainer = localStorage.getItem('poke_trainer') || null;
   const seed = (Date.now() ^ (Math.random() * 0x100000000 | 0)) >>> 0;
   seedRng(seed);
@@ -622,7 +615,7 @@ async function startEndlessRun() {
     currentMap: 0, currentNode: null, team: [], items: [], badges: 0, map: null,
     eliteIndex: 0, trainer: savedTrainer || 'boy', starterSpeciesId: null,
     maxTeamSize: 1, nuzlockeMode: false, usedPokecenter: false, pickedUpItem: false,
-    runSeed: seed, isEndless: true,
+    runSeed: seed, isEndless: true, endlessStage: stage,
     endlessEasy: easyPool, endlessHard: hardPool,
     artifacts: [],
   };

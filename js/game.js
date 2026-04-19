@@ -61,7 +61,7 @@ async function initGame() {
   if (typeof syncToCloud === 'function') syncToCloud();
   document.getElementById('btn-new-run').onclick = () => startNewRun(false);
   document.getElementById('btn-hard-run').onclick = () => startNewRun(true);
-  document.getElementById('btn-endless-run').onclick = () => startEndlessRun();
+  document.getElementById('btn-endless-run').onclick = () => showStageSelectScreen();
 
   const continueBtn = document.getElementById('btn-continue-run');
   if (localStorage.getItem('poke_current_run')) {
@@ -387,7 +387,7 @@ function resolveQuestionMark() {
 // Returns a level scaled to the node's layer (layer 1 = map min, layer 6 = map max).
 function getLevelForNode(node) {
   const [minL, maxL] = state.isEndless
-    ? (typeof getEndlessLevelRange === 'function' ? getEndlessLevelRange(state.currentMap) : MAP_LEVEL_RANGES[Math.min(state.currentMap, MAP_LEVEL_RANGES.length - 1)])
+    ? (typeof getEndlessLevelRange === 'function' ? getEndlessLevelRange(state.currentMap, state.endlessStage || 0) : MAP_LEVEL_RANGES[Math.min(state.currentMap, MAP_LEVEL_RANGES.length - 1)])
     : MAP_LEVEL_RANGES[state.currentMap];
   const t = Math.min(1, Math.max(0, (node.layer - 1) / 5));
   const base = Math.round(minL + t * (maxL - minL));
@@ -492,6 +492,10 @@ async function doEndlessBoss(node) {
       }
     }
     const nextMap = state.currentMap + 1;
+    if (state.currentMap === 14) {
+      endStageWin();
+      return;
+    }
     if (nextMap % 5 === 0 && typeof showRegionPreview === 'function') {
       await showRegionPreview(Math.floor(nextMap / 5));
     }
@@ -499,6 +503,46 @@ async function doEndlessBoss(node) {
   }, () => {
     showGameOver();
   }, strategy.sprite);
+}
+
+function endStageWin() {
+  const completedStage = state.endlessStage || 0;
+  const newHighscore = completedStage + 1;
+  const prev = parseInt(localStorage.getItem('poke_endless_highscore') || '0', 10);
+  if (newHighscore > prev) localStorage.setItem('poke_endless_highscore', newHighscore);
+
+  const screen = document.getElementById('endless-stage-win-screen');
+  if (!screen) { showScreen('title-screen'); return; }
+
+  document.getElementById('stage-win-title').textContent = `Stage ${completedStage + 1} Complete!`;
+  document.getElementById('stage-win-subtitle').textContent = `You conquered all 3 regions!`;
+
+  const nextBtn = document.getElementById('stage-win-next-btn');
+  const menuBtn = document.getElementById('stage-win-menu-btn');
+  nextBtn.textContent = `▶ Start Stage ${completedStage + 2}`;
+  nextBtn.onclick = () => { if (typeof startEndlessRun === 'function') startEndlessRun(completedStage + 1); };
+  menuBtn.onclick = () => showScreen('title-screen');
+
+  showScreen('endless-stage-win-screen');
+}
+
+function showStageSelectScreen() {
+  const highscore = parseInt(localStorage.getItem('poke_endless_highscore') || '0', 10);
+  const container = document.getElementById('stage-select-list');
+  if (!container) { if (typeof startEndlessRun === 'function') startEndlessRun(0); return; }
+  container.innerHTML = '';
+  const maxStage = highscore + 1;
+  for (let s = 0; s <= maxStage; s++) {
+    const [minLvl] = typeof getEndlessLevelRange === 'function' ? getEndlessLevelRange(0, s) : [5 + s * 20, 15 + s * 20];
+    const [, maxLvl] = typeof getEndlessLevelRange === 'function' ? getEndlessLevelRange(14, s) : [68 + s * 20, 78 + s * 20];
+    const btn = document.createElement('button');
+    btn.className = 'stage-select-btn';
+    btn.textContent = `Stage ${s + 1}  —  Lv ${Math.min(100, minLvl)}–${Math.min(100, maxLvl)}`;
+    if (s === 0 && highscore === 0) btn.textContent += '  (Start here)';
+    btn.onclick = () => { if (typeof startEndlessRun === 'function') startEndlessRun(s); };
+    container.appendChild(btn);
+  }
+  showScreen('stage-select-screen');
 }
 
 async function doElite4() {

@@ -269,6 +269,24 @@
 <!-- Attack animation canvas (fixed over viewport) -->
 <canvas id="battle-anim-canvas" style="position:fixed;inset:0;pointer-events:none;z-index:150;display:none;"></canvas>
 
+<!-- ===== STAGE SELECT SCREEN ===== -->
+<div id="stage-select-screen" class="screen">
+  <div class="stage-select-title">♾ Endless Mode</div>
+  <div class="stage-select-sub">Choose your starting stage</div>
+  <div id="stage-select-list" class="stage-select-list"></div>
+  <button class="btn-secondary stage-select-back" onclick="showScreen('title-screen')">← Back</button>
+</div>
+
+<!-- ===== ENDLESS STAGE WIN SCREEN ===== -->
+<div id="endless-stage-win-screen" class="screen">
+  <div id="stage-win-title" class="stage-win-title"></div>
+  <div id="stage-win-subtitle" class="stage-win-subtitle"></div>
+  <div class="stage-win-btns">
+    <button id="stage-win-next-btn" class="btn-primary"></button>
+    <button id="stage-win-menu-btn" class="btn-secondary">Main Menu</button>
+  </div>
+</div>
+
 <!-- Scripts (order matters) -->
 <script src="js/data.js"></script>
 <script src="js/map.js"></script>
