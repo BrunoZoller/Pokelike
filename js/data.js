@@ -464,6 +464,19 @@ async function getSpeciesPool() {
 // Gen 1 legendary Pokemon — removed from all wild/catch pools, available only via Legendary node
 const LEGENDARY_IDS = [144, 145, 146, 150, 151];
 
+// Pokemon rarity: used by Normal trait (Common bonus) and card styling
+const POKEMON_RARE_IDS = new Set([
+  3,6,9,12,15,18,22,24,28,31,34,38,40,44,45,47,53,55,57,59,62,
+  65,68,71,76,78,80,87,88,89,90,91,94,99,106,112,115,117,121,
+  123,130,131,132,137,142,143,147,148,149,
+]);
+
+function getPokemonRarity(speciesId) {
+  if (LEGENDARY_IDS.includes(speciesId)) return 'legendary';
+  if (POKEMON_RARE_IDS.has(speciesId)) return 'rare';
+  return 'common';
+}
+
 // All catchable Gen 1 IDs by BST bucket (module-level so other code can reference them)
 // Legendaries are excluded from all buckets — they appear only via the Legendary node
 const GEN1_BST_APPROX = {
@@ -678,6 +691,41 @@ function minLevelForSpecies(speciesId) {
 // Returns true if the species can still evolve (i.e. is not fully evolved)
 function canEvolve(speciesId) {
   return speciesId in GEN1_EVOLUTIONS || speciesId === 133; // 133 = Eevee
+}
+
+// Returns all Gen 1 base-form IDs (not evolved forms, not legendaries)
+function getBaseFormIds() {
+  const evolvedIds = new Set(Object.values(GEN1_EVOLUTIONS).map(e => e.into));
+  // Also include Eevee evolutions (134, 135, 136) as evolved forms
+  [134, 135, 136].forEach(id => evolvedIds.add(id));
+  return Array.from({length: 151}, (_, i) => i + 1)
+    .filter(id => !LEGENDARY_IDS.includes(id) && !evolvedIds.has(id));
+}
+
+// Walk the evolution chain and return the highest form reachable at the given level
+function evolveIdForLevel(id, level) {
+  let current = id;
+  while (true) {
+    if (current === 133 && level >= 36) {
+      const opts = [134, 135, 136];
+      current = opts[Math.floor((typeof rng === 'function' ? rng() : Math.random()) * opts.length)];
+      break;
+    }
+    const evo = GEN1_EVOLUTIONS[current];
+    if (!evo) break;
+    if (level >= evo.level) current = evo.into;
+    else break;
+  }
+  return current;
+}
+
+// Endless-mode catch pool: all non-legendary base forms evolved to the appropriate level
+async function getCatchChoicesEndless(level) {
+  const baseIds = getBaseFormIds();
+  const shuffled = [...baseIds].sort(() => (typeof rng === 'function' ? rng() : Math.random()) - 0.5);
+  const evolved = shuffled.slice(0, 3).map(id => evolveIdForLevel(id, level));
+  const results = await Promise.all(evolved.map(id => fetchPokemonById(id)));
+  return results.filter(Boolean);
 }
 
 // Eevee branching evolution options (shown as a choice at level 36)

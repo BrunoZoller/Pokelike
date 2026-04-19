@@ -12,6 +12,7 @@ const NODE_TYPES = {
   LEGENDARY: 'legendary',
   MOVE_TUTOR: 'move_tutor',
   TRADE: 'trade',
+  ARTIFACT: 'artifact',
 };
 
 const NODE_WEIGHTS = [
@@ -213,15 +214,8 @@ const TRAINER_SPRITE_NAMES = {
 
 const RANDOM_TRAINER_SPRITES = TRAINER_SPRITE_KEYS.map(k => `sprites/${k}.png`);
 
-const GYM_LEADER_SPRITES = [
-  'sprites/brock.png',
-  'sprites/misty.png',
-  'sprites/lt. surge.png',
-  'sprites/erika.png',
-  'sprites/koga.png',
-  'sprites/sabrina.png',
-  'sprites/blaine.png',
-  'sprites/giovanni.png',
+const GYM_LEADER_SHOWDOWN = [
+  'brock', 'misty', 'ltsurge', 'erika', 'koga', 'sabrina', 'blaine', 'giovanni',
 ];
 
 function getNodeSprite(node) {
@@ -234,6 +228,7 @@ function getNodeSprite(node) {
     [NODE_TYPES.QUESTION]:   'sprites/questionMark.png',
     [NODE_TYPES.POKECENTER]: 'sprites/Poke Center.png',
     [NODE_TYPES.MOVE_TUTOR]: 'sprites/moveTutor.png',
+    [NODE_TYPES.ARTIFACT]:   'sprites/itemIcon.png',
   };
   if (ICON_SPRITES[node.type]) return ICON_SPRITES[node.type];
   if (node.type === NODE_TYPES.TRAINER) {
@@ -246,8 +241,16 @@ function getNodeSprite(node) {
   }
   if (node.type === NODE_TYPES.BOSS) {
     const mi = node.mapIndex ?? -1;
-    if (mi >= 0 && mi < GYM_LEADER_SPRITES.length) return GYM_LEADER_SPRITES[mi];
-    return 'sprites/champ.png';
+    const SD = 'https://play.pokemonshowdown.com/sprites/trainers/';
+    if (typeof state !== 'undefined' && state.isEndless && typeof getEndlessStrategy === 'function') {
+      const strategy = getEndlessStrategy(mi);
+      if (mi % 5 === 4 && strategy.aceId) {
+        return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${strategy.aceId}.png`;
+      }
+      return SD + strategy.sprite + '.png';
+    }
+    if (mi >= 0 && mi < GYM_LEADER_SHOWDOWN.length) return SD + GYM_LEADER_SHOWDOWN[mi] + '.png';
+    return SD + 'blue-gen3.png';
   }
   return null;
 }
@@ -353,6 +356,24 @@ function renderMap(map, container, onNodeClick) {
       const isHumanFigure = node.type === NODE_TYPES.TRAINER || node.type === NODE_TYPES.BOSS;
       const iw = isHumanFigure ? (isBossNode ? 52 : 38) : (isBossNode ? 52 : 40);
       const ih = isHumanFigure ? (isBossNode ? 52 : 52) : (isBossNode ? 52 : 40);
+
+      // For endless boss nodes: show ace pokemon to the left of the trainer (skip on region boss map where main sprite IS the pokemon)
+      const _mi = node.mapIndex ?? -1;
+      if (isBossNode && state?.isEndless && typeof getEndlessStrategy === 'function' && _mi % 5 !== 4) {
+        const strategy = getEndlessStrategy(_mi);
+        if (strategy?.aceId) {
+          const aceImg = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+          const aceUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${strategy.aceId}.png`;
+          aceImg.setAttribute('href', aceUrl);
+          aceImg.setAttribute('x', -(iw / 2) - 22);
+          aceImg.setAttribute('y', -(ih / 2) + 12);
+          aceImg.setAttribute('width', 34);
+          aceImg.setAttribute('height', 34);
+          aceImg.setAttribute('image-rendering', 'pixelated');
+          aceImg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+          g.appendChild(aceImg);
+        }
+      }
 
       const img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
       img.setAttribute('href', sprite.replace(/ /g, '%20'));
@@ -491,6 +512,7 @@ function getNodeColor(node) {
     [NODE_TYPES.LEGENDARY]:  '#7a6a00',
     [NODE_TYPES.MOVE_TUTOR]: '#3a4a6a',
     [NODE_TYPES.TRADE]:      '#1a5a5a',
+    [NODE_TYPES.ARTIFACT]:   '#5a3a7a',
   };
   return colors[node.type] || '#444';
 }
@@ -509,6 +531,7 @@ function getNodeIcon(node) {
     [NODE_TYPES.LEGENDARY]:  '⚝',
     [NODE_TYPES.MOVE_TUTOR]: '♪',
     [NODE_TYPES.TRADE]:      '⇄',
+    [NODE_TYPES.ARTIFACT]:   '◆',
   };
   return icons[node.type] || '●';
 }
@@ -517,6 +540,14 @@ function getNodeLabel(node) {
   if (node.visited) return 'Visited';
   if (node.type === NODE_TYPES.BOSS) {
     const mi = node.mapIndex ?? -1;
+    if (typeof state !== 'undefined' && state.isEndless && typeof getEndlessStrategy === 'function') {
+      const s = getEndlessStrategy(mi);
+      const POKE = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/';
+      const aceHtml = s.aceId
+        ? `<img src="${POKE}${s.aceId}.png" style="width:48px;height:48px;image-rendering:pixelated;display:block;margin:4px auto 0;">`
+        : '';
+      return `<div style="font-weight:bold;margin-bottom:2px;">${s.name}</div><div style="color:#aaa;font-size:9px;margin-bottom:2px;">${s.desc}</div>${aceHtml}`;
+    }
     if (typeof GYM_LEADERS !== 'undefined' && mi >= 0 && mi < GYM_LEADERS.length) {
       const leader = GYM_LEADERS[mi];
       const teamHtml = leader.team.map(p =>
@@ -540,6 +571,7 @@ function getNodeLabel(node) {
     [NODE_TYPES.LEGENDARY]:  'Legendary Pokemon',
     [NODE_TYPES.MOVE_TUTOR]: 'Move Tutor',
     [NODE_TYPES.TRADE]:      'Trade — swap a Pokémon for one 3 levels higher',
+    [NODE_TYPES.ARTIFACT]:   'Artifact — choose 1 of 3 powerful run bonuses',
   };
   return labels[node.type] || node.type;
 }

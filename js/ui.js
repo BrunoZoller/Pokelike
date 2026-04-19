@@ -24,6 +24,13 @@ function showScreen(id) {
   if (tt) tt.classList.remove('visible');
   _itemTooltip.hide();
   _hoverEnabled = false;
+  if (typeof renderRegionSidebar === 'function' && typeof state !== 'undefined' && state?.isEndless) {
+    renderRegionSidebar('region-boss-sidebar', state.currentMap);
+    renderRegionSidebar('artifact-region-sidebar', state.currentMap);
+  }
+  if (typeof renderArtifactsPanel === 'function' && typeof state !== 'undefined' && state?.isEndless) {
+    renderArtifactsPanel();
+  }
 }
 
 function hpBarColor(pct) {
@@ -39,6 +46,16 @@ function renderHpBar(current, max) {
           <span class="hp-text">${Math.max(0,current)}/${max}</span>`;
 }
 
+const STATUS_ABBREVS = { burn: 'BRN', paralysis: 'PAR', freeze: 'FRZ', toxic: 'TOX', flinch: 'FLN' };
+
+function renderStatusBadges(pokemon) {
+  const statuses = pokemon.statusConditions || [];
+  if (!statuses.length) return '';
+  return `<div class="status-badges">${statuses.map(s =>
+    `<span class="status-badge status-${s}">${STATUS_ABBREVS[s] || s.slice(0,3).toUpperCase()}</span>`
+  ).join('')}</div>`;
+}
+
 function renderPokemonCard(pokemon, onClick, selected, dexCaught = false) {
   const pct = pokemon.currentHp / pokemon.maxHp;
   const typeHtml = (pokemon.types || ['???']).map(t =>
@@ -48,12 +65,14 @@ function renderPokemonCard(pokemon, onClick, selected, dexCaught = false) {
   const catClass = move.isSpecial ? 'move-cat-special' : 'move-cat-physical';
   const catLabel = move.isSpecial ? 'Special' : 'Physical';
   const moveTypeClass = move.type ? `type-${move.type.toLowerCase()}` : '';
-  return `<div class="poke-card${selected?' selected':''}" ${onClick?`role="button" tabindex="0"`:''}">
+  const rarity = typeof getPokemonRarity === 'function' ? getPokemonRarity(pokemon.speciesId) : 'common';
+  return `<div class="poke-card rarity-${rarity}${selected?' selected':''}" ${onClick?`role="button" tabindex="0"`:''}">
     <div class="poke-sprite-wrap">
       <img src="${pokemon.spriteUrl || ''}" alt="${pokemon.name}" class="poke-sprite${pokemon.isShiny?' shiny':''}"
            onerror="this.src='';this.style.display='none'">
       ${pokemon.isShiny ? '<span class="shiny-badge">★ Shiny</span>' : ''}
       ${dexCaught ? '<img class="dex-caught-badge" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" alt="Caught" title="Already in Pokédex">' : ''}
+      ${rarity !== 'common' ? `<span class="rarity-badge rarity-badge-${rarity}">${rarity === 'legendary' ? '★ Legendary' : '◆ Rare'}</span>` : ''}
     </div>
     <div class="poke-name">${pokemon.nickname || pokemon.name}</div>
     <div class="poke-level">Lv. ${pokemon.level}</div>
@@ -114,6 +133,7 @@ function renderTeamBar(team, el) {
   const isMain = !el;
   if (!el) el = document.getElementById('team-bar');
   if (!el) return;
+  if (isMain && typeof renderTraitsPanel === 'function') renderTraitsPanel();
   el.innerHTML = '';
 
   // On mobile, mouseenter/mouseleave never fire for "leave", so tapping outside
@@ -264,6 +284,7 @@ function renderBattleField(pTeam, eTeam) {
       const active  = i === pActiveIdx;
       return `<div class="battle-pokemon ${fainted?'fainted':''} ${active?'active-pokemon':''}" data-idx="${i}">
         <div class="battle-poke-name">${p.nickname||p.name} Lv${p.level}</div>
+        ${renderStatusBadges(p)}
         <div class="poke-hp">${renderHpBar(p.currentHp, p.maxHp)}</div>
         <img src="ui/battleBase.png" class="battle-base" alt="">
         <img src="${p.spriteUrl||''}" alt="${p.name}" class="battle-sprite" onerror="this.src=''">
@@ -276,6 +297,7 @@ function renderBattleField(pTeam, eTeam) {
       const active  = i === eActiveIdx;
       return `<div class="battle-pokemon ${fainted?'fainted':''} ${active?'active-pokemon':''}" data-idx="${i}">
         <div class="battle-poke-name">${p.name} Lv${p.level}</div>
+        ${renderStatusBadges(p)}
         <div class="poke-hp">${renderHpBar(p.currentHp, p.maxHp)}</div>
         <img src="ui/battleBase.png" class="battle-base" alt="">
         <img src="${p.spriteUrl||''}" alt="${p.name}" class="battle-sprite" onerror="this.src=''">
@@ -2077,17 +2099,36 @@ function buildParticles(type, from, to) {
   return ps;
 }
 
+// Helper: update status badge div on a battle pokemon element
+function _updateBattleStatusBadges(sideId, idx, statuses) {
+  const el = document.querySelector(`#${sideId} .battle-pokemon[data-idx="${idx}"]`);
+  if (!el) return;
+  let div = el.querySelector('.status-badges');
+  if (!div) {
+    div = document.createElement('div');
+    div.className = 'status-badges';
+    const nameEl = el.querySelector('.battle-poke-name');
+    if (nameEl) nameEl.after(div);
+    else el.prepend(div);
+  }
+  div.innerHTML = statuses.map(s =>
+    `<span class="status-badge status-${s}">${STATUS_ABBREVS[s] || s.slice(0,3).toUpperCase()}</span>`
+  ).join('');
+}
+
 // Visual turn-by-turn battle animation
 async function animateBattleVisually(detailedLog, pTeamInit, eTeamInit) {
   renderBattleField(pTeamInit, eTeamInit);
 
-  // Track live HP during animation
+  // Track live HP and statuses during animation
   const logEl = null; // combat log removed
   const pHp = pTeamInit.map(p => ({ current: p.currentHp, max: p.maxHp }));
   const eHp = eTeamInit.map(p => ({
     current: p.currentHp !== undefined ? p.currentHp : p.maxHp,
     max: p.maxHp,
   }));
+  const pStatuses = pTeamInit.map(p => [...(p.statusConditions || [])]);
+  const eStatuses = eTeamInit.map(p => [...(p.statusConditions || [])]);
 
   function addLogEntry(msg, cls = '') {
     if (!logEl) return;
@@ -2200,6 +2241,29 @@ async function animateBattleVisually(detailedLog, pTeamInit, eTeamInit) {
       }
       addLogEntry(`${event.name} transformed into ${event.intoName}!`, 'log-player');
       await sleep(400);
+
+    } else if (event.type === 'status_apply') {
+      const arr = event.side === 'player' ? pStatuses : eStatuses;
+      if (arr[event.idx] && !arr[event.idx].includes(event.status)) arr[event.idx].push(event.status);
+      _updateBattleStatusBadges(
+        event.side === 'player' ? 'player-side' : 'enemy-side',
+        event.idx, arr[event.idx] || []
+      );
+      const statusNames = { burn: 'burned', paralysis: 'paralyzed', freeze: 'frozen', toxic: 'badly poisoned', flinch: 'flinching' };
+      addLogEntry(`${event.name} is ${statusNames[event.status] || event.status}!`, 'log-item');
+      await sleep(200);
+
+    } else if (event.type === 'status_remove') {
+      const arr = event.side === 'player' ? pStatuses : eStatuses;
+      if (arr[event.idx]) {
+        const i = arr[event.idx].indexOf(event.status);
+        if (i >= 0) arr[event.idx].splice(i, 1);
+      }
+      _updateBattleStatusBadges(
+        event.side === 'player' ? 'player-side' : 'enemy-side',
+        event.idx, arr[event.idx] || []
+      );
+      await sleep(150);
 
     } else if (event.type === 'result') {
       addLogEntry(

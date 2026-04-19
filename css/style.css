@@ -125,6 +125,145 @@ h1, h2, .pixel-font {
   flex-wrap: wrap;
 }
 
+/* ---- Pokemon Rarity ---- */
+.poke-card.rarity-rare {
+  border-color: #4a90d9;
+  background: linear-gradient(160deg, #1a2a3a 0%, #1a1a1a 60%);
+  box-shadow: 0 0 8px rgba(74,144,217,0.25);
+}
+.poke-card.rarity-rare[role="button"]:hover, .poke-card.rarity-rare[tabindex]:hover {
+  border-color: #6ab0ff;
+  box-shadow: 0 8px 24px rgba(74,144,217,0.45);
+}
+.poke-card.rarity-legendary {
+  border-color: var(--gold);
+  background: linear-gradient(160deg, #2a2000 0%, #1a1a1a 60%);
+  box-shadow: 0 0 12px rgba(255,215,0,0.3);
+}
+.poke-card.rarity-legendary[role="button"]:hover, .poke-card.rarity-legendary[tabindex]:hover {
+  border-color: #ffe040;
+  box-shadow: 0 8px 28px rgba(255,215,0,0.5);
+}
+.rarity-badge {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  font-size: 7px;
+  font-weight: bold;
+  padding: 2px 5px;
+  border-radius: 3px;
+  letter-spacing: 0.5px;
+}
+.rarity-badge-rare      { background: #4a90d9; color: #fff; }
+.rarity-badge-legendary { background: var(--gold); color: #000; }
+
+/* ---- Status Condition Badges ---- */
+.status-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  justify-content: center;
+}
+.status-badge {
+  font-size: 8px;
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.status-burn     { background: #f08030; color: #000; }
+.status-paralysis{ background: #f8d030; color: #000; }
+.status-freeze   { background: #98d8d8; color: #000; }
+.status-toxic    { background: #a040a0; color: #fff; }
+.status-flinch   { background: #a8a878; color: #000; }
+
+/* ---- Region Preview Screen ---- */
+#region-preview-screen {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 20px;
+}
+.region-preview-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(14px, 3vw, 24px);
+  color: var(--gold);
+  text-shadow: 0 0 16px rgba(255,215,0,0.4);
+  margin-bottom: 4px;
+}
+.region-preview-subtitle {
+  color: var(--text-dim);
+  font-size: 10px;
+  margin-bottom: 20px;
+}
+.region-trainers-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+  align-items: flex-start;
+}
+.region-trainer-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg2);
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  min-width: 100px;
+}
+.region-boss-slot {
+  border-color: var(--gold);
+  background: linear-gradient(160deg, #2a2000 0%, #1a1a1a 80%);
+  box-shadow: 0 0 10px rgba(255,215,0,0.25);
+}
+.region-map-label {
+  font-size: 8px;
+  color: var(--text-dim);
+  font-family: 'Press Start 2P', monospace;
+}
+.region-sprite-group {
+  position: relative;
+  width: 90px;
+  height: 64px;
+}
+.region-trainer-sprite {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+.region-ace-pokemon {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  z-index: 1;
+  filter: drop-shadow(1px 1px 0 #000);
+}
+.region-boss-pokemon {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+.region-trainer-name {
+  font-size: 9px;
+  color: var(--text);
+  text-align: center;
+  font-weight: bold;
+  max-width: 90px;
+}
+
 /* ---- Pokemon Cards ---- */
 .poke-card {
   border: 2px solid var(--border);
@@ -374,6 +513,187 @@ h1, h2, .pixel-font {
 /* Prevent native long-press image popup on mobile */
 #map-svg image { -webkit-touch-callout: none; }
 
+/* ---- Endless Traits Panel ---- */
+#traits-panel {
+  margin-top: 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px;
+  background: var(--bg2);
+  font-size: 8px;
+}
+/* ---- Endless starter selection ---- */
+.endless-starter-subtitle {
+  font-size: 9px;
+  color: var(--text-dim);
+  text-align: center;
+  margin-bottom: 12px;
+}
+.endless-starter-choices-row {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.endless-starter-picked {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+.endless-picked-sprite {
+  width: 40px;
+  height: 40px;
+  image-rendering: pixelated;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: var(--bg2);
+}
+
+/* ---- Catch screen trait badge ---- */
+#catch-choices > div {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+.catch-trait-badge {
+  margin-top: 6px;
+  background: var(--bg2);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  line-height: 1.8;
+  max-width: 180px;
+  overflow: hidden;
+}
+.catch-trait-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 4px;
+}
+.catch-trait-row:last-child { margin-bottom: 0; }
+.catch-trait-desc { color: var(--text-dim); font-size: 6px; }
+.catch-trait-new {
+  background: #2a6e2a;
+  color: #7fff7f;
+  padding: 1px 4px;
+  border-radius: 2px;
+  margin-right: 3px;
+}
+.catch-trait-up { color: #f0c040; margin-right: 2px; }
+
+.traits-header {
+  font-size: 7px;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+  letter-spacing: 1px;
+}
+.traits-empty { color: var(--text-dim); font-size: 8px; }
+
+/* ---- Trait chart rows (in-run panel) ---- */
+.trait-chart-row {
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.trait-chart-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.trait-chart-row.trait-chart-inactive { opacity: 0.45; }
+.trait-chart-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 3px;
+}
+.trait-chart-count {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  color: var(--text);
+}
+.trait-chart-inactive .trait-chart-count { color: var(--text-dim); }
+.trait-chart-desc {
+  font-size: 7px;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+.trait-chart-row:not(.trait-chart-inactive) .trait-chart-desc { color: var(--text); }
+
+/* ---- Draft starter select ---- */
+.draft-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.draft-label {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  color: var(--accent);
+  text-align: center;
+}
+.draft-picked-row {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.draft-picked-card {
+  opacity: 0.7;
+  pointer-events: none;
+  transform: scale(0.85);
+  transform-origin: top center;
+}
+.draft-choices-row {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.draft-choice-col {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  cursor: pointer;
+}
+.draft-choice-col:hover .poke-card { border-color: var(--accent); }
+.draft-trait-badge {
+  margin-top: 6px;
+  background: var(--bg2);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  line-height: 1.8;
+  max-width: 180px;
+  overflow: hidden;
+}
+.draft-trait-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 4px;
+}
+.draft-trait-top {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.draft-trait-row:last-child { margin-bottom: 0; }
+.draft-trait-row.draft-trait-inactive { opacity: 0.45; }
+.draft-trait-new {
+  background: #2a6e2a;
+  color: #7fff7f;
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+.draft-trait-up { color: #f0c040; }
+.draft-trait-count { color: var(--text); font-size: 7px; }
+.draft-trait-desc { color: var(--text-dim); font-size: 6px; flex: 1; }
+
 /* ---- Map Node Tooltip ---- */
 #map-node-tooltip {
   position: fixed;
@@ -483,6 +803,90 @@ h1, h2, .pixel-font {
   border: 3px solid #4a4a7a;
   box-shadow: 0 0 0 2px #000, 4px 4px 0 0 rgba(0,0,0,0.6);
 }
+
+#region-boss-sidebar,
+#starter-region-sidebar,
+#artifact-region-sidebar {
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 6px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  min-width: 80px;
+  position: fixed;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+}
+.region-sidebar-label {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  color: var(--accent);
+  text-align: center;
+  margin-bottom: 2px;
+}
+.region-sidebar-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  opacity: 0.6;
+}
+.region-sidebar-item.current {
+  border-color: var(--accent);
+  opacity: 1;
+  box-shadow: 0 0 6px rgba(200,152,32,0.4);
+}
+.region-sidebar-item.done {
+  opacity: 0.3;
+  filter: grayscale(1);
+}
+.region-sidebar-sprites {
+  position: relative;
+  width: 56px;
+  height: 40px;
+}
+.region-sidebar-trainer {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 36px;
+  height: 36px;
+  image-rendering: pixelated;
+  object-fit: contain;
+}
+.region-sidebar-ace {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 28px;
+  height: 28px;
+  image-rendering: pixelated;
+  object-fit: contain;
+}
+.region-sidebar-item.boss .region-sidebar-boss-ace {
+  width: 48px;
+  height: 48px;
+  image-rendering: pixelated;
+  object-fit: contain;
+}
+.region-sidebar-name {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 5px;
+  color: var(--text-dim);
+  text-align: center;
+  max-width: 68px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 #map-container::after {
   content: 'pokelike.xyz';
   position: absolute;
@@ -586,6 +990,35 @@ h1, h2, .pixel-font {
   justify-content: center;
   flex-wrap: wrap;
 }
+
+/* ---- Artifact Screen ---- */
+#artifact-screen { gap: 16px; justify-content: center; align-items: center; }
+#artifact-screen h2 { font-size: clamp(10px, 2.5vw, 14px); color: #b070ff; text-align: center; }
+.artifact-choices {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.artifact-card {
+  border: 2px solid #6a3a9a;
+  border-radius: 8px;
+  padding: 20px 16px;
+  width: 200px;
+  text-align: center;
+  cursor: pointer;
+  background: var(--bg2);
+  transition: all 0.2s;
+}
+.artifact-card:hover { border-color: #b070ff; transform: translateY(-4px); box-shadow: 0 8px 24px rgba(176,112,255,0.35); }
+.artifact-card-icon { font-size: 36px; margin-bottom: 8px; }
+.artifact-card-name { font-family: 'Press Start 2P', monospace; font-size: 9px; color: #b070ff; margin-bottom: 8px; }
+.artifact-card-desc { font-size: 10px; color: var(--text-dim); line-height: 1.5; }
+.artifact-one-use { margin-top: 8px; font-size: 9px; color: #ff9040; border: 1px solid #ff9040; border-radius: 4px; padding: 2px 6px; display: inline-block; }
+
+/* ---- Artifact badges in HUD ---- */
+#artifacts-panel { margin-top: 8px; }
+.artifact-badge { font-size: 18px; cursor: default; display: inline-block; margin: 2px; }
 
 /* ---- Item Screen ---- */
 #item-screen { gap: 16px; justify-content: center; align-items: center; }

@@ -61,6 +61,7 @@ async function initGame() {
   if (typeof syncToCloud === 'function') syncToCloud();
   document.getElementById('btn-new-run').onclick = () => startNewRun(false);
   document.getElementById('btn-hard-run').onclick = () => startNewRun(true);
+  document.getElementById('btn-endless-run').onclick = () => startEndlessRun();
 
   const continueBtn = document.getElementById('btn-continue-run');
   if (localStorage.getItem('poke_current_run')) {
@@ -113,6 +114,10 @@ async function showTrainerSelect() {
 }
 
 async function showStarterSelect() {
+  if (state.isEndless && typeof showEndlessStarterSelect === 'function') {
+    await showEndlessStarterSelect();
+    return;
+  }
   showScreen('starter-screen');
   const container = document.getElementById('starter-choices');
   container.innerHTML = '<div class="loading">Loading starters...</div>';
@@ -123,7 +128,7 @@ async function showStarterSelect() {
   container.innerHTML = '';
   for (const species of starters) {
     if (!species) continue;
-    const isShiny = rng() < (hasShinyCharm() ? 0.02 : 0.01);
+    const isShiny = rng() < getShinyChance();
     const inst = createInstance(species, startLevel, isShiny, 0);
     const wrapper = document.createElement('div');
     wrapper.innerHTML = renderPokemonCard(inst, true, false);
@@ -149,16 +154,27 @@ function selectStarter(pokemon) {
 
 // ---- Map Management ----
 
+function getShinyChance() {
+  const base = hasShinyCharm() ? 0.02 : 0.01;
+  if (typeof hasArtifact === 'function' && hasArtifact('eon_ticket')) return base * 2;
+  return base;
+}
+
 function startMap(mapIndex) {
   state.currentMap = mapIndex;
   state.map = generateMap(mapIndex, state.nuzlockeMode);
 
   // Full heal between arenas (skip the very first map)
-  if (mapIndex > 0) {
+  // Red Chain: skip healing after boss fights
+  const redChainSkip = state.isEndless && typeof hasArtifact === 'function'
+    && hasArtifact('red_chain') && mapIndex > 0 && (mapIndex - 1) % 5 === 4;
+  if (mapIndex > 0 && !redChainSkip) {
     for (const p of state.team) {
       p.currentHp = p.maxHp;
     }
   }
+
+
 
   const startNode = state.map.nodes['n0_0'];
   state.currentNode = startNode;
@@ -166,34 +182,78 @@ function startMap(mapIndex) {
   showMapScreen();
 }
 
+function renderRegionSidebar(elementId, currentMap) {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+  if (!state.isEndless || typeof getEndlessStrategy !== 'function') {
+    el.style.display = 'none';
+    return;
+  }
+  const POKE = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/';
+  const SD = 'https://play.pokemonshowdown.com/sprites/trainers/';
+  const regionIndex = Math.floor(currentMap / 5);
+  const baseMap = regionIndex * 5;
+  const items = Array.from({ length: 5 }, (_, i) => {
+    const s = getEndlessStrategy(baseMap + i);
+    const mapIdx = baseMap + i;
+    const done = mapIdx < currentMap;
+    const current = mapIdx === currentMap;
+    const isBoss = i === 4;
+    const spritesHtml = isBoss
+      ? `<img src="${POKE}${s.aceId}.png" class="region-sidebar-boss-ace" onerror="this.style.opacity='0.3'">`
+      : `<div class="region-sidebar-sprites">
+          ${s.aceId ? `<img src="${POKE}${s.aceId}.png" class="region-sidebar-ace" onerror="this.style.display='none'">` : ''}
+          <img src="${SD}${s.sprite}.png" class="region-sidebar-trainer" onerror="this.style.opacity='0.3'">
+        </div>`;
+    return `<div class="region-sidebar-item${done ? ' done' : ''}${current ? ' current' : ''}${isBoss ? ' boss' : ''}">
+      ${spritesHtml}
+      <div class="region-sidebar-name">${isBoss ? '???' : s.name}</div>
+    </div>`;
+  }).join('');
+  el.innerHTML = `<div class="region-sidebar-label">Region ${regionIndex + 1}</div>${items}`;
+  el.style.display = 'flex';
+}
+
 function showMapScreen() {
   showScreen('map-screen');
   const mapInfo = document.getElementById('map-info');
   if (mapInfo) {
-    const isFinal = state.currentMap === 8;
-    const leader = isFinal ? null : GYM_LEADERS[state.currentMap];
-    mapInfo.innerHTML = isFinal
-      ? `<span>Elite Four & Champion</span>`
-      : `<span>Map ${state.currentMap+1}: vs <b>${leader.name}</b> (${leader.type})</span>`;
+    if (state.isEndless) {
+      const strategy = typeof getEndlessStrategy === 'function' ? getEndlessStrategy(state.currentMap) : null;
+      mapInfo.innerHTML = `<span>Wave ${state.currentMap + 1}${strategy ? ` — vs <b>${strategy.name}</b>` : ''}</span>`;
+    } else {
+      const isFinal = state.currentMap === 8;
+      const leader = isFinal ? null : GYM_LEADERS[state.currentMap];
+      mapInfo.innerHTML = isFinal
+        ? `<span>Elite Four & Champion</span>`
+        : `<span>Map ${state.currentMap+1}: vs <b>${leader.name}</b> (${leader.type})</span>`;
+    }
   }
-  const BASE = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/';
-  const badgeHtml = Array.from({ length: 8 }, (_, i) => {
-    const earned = i < state.badges;
-    const label = GYM_LEADERS[i].badge;
-    return earned
-      ? `<img src="${BASE}${i + 1}.png" alt="${label}" title="${label}" class="badge-icon-img">`
-      : `<span class="badge-icon-empty" title="${label}"></span>`;
-  }).join('');
-  const badgeEl = document.getElementById('badge-count');
-  if (badgeEl) badgeEl.innerHTML = badgeHtml;
-  const badgePanelEl = document.getElementById('badge-count-panel');
-  if (badgePanelEl) badgePanelEl.innerHTML = badgeHtml;
+
+  if (!state.isEndless) {
+    const BASE = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/';
+    const badgeHtml = Array.from({ length: 8 }, (_, i) => {
+      const earned = i < state.badges;
+      const label = GYM_LEADERS[i].badge;
+      return earned
+        ? `<img src="${BASE}${i + 1}.png" alt="${label}" title="${label}" class="badge-icon-img">`
+        : `<span class="badge-icon-empty" title="${label}"></span>`;
+    }).join('');
+    const badgeEl = document.getElementById('badge-count');
+    if (badgeEl) badgeEl.innerHTML = badgeHtml;
+    const badgePanelEl = document.getElementById('badge-count-panel');
+    if (badgePanelEl) badgePanelEl.innerHTML = badgeHtml;
+  }
 
   renderTeamBar(state.team);
   renderItemBadges(state.items);
 
   const mapContainer = document.getElementById('map-container');
-  mapContainer.style.backgroundImage = `url('ui/map${state.currentMap + 1}.png')`;
+  const bgIndex = state.isEndless ? (state.currentMap % 8) + 1 : state.currentMap + 1;
+  mapContainer.style.backgroundImage = `url('ui/map${bgIndex}.png')`;
+  if (typeof renderTraitsPanel === 'function') renderTraitsPanel();
+  renderArtifactsPanel();
+
   renderMap(state.map, mapContainer, onNodeClick);
   saveRun();
 
@@ -297,6 +357,9 @@ async function onNodeClick(node) {
     case NODE_TYPES.TRADE:
       await doTradeNode(node);
       break;
+    case NODE_TYPES.ARTIFACT:
+      await doArtifactNode(node);
+      break;
     case 'shiny':
       await doShinyNode(node);
       break;
@@ -323,8 +386,10 @@ function resolveQuestionMark() {
 
 // Returns a level scaled to the node's layer (layer 1 = map min, layer 6 = map max).
 function getLevelForNode(node) {
-  const [minL, maxL] = MAP_LEVEL_RANGES[state.currentMap];
-  const t = Math.min(1, Math.max(0, (node.layer - 1) / 5)); // 0.0 at layer 1, 1.0 at layer 6
+  const [minL, maxL] = state.isEndless
+    ? (typeof getEndlessLevelRange === 'function' ? getEndlessLevelRange(state.currentMap) : MAP_LEVEL_RANGES[Math.min(state.currentMap, MAP_LEVEL_RANGES.length - 1)])
+    : MAP_LEVEL_RANGES[state.currentMap];
+  const t = Math.min(1, Math.max(0, (node.layer - 1) / 5));
   const base = Math.round(minL + t * (maxL - minL));
   const spread = Math.max(1, Math.round((maxL - minL) / 8));
   return Math.min(maxL, Math.max(minL, base + Math.floor(rng() * spread)));
@@ -332,7 +397,9 @@ function getLevelForNode(node) {
 
 async function doBattleNode(node) {
   const level = state.currentMap >= 1 ? getLevelForNode(node) - 1 : getLevelForNode(node);
-  let choices = await getCatchChoices(state.currentMap);
+  let choices = state.isEndless && typeof getCatchChoicesEndless === 'function'
+    ? await getCatchChoicesEndless(level)
+    : await getCatchChoices(state.currentMap);
 
   // On the first layer of the first map, exclude enemies super effective against the starter
   if (state.currentMap === 0 && node.layer === 1 && state.team.length > 0) {
@@ -370,6 +437,10 @@ async function doBattleNode(node) {
 }
 
 async function doBossNode(node) {
+  if (state.isEndless) {
+    await doEndlessBoss(node);
+    return;
+  }
   if (state.currentMap === 8) {
     await doElite4();
     return;
@@ -392,6 +463,42 @@ async function doBossNode(node) {
   }, () => {
     showGameOver();
   }, leader.name);
+}
+
+async function doEndlessBoss(node) {
+  const strategy = getEndlessStrategy(state.currentMap);
+  const enemyTeam = await buildEndlessBossTeam(state.currentMap);
+  if (!enemyTeam.length) { advanceFromNode(state.map, node.id); showMapScreen(); return; }
+
+  const isRegionBoss = state.currentMap % 5 === 4;
+  showScreen('battle-screen');
+  document.getElementById('battle-title').textContent = isRegionBoss ? `Region Boss appeared!` : `${strategy.name} appeared!`;
+  document.getElementById('battle-subtitle').textContent = isRegionBoss ? `The region boss stands in your way!` : strategy.desc;
+
+  await runBattleScreen(enemyTeam, true, async () => {
+    advanceFromNode(state.map, node.id);
+    await showEndlessWaveClear(state.currentMap, strategy.name);
+    if (isRegionBoss) {
+      const owned = state.artifacts || [];
+      const available = (typeof ENDLESS_ARTIFACTS !== 'undefined' ? ENDLESS_ARTIFACTS : [])
+        .filter(a => !owned.some(x => x.id === a.id));
+      const opts = [...available].sort(() => rng() - 0.5).slice(0, 3);
+      if (opts.length > 0) {
+        const chosen = await showArtifactChoice(opts);
+        if (chosen) {
+          state.artifacts = [...owned, chosen];
+          renderArtifactsPanel();
+        }
+      }
+    }
+    const nextMap = state.currentMap + 1;
+    if (nextMap % 5 === 0 && typeof showRegionPreview === 'function') {
+      await showRegionPreview(Math.floor(nextMap / 5));
+    }
+    startMap(nextMap);
+  }, () => {
+    showGameOver();
+  }, strategy.sprite);
 }
 
 async function doElite4() {
@@ -437,8 +544,10 @@ async function doCatchNode(node) {
   const choicesEl = document.getElementById('catch-choices');
   choicesEl.innerHTML = '<div class="loading">Finding Pokemon...</div>';
 
-  let choices = await getCatchChoices(state.currentMap);
   const level = (state.currentMap === 0) ? Math.max(4, getLevelForNode(node)) : getLevelForNode(node);
+  let choices = state.isEndless && typeof getCatchChoicesEndless === 'function'
+    ? await getCatchChoicesEndless(level)
+    : await getCatchChoices(state.currentMap);
 
   // Nuzlocke map 1: restrict to curated pool
   if (state.nuzlockeMode && state.currentMap === 0) {
@@ -471,7 +580,7 @@ async function doCatchNode(node) {
     const filtered = choices.filter(sp => !teamIds.has(sp.id));
     choices = (filtered.length > 0 ? filtered : choices).slice(0, 1);
   }
-  const instances = choices.map(sp => createInstance(sp, level, rng() < (hasShinyCharm() ? 0.02 : 0.01), getMoveТierForMap(state.currentMap)));
+  const instances = choices.map(sp => createInstance(sp, level, rng() < getShinyChance(), getMoveТierForMap(state.currentMap)));
 
   choicesEl.innerHTML = '';
   const dex = getPokedex();
@@ -485,7 +594,13 @@ async function doCatchNode(node) {
     card.setAttribute('tabindex', '0');
     card.addEventListener('click', () => catchPokemon(inst, node));
     card.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' ') catchPokemon(inst, node); });
-    choicesEl.appendChild(card);
+
+    if (state.isEndless && typeof _draftBadgeHtml === 'function') {
+      const html = _draftBadgeHtml(inst, state.team);
+      if (html) wrapper.insertAdjacentHTML('beforeend', html);
+    }
+
+    choicesEl.appendChild(wrapper);
   }
 
   document.getElementById('btn-skip-catch').onclick = () => {
@@ -885,7 +1000,9 @@ async function doTrainerNode(node) {
     const fetched = await Promise.all(ids.map(id => fetchPokemonById(id)));
     speciesList = fetched.filter(Boolean);
   } else {
-    const choices = await getCatchChoices(state.currentMap);
+    const choices = state.isEndless && typeof getCatchChoicesEndless === 'function'
+      ? await getCatchChoicesEndless(level)
+      : await getCatchChoices(state.currentMap);
     speciesList = choices.slice(0, teamSize);
   }
 
@@ -916,7 +1033,7 @@ async function doLegendaryNode(node) {
   if (!species) { advanceFromNode(state.map, node.id); showMapScreen(); return; }
 
   const level = MAP_LEVEL_RANGES[state.currentMap][1]; // top of map range
-  const legendary = createInstance(species, level, rng() < (hasShinyCharm() ? 0.02 : 0.01), 2);
+  const legendary = createInstance(species, level, rng() < getShinyChance(), 2);
 
   const titleEl = document.getElementById('battle-title');
   const subEl = document.getElementById('battle-subtitle');
@@ -1009,6 +1126,70 @@ function doMoveTutorNode(node) {
   modal.querySelector('#btn-skip-tutor').addEventListener('click', finish);
 }
 
+// ---- Artifact Node ----
+
+async function doArtifactNode(node) {
+  const owned = state.artifacts || [];
+  const available = (typeof ENDLESS_ARTIFACTS !== 'undefined' ? ENDLESS_ARTIFACTS : []).filter(a => {
+    if (a.oneUse) return !owned.some(x => x.id === a.id);
+    return !owned.some(x => x.id === a.id);
+  });
+  const shuffled = [...available].sort(() => rng() - 0.5);
+  const options = shuffled.slice(0, Math.min(3, shuffled.length));
+
+  if (options.length === 0) {
+    showMapNotification('No new artifacts available!');
+    advanceFromNode(state.map, node.id);
+    showMapScreen();
+    return;
+  }
+
+  const chosen = await showArtifactChoice(options);
+  if (chosen) {
+    state.artifacts = [...owned, chosen];
+    renderArtifactsPanel();
+    showMapNotification(`✨ ${chosen.name} obtained!`);
+  }
+  advanceFromNode(state.map, node.id);
+  showMapScreen();
+}
+
+function showArtifactChoice(options) {
+  return new Promise(resolve => {
+    showScreen('artifact-screen');
+    if (typeof renderRegionSidebar === 'function' && state?.isEndless) {
+      renderRegionSidebar('artifact-region-sidebar', state.currentMap);
+    }
+    const container = document.getElementById('artifact-choices');
+    container.innerHTML = '';
+    for (const art of options) {
+      const card = document.createElement('div');
+      card.className = 'artifact-card';
+      card.innerHTML = `
+        <div class="artifact-card-icon">${art.icon}</div>
+        <div class="artifact-card-name">${art.name}</div>
+        <div class="artifact-card-desc">${art.desc}</div>
+        ${art.oneUse ? '<div class="artifact-one-use">One-use</div>' : ''}
+      `;
+      card.addEventListener('click', () => resolve(art));
+      container.appendChild(card);
+    }
+  });
+}
+
+function renderArtifactsPanel() {
+  const el = document.getElementById('artifacts-panel');
+  if (!el) return;
+  const arts = state?.artifacts || [];
+  if (!state?.isEndless || arts.length === 0) {
+    el.style.display = 'none';
+    return;
+  }
+  el.style.display = '';
+  el.innerHTML = `<div class="hud-label">ARTIFACTS</div>` +
+    arts.map(a => `<span class="artifact-badge" title="${a.name}: ${a.desc}">${a.icon}</span>`).join('');
+}
+
 // ---- Trade Node ----
 
 async function doTradeNode(node) {
@@ -1038,11 +1219,13 @@ async function doTradeNode(node) {
 
     const idx = i;
     const doTrade = async () => {
-      const pool = await getCatchChoices(state.currentMap);
+      const offerLevel = Math.min(100, mine.level + 3);
+      const pool = state.isEndless && typeof getCatchChoicesEndless === 'function'
+        ? await getCatchChoicesEndless(offerLevel)
+        : await getCatchChoices(state.currentMap);
       const species = pool[Math.floor(rng() * pool.length)];
       if (!species) { advanceFromNode(state.map, node.id); showMapScreen(); return; }
-      const offerLevel = Math.min(100, mine.level + 3);
-      const offer = createInstance(species, offerLevel, rng() < (hasShinyCharm() ? 0.02 : 0.01), Math.max(getMoveТierForMap(state.currentMap), mine.moveTier ?? 0));
+      const offer = createInstance(species, offerLevel, rng() < getShinyChance(), Math.max(getMoveТierForMap(state.currentMap), mine.moveTier ?? 0));
       const released = state.team[idx];
       if (released.heldItem) state.items.push(released.heldItem);
       state.team.splice(idx, 1, offer);
@@ -1075,8 +1258,10 @@ async function doTradeNode(node) {
 }
 
 async function doShinyNode(node) {
-  const choices = await getCatchChoices(state.currentMap);
   const level = getLevelForNode(node);
+  const choices = state.isEndless && typeof getCatchChoicesEndless === 'function'
+    ? await getCatchChoicesEndless(level)
+    : await getCatchChoices(state.currentMap);
   const species = choices[0];
   if (!species) { advanceFromNode(state.map, node.id); showMapScreen(); return; }
 
@@ -1209,6 +1394,16 @@ function runBattleScreen(enemyTeam, isBoss, onWin, onLose, enemyName = null, ene
         continueBtn.onclick = () => { if (onWin) onWin(); resolve(true); };
       }
     } else {
+      // Sacred Ash: one-use, prevent losing a non-boss fight
+      if (!isBoss && state.isEndless && (state.artifacts || []).some(a => a.id === 'sacred_ash')) {
+        state.artifacts = state.artifacts.filter(a => a.id !== 'sacred_ash');
+        for (const p of state.team) { p.currentHp = p.maxHp; }
+        showMapNotification('🕊️ Sacred Ash activated! Your team was restored!');
+        skipBtn.style.display = 'none';
+        if (onWin) onWin();
+        resolve(true);
+        return;
+      }
       skipBtn.style.display = 'none';
       document.getElementById('btn-continue-battle').style.display = 'block';
       document.getElementById('btn-continue-battle').textContent = 'Continue...';
