@@ -550,7 +550,7 @@ async function showEndlessStarterSelect() {
   // Show region 1 preview before selecting a starter
   await showRegionPreview(0);
 
-  const pool = GEN1_BST_APPROX.low.filter(id => !LEGENDARY_IDS.includes(id));
+  const pool = typeof getBaseFormIds === 'function' ? getBaseFormIds() : GEN1_BST_APPROX.low.filter(id => !LEGENDARY_IDS.includes(id));
   const shuffled = [...pool].sort(() => rng() - 0.5);
   const speciesArr = await Promise.all(shuffled.slice(0, 3).map(id => fetchPokemonById(id)));
   const valid = speciesArr.filter(Boolean).slice(0, 3);
