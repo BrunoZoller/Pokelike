@@ -1562,12 +1562,6 @@ h1, h2, .pixel-font {
   cursor: pointer;
   flex-shrink: 0;
 }
-.settings-volume {
-  flex: 1;
-  max-width: 120px;
-  accent-color: #3a8ae0;
-  cursor: pointer;
-}
 
 /* =================================================
    RETRO PIXEL STYLE — pure CSS, no 9-slice
