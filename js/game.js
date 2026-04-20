@@ -115,7 +115,7 @@ async function showTrainerSelect() {
 
 async function showStarterSelect() {
   if (state.isEndless && typeof showEndlessStarterSelect === 'function') {
-    await showEndlessStarterSelect(state.endlessStage || 0);
+    await showEndlessStarterSelect();
     return;
   }
   showScreen('starter-screen');
@@ -535,10 +535,9 @@ function showStageSelectScreen() {
   const [minLvl] = typeof getEndlessLevelRange === 'function' ? getEndlessLevelRange(0) : [5, 15];
   const [, maxLvl] = typeof getEndlessLevelRange === 'function' ? getEndlessLevelRange(14) : [68, 78];
   for (let s = 0; s <= maxStage; s++) {
-    const startersLabel = s === 0 ? '1 starter' : `${s + 1} starters`;
     const btn = document.createElement('button');
     btn.className = 'stage-select-btn';
-    btn.textContent = `Stage ${s + 1}  —  Lv ${minLvl}–${maxLvl}  (${startersLabel})`;
+    btn.textContent = `Stage ${s + 1}  —  Lv ${minLvl}–${maxLvl}`;
     if (s === 0 && highscore === 0) btn.textContent += '  ◀ Start here';
     btn.onclick = () => { if (typeof startEndlessRun === 'function') startEndlessRun(s); };
     container.appendChild(btn);
