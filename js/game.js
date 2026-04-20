@@ -63,7 +63,7 @@ async function initGame() {
   document.getElementById('btn-hard-run').onclick = () => startNewRun(true);
 
   const endlessBtn = document.getElementById('btn-endless-run');
-  if (endlessBtn) endlessBtn.onclick = () => startEndlessRun();
+  if (endlessBtn) endlessBtn.onclick = () => showEndlessStageSelect();
 
   const continueEndlessBtn = document.getElementById('btn-continue-endless');
   if (continueEndlessBtn) {
@@ -130,6 +130,30 @@ async function showStarterSelect() {
   const container = document.getElementById('starter-choices');
   container.innerHTML = '<div class="loading">Loading starters...</div>';
 
+  if (state.isEndlessMode) {
+    endlessState.currentRegion = rollRegion(endlessState.stageNumber, endlessState.regionNumber);
+    endlessState._preRolled = true;
+    const panel = document.getElementById('starter-region-panel');
+    if (panel) {
+      const region = endlessState.currentRegion;
+      const header = `<div class="hud-label">Upcoming Region</div><div class="hud-label" style="font-size:7px;opacity:0.7;">S${region.stageNum} R${region.regionNum}</div>`;
+      const rows = region.trainers.map((trainer, i) => {
+        const type = trainer.archetype?.type || '???';
+        const name = trainer.archetype?.name || '???';
+        const isBigBoss = i === 2;
+        const typeClass = type.toLowerCase();
+        const rowClass = isBigBoss ? 'region-stage-row boss' : 'region-stage-row';
+        return `<div class="${rowClass}">
+          <span class="type-badge type-${typeClass}" style="font-size:6px;padding:1px 3px;">${type}</span>
+          <span class="region-stage-name">${isBigBoss ? '★ ' : ''}${name}</span>
+          <span class="region-stage-level">Lv${trainer.level}</span>
+        </div>`;
+      }).join('');
+      panel.innerHTML = header + `<div class="region-stage-list">${rows}</div>`;
+      panel.style.display = '';
+    }
+  }
+
   let starters;
   if (state.isEndlessMode) {
     // Pick 3 random base-form pokemon from the low BST pool
@@ -152,7 +176,11 @@ async function showStarterSelect() {
     card.setAttribute('tabindex', '0');
     card.addEventListener('click', () => selectStarter(inst));
     card.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' ') selectStarter(inst); });
-    container.appendChild(card);
+    const wrap = document.createElement('div');
+    wrap.className = 'poke-choice-wrap';
+    wrap.appendChild(card);
+    wrap.insertAdjacentHTML('beforeend', renderTraitPreview(inst, state.team));
+    container.appendChild(wrap);
   }
 }
 
@@ -160,6 +188,7 @@ function selectStarter(pokemon) {
   const normalUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemon.speciesId}.png`;
   markPokedexCaught(pokemon.speciesId, pokemon.name, pokemon.types, normalUrl);
   if (pokemon.isShiny) markShinyDexCaught(pokemon.speciesId, pokemon.name, pokemon.types, pokemon.spriteUrl);
+  loadBuffsIntoPokemon(pokemon);
   state.team = [pokemon];
   state.starterSpeciesId = pokemon.speciesId;
   state.maxTeamSize = 1;
@@ -324,7 +353,8 @@ async function onNodeClick(node) {
       await doMoveTutorNode(node);
       break;
     case NODE_TYPES.TRADE:
-      await doTradeNode(node);
+      if (state.isEndlessMode) { advanceFromNode(state.map, node.id); showMapScreen(); }
+      else await doTradeNode(node);
       break;
     case 'shiny':
       await doShinyNode(node);
@@ -542,7 +572,11 @@ async function doCatchNode(node) {
     card.setAttribute('tabindex', '0');
     card.addEventListener('click', () => catchPokemon(inst, node));
     card.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' ') catchPokemon(inst, node); });
-    choicesEl.appendChild(card);
+    const wrap = document.createElement('div');
+    wrap.className = 'poke-choice-wrap';
+    wrap.appendChild(card);
+    wrap.insertAdjacentHTML('beforeend', renderTraitPreview(inst, state.team));
+    choicesEl.appendChild(wrap);
   }
 
   document.getElementById('btn-skip-catch').onclick = () => {
@@ -568,6 +602,7 @@ function catchPokemon(pokemon, node) {
   if (pokemon.isShiny) markShinyDexCaught(pokemon.speciesId, pokemon.name, pokemon.types, pokemon.spriteUrl);
   checkDexAchievements();
   if (state.team.length < 6) {
+    loadBuffsIntoPokemon(pokemon);
     state.team.push(pokemon);
     if (state.team.length > state.maxTeamSize) state.maxTeamSize = state.team.length;
     advanceFromNode(state.map, node.id);
@@ -596,6 +631,7 @@ function showSwapScreen(newPoke, node) {
       if (newPoke.isShiny) markShinyDexCaught(newPoke.speciesId, newPoke.name, newPoke.types, newPoke.spriteUrl);
       const released = state.team[idx];
       if (released.heldItem) state.items.push(released.heldItem);
+      loadBuffsIntoPokemon(newPoke);
       state.team.splice(idx, 1, newPoke);
       advanceFromNode(state.map, node.id);
       showMapScreen();
@@ -927,7 +963,14 @@ const TRAINER_BATTLE_CONFIG = {
 async function doTrainerNode(node) {
   const key = node.trainerSprite || 'aceTrainer';
   const config = TRAINER_BATTLE_CONFIG[key] || TRAINER_BATTLE_CONFIG.aceTrainer;
-  const teamSize = state.currentMap === 0 ? 1 : state.currentMap <= 2 ? 2 : 3;
+  let teamSize;
+  if (state.isEndlessMode) {
+    const slot = (endlessState.regionNumber - 1) * 3 + endlessState.mapIndexInRegion;
+    const bossSize = ENDLESS_TEAM_SIZES[slot] ?? 4;
+    teamSize = Math.max(1, bossSize - 1);
+  } else {
+    teamSize = state.currentMap === 0 ? 1 : state.currentMap <= 2 ? 2 : 3;
+  }
   const level = getLevelForNode(node);
   const moveTier = getMoveТierForMap(state.currentMap);
 
@@ -1003,6 +1046,7 @@ async function doLegendaryNode(node) {
     if (legendary.isShiny) markShinyDexCaught(legendary.speciesId, legendary.name, legendary.types, legendary.spriteUrl);
     checkDexAchievements();
     if (state.team.length < 6) {
+      loadBuffsIntoPokemon(legendary);
       state.team.push(legendary);
       if (state.team.length > state.maxTeamSize) state.maxTeamSize = state.team.length;
       advanceFromNode(state.map, node.id);
@@ -1118,6 +1162,7 @@ async function doTradeNode(node) {
       const offer = createInstance(species, offerLevel, rng() < (hasShinyCharm() ? 0.02 : 0.01), Math.max(getMoveТierForMap(state.currentMap), mine.moveTier ?? 0));
       const released = state.team[idx];
       if (released.heldItem) state.items.push(released.heldItem);
+      loadBuffsIntoPokemon(offer);
       state.team.splice(idx, 1, offer);
       const normalUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${offer.speciesId}.png`;
       markPokedexCaught(offer.speciesId, offer.name, offer.types, normalUrl);
@@ -1159,7 +1204,10 @@ async function doShinyNode(node) {
   showScreen('shiny-screen');
   document.getElementById('shiny-content').innerHTML = `
     <div class="shiny-title">✨ A Shiny Pokemon appeared!</div>
-    ${renderPokemonCard(shiny, false, false, shinyCaught)}
+    <div class="poke-choice-wrap">
+      ${renderPokemonCard(shiny, false, false, shinyCaught)}
+      ${renderTraitPreview(shiny, state.team)}
+    </div>
     <button id="btn-take-shiny" class="btn-primary">Take ${shiny.name}!</button>
     <button id="btn-skip-shiny" class="btn-secondary" style="margin-top:6px;">Skip</button>
   `;
@@ -1169,6 +1217,7 @@ async function doShinyNode(node) {
       markPokedexCaught(shiny.speciesId, shiny.name, shiny.types, normalUrl);
       markShinyDexCaught(shiny.speciesId, shiny.name, shiny.types, shiny.spriteUrl);
       checkDexAchievements();
+      loadBuffsIntoPokemon(shiny);
       state.team.push(shiny);
       if (state.team.length > state.maxTeamSize) state.maxTeamSize = state.team.length;
       advanceFromNode(state.map, node.id);
@@ -1191,13 +1240,13 @@ function runBattleScreen(enemyTeam, isBoss, onWin, onLose, enemyName = null, ene
   if (state.isEndlessMode && traitsConfig === null) {
     const tiers = computeTraitTiers(state.team);
     traitsConfig = buildTraitsConfig(tiers);
-    renderTraitBar(tiers);
+    renderBattleTraitBars(tiers, null);
   }
 
   return new Promise(async resolve => {
-    // Clean up trait bar when the battle resolves (works for both win and loss paths)
+    // Clean up trait bars when the battle resolves (works for both win and loss paths)
     const _origResolve = resolve;
-    resolve = (val) => { if (state.isEndlessMode) clearTraitBar(); _origResolve(val); };
+    resolve = (val) => { if (state.isEndlessMode) clearBattleTraitBars(); _origResolve(val); };
     showScreen('battle-screen');
     const showPlayer = showPlayerPortrait !== null ? showPlayerPortrait : !!(isBoss || enemyName);
     renderTrainerIcons(state.trainer, enemyName || null, showPlayer);
@@ -1425,7 +1474,36 @@ function showWinScreen() {
 
 // ── Endless Mode ─────────────────────────────────────────────────────────────
 
-async function startEndlessRun() {
+function getUnlockedStageCount() {
+  return parseInt(localStorage.getItem('poke_endless_unlocked_stages') || '1', 10);
+}
+
+function unlockNextStage(completedStage) {
+  const current = getUnlockedStageCount();
+  if (completedStage >= current) {
+    localStorage.setItem('poke_endless_unlocked_stages', String(completedStage + 1));
+  }
+}
+
+function showEndlessStageSelect() {
+  const unlocked = getUnlockedStageCount();
+  const list = document.getElementById('stage-select-list');
+  if (!list) return;
+  list.innerHTML = '';
+  const maxShow = unlocked + 1; // show one locked stage beyond the last unlocked
+  for (let s = 1; s <= maxShow; s++) {
+    const isLocked = s > unlocked;
+    const btn = document.createElement('button');
+    btn.className = isLocked ? 'btn-secondary' : 'btn-primary';
+    btn.style.cssText = `width:200px;${isLocked ? 'opacity:0.45;cursor:not-allowed;' : 'background:linear-gradient(135deg,#1a0a3e,#3a0a6e);'}`;
+    btn.textContent = isLocked ? `🔒 Stage ${s}` : `▶ Stage ${s}`;
+    if (!isLocked) btn.addEventListener('click', () => startEndlessRun(s));
+    list.appendChild(btn);
+  }
+  showScreen('endless-stage-select');
+}
+
+async function startEndlessRun(stageNum = 1) {
   const seed = (Date.now() ^ (Math.random() * 0x100000000 | 0)) >>> 0;
   seedRng(seed);
   const savedTrainer = localStorage.getItem('poke_trainer') || 'boy';
@@ -1436,7 +1514,7 @@ async function startEndlessRun() {
     runSeed: seed, isEndlessMode: true,
   };
   endlessState = {
-    active: true, stageNumber: 1, regionNumber: 1, mapIndexInRegion: 0,
+    active: true, stageNumber: stageNum, regionNumber: 1, mapIndexInRegion: 0,
     currentRegion: null, traitTiers: {},
   };
   clearEndlessState();
@@ -1459,13 +1537,12 @@ async function continueEndlessRun() {
 }
 
 async function startEndlessRegion() {
-  endlessState.currentRegion = rollRegion(endlessState.stageNumber, endlessState.regionNumber);
+  if (!endlessState._preRolled) {
+    endlessState.currentRegion = rollRegion(endlessState.stageNumber, endlessState.regionNumber);
+  }
+  endlessState._preRolled = false;
   endlessState.mapIndexInRegion = 0;
   saveEndlessState();
-
-  await new Promise(resolve => {
-    renderRegionPreview(endlessState.currentRegion, resolve);
-  });
 
   startEndlessMap();
 }
@@ -1492,12 +1569,13 @@ function showEndlessMapScreen() {
   showScreen('map-screen');
   const region = endlessState.currentRegion;
   const mapNum = endlessState.mapIndexInRegion + 1;
-  const isBoss = endlessState.mapIndexInRegion === 4;
+  const isBoss = endlessState.mapIndexInRegion === 2;
+  const isFinalBoss = isBoss && endlessState.regionNumber === 3;
   const trainerName = region.trainers[endlessState.mapIndexInRegion]?.archetype?.name || '???';
 
   const mapInfo = document.getElementById('map-info');
   if (mapInfo) {
-    const label = isBoss ? 'BIG BOSS' : `Map ${mapNum}/4`;
+    const label = isFinalBoss ? 'STAGE FINAL BOSS' : isBoss ? 'BIG BOSS' : `Map ${mapNum}/2`;
     mapInfo.innerHTML = `<span style="font-size:9px">S${endlessState.stageNumber} R${endlessState.regionNumber} — ${label}: <b>${trainerName}</b></span>`;
   }
 
@@ -1525,7 +1603,7 @@ async function onEndlessNodeClick(node) {
 async function doEndlessBossNode() {
   const region = endlessState.currentRegion;
   const trainerData = region.trainers[endlessState.mapIndexInRegion];
-  const isBigBoss = endlessState.mapIndexInRegion === 4;
+  const isBigBoss = endlessState.mapIndexInRegion === 2;
 
   // Fetch all species for this trainer's team
   const speciesArr = await Promise.all(trainerData.speciesIds.map(id => fetchPokemonById(id)));
@@ -1539,17 +1617,23 @@ async function doEndlessBossNode() {
     return;
   }
 
-  // Compute traits right before the fight
+  // Compute traits right before the fight (enemy bosses also get type trait benefits)
   endlessState.traitTiers = computeTraitTiers(state.team);
-  const traitsConfig = buildTraitsConfig(endlessState.traitTiers);
+  const enemyTiers = computeTraitTiers(enemyTeam);
+  const traitsConfig = buildTraitsConfig(endlessState.traitTiers, enemyTiers);
+  renderBattleTraitBars(endlessState.traitTiers, enemyTiers);
 
-  const title = isBigBoss ? `Big Boss: ${trainerData.archetype.name}!` : `Trainer: ${trainerData.archetype.name}!`;
+  const isStageFinal = isBigBoss && endlessState.regionNumber === 3;
+  const title = isStageFinal
+    ? `Stage ${endlessState.stageNumber} Final Boss!`
+    : isBigBoss ? `Big Boss: ${trainerData.archetype.name}!`
+    : `Trainer: ${trainerData.archetype.name}!`;
   const battleInfoEl = document.getElementById('battle-title');
   if (battleInfoEl) battleInfoEl.textContent = title;
 
   const won = await runBattleScreen(
     enemyTeam, true, null, null,
-    trainerData.archetype.name,
+    trainerData.archetype.sprite,
     [],
     null, // baseGainOverride — use default level gain
     true, // showPlayerPortrait
@@ -1579,62 +1663,148 @@ async function doEndlessBossNode() {
     await new Promise(r => setTimeout(r, 1200));
   }
 
+  if (isBigBoss) await showStatBuffScreen();
+
   advanceEndless();
+}
+
+async function showStatBuffScreen() {
+  return new Promise(resolve => {
+    const titleEl  = document.getElementById('stat-buff-title');
+    const subEl    = document.getElementById('stat-buff-subtitle');
+    const choicesEl = document.getElementById('stat-buff-choices');
+
+    const STATS = [
+      ['hp',      'HP',  'stat-hp'],
+      ['atk',     'ATK', 'stat-atk'],
+      ['def',     'DEF', 'stat-def'],
+      ['speed',   'SPE', 'stat-spe'],
+      ['special', 'SPA', 'stat-spa'],
+      ['spdef',   'SPD', 'stat-spd'],
+    ];
+
+    function showPhase1() {
+      showScreen('stat-buff-screen');
+      titleEl.textContent = 'Region Cleared!';
+      subEl.textContent = 'Choose a Pokémon to power up';
+      choicesEl.innerHTML = '';
+      for (const p of state.team) {
+        const wrap = document.createElement('div');
+        wrap.className = 'stat-buff-poke-wrap';
+        wrap.innerHTML = renderPokemonCard(p, false, false);
+        const card = wrap.querySelector('.poke-card');
+        card.style.cursor = 'pointer';
+        card.addEventListener('click', () => showPhase2(p));
+        choicesEl.appendChild(wrap);
+      }
+    }
+
+    function showPhase2(pokemon) {
+      titleEl.textContent = pokemon.nickname || pokemon.name;
+      subEl.textContent = 'Choose a stat to boost (+10%)';
+      choicesEl.innerHTML = '';
+
+      for (const [key, lbl, cls] of STATS) {
+        if (!pokemon.statBuffs) pokemon.statBuffs = {};
+        const buffCount = pokemon.statBuffs[key] ?? 0;
+        const maxed = buffCount >= 10;
+        const rawVal = key === 'spdef'
+          ? (pokemon.baseStats?.spdef ?? pokemon.baseStats?.special ?? 0)
+          : (pokemon.baseStats?.[key] ?? 0);
+        const grayPct = Math.round((rawVal / 255) * 100);
+        const bluePct = Math.round((buffCount / 10) * grayPct);
+
+        const row = document.createElement('div');
+        row.className = `stat-buff-row${maxed ? ' maxed' : ''}`;
+        row.innerHTML = `
+          <span class="stat-buff-lbl">${lbl}</span>
+          <div class="stat-buff-bar-wrap">
+            <div class="stat-bar-bg">
+              <div class="stat-bar-fill ${cls}" style="width:${grayPct}%"></div>
+              ${buffCount > 0 ? `<div class="stat-buff-overlay" style="width:${bluePct}%"></div>` : ''}
+            </div>
+          </div>
+          <span class="stat-buff-count">${buffCount}/10</span>
+        `;
+        if (!maxed) {
+          row.addEventListener('click', () => {
+            applyStatBuff(pokemon, key);
+            resolve();
+          });
+        }
+        choicesEl.appendChild(row);
+      }
+
+      const back = document.createElement('button');
+      back.className = 'btn-secondary';
+      back.style.cssText = 'margin-top:12px;width:100%;';
+      back.textContent = '← Back';
+      back.addEventListener('click', showPhase1);
+      choicesEl.appendChild(back);
+    }
+
+    showPhase1();
+  });
+}
+
+function loadPersistentBuffs() {
+  try { return JSON.parse(localStorage.getItem('poke_stat_buffs') || '{}'); } catch { return {}; }
+}
+function savePersistentBuffs(store) {
+  try { localStorage.setItem('poke_stat_buffs', JSON.stringify(store)); } catch {}
+}
+
+function loadBuffsIntoPokemon(p) {
+  const store = loadPersistentBuffs();
+  const buffs = store[p.speciesId];
+  if (!buffs) return;
+  p.statBuffs = { ...buffs };
+  const hpBuff = buffs.hp ?? 0;
+  if (hpBuff > 0) {
+    const buffedMaxHp = Math.floor(calcHp(p.baseStats.hp, p.level) * (1 + 0.1 * hpBuff));
+    const diff = buffedMaxHp - p.maxHp;
+    p.maxHp = buffedMaxHp;
+    p.currentHp = Math.min(p.currentHp + diff, p.maxHp);
+  }
+}
+
+function applyStatBuff(pokemon, statKey) {
+  if (!pokemon.statBuffs) pokemon.statBuffs = {};
+  pokemon.statBuffs[statKey] = Math.min(10, (pokemon.statBuffs[statKey] ?? 0) + 1);
+  if (statKey === 'hp') {
+    const hpGain = Math.floor(calcHp(pokemon.baseStats.hp, pokemon.level) * 0.1);
+    pokemon.maxHp += hpGain;
+    pokemon.currentHp = Math.min(pokemon.currentHp + hpGain, pokemon.maxHp);
+  }
+  // Persist buffs by speciesId so they survive across runs
+  const store = loadPersistentBuffs();
+  store[pokemon.speciesId] = { ...pokemon.statBuffs };
+  savePersistentBuffs(store);
+  saveRun();
+  saveEndlessState();
 }
 
 function advanceEndless() {
   endlessState.mapIndexInRegion++;
   saveEndlessState();
 
-  if (endlessState.mapIndexInRegion >= 5) {
+  if (endlessState.mapIndexInRegion >= 3) {
     endlessState.regionNumber++;
     if (endlessState.regionNumber > 3) {
-      doEndlessStageFinalBoss();
+      // All 3 regions cleared — the stage final boss was the last big boss, so go to next stage
+      const completedStage = endlessState.stageNumber;
+      unlockNextStage(completedStage);
+      clearEndlessState();
+      clearSavedRun();
+      renderStageComplete(completedStage, state.team, () => {
+        showEndlessStageSelect();
+      });
     } else {
       startEndlessRegion();
     }
   } else {
     startEndlessMap();
   }
-}
-
-async function doEndlessStageFinalBoss() {
-  // Slot 15 = one step past the last region map of this stage
-  const [minL, maxL] = getEndlessLevelRange(endlessState.stageNumber, 3, 5);
-  const level = Math.floor(minL + rng() * (maxL - minL + 1));
-  const eliteArch = ENDLESS_ARCHETYPES.find(a => a.id === 'elite_alltype');
-  const ids = [...eliteArch.pool].sort(() => rng() - 0.5).slice(0, 6);
-  const speciesArr = await Promise.all(ids.map(id => fetchPokemonById(id)));
-  const enemyTeam = speciesArr.filter(Boolean).map(sp => createInstance(sp, level, false, 2));
-
-  endlessState.traitTiers = computeTraitTiers(state.team);
-  const traitsConfig = buildTraitsConfig(endlessState.traitTiers);
-
-  const won = await runBattleScreen(
-    enemyTeam, true, null, null,
-    `Stage ${endlessState.stageNumber} Final Boss`, [],
-    null, true, traitsConfig
-  );
-  // clearTraitBar() handled automatically by runBattleScreen
-
-  if (!won) {
-    clearEndlessState();
-    clearSavedRun();
-    showGameOver();
-    return;
-  }
-
-  const completedStage = endlessState.stageNumber;
-  endlessState.stageNumber++;
-  endlessState.regionNumber = 1;
-  endlessState.mapIndexInRegion = 0;
-  endlessState.currentRegion = null;
-  saveEndlessState();
-  saveRun();
-
-  renderStageComplete(completedStage, state.team, () => {
-    startEndlessRegion();
-  });
 }
 
 // ---- Boot ----

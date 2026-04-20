@@ -58,10 +58,25 @@ function renderPokemonCard(pokemon, onClick, selected, dexCaught = false) {
     <div class="poke-name">${pokemon.nickname || pokemon.name}</div>
     <div class="poke-level">Lv. ${pokemon.level}</div>
     <div class="poke-types">${typeHtml}</div>
-    <div class="poke-stats">
-      HP: ${pokemon.baseStats.hp} | ATK: ${pokemon.baseStats.atk} | DEF: ${pokemon.baseStats.def}<br>
-      SPD: ${pokemon.baseStats.speed} | SP.ATK: ${pokemon.baseStats.special ?? '—'} | SP.DEF: ${pokemon.baseStats.spdef ?? pokemon.baseStats.special ?? '—'}
-    </div>
+    <div class="poke-stats-bars">${[
+      ['HP',  pokemon.baseStats.hp,      'stat-hp',  'hp'],
+      ['ATK', pokemon.baseStats.atk,     'stat-atk', 'atk'],
+      ['DEF', pokemon.baseStats.def,     'stat-def', 'def'],
+      ['SPA', pokemon.baseStats.special ?? 0, 'stat-spa', 'special'],
+      ['SPD', pokemon.baseStats.spdef ?? pokemon.baseStats.special ?? 0, 'stat-spd', 'spdef'],
+      ['SPE', pokemon.baseStats.speed,   'stat-spe', 'speed'],
+    ].map(([lbl, val, cls, key]) => {
+      const buffCount = pokemon.statBuffs?.[key] ?? 0;
+      const grayPct = Math.round((val / 255) * 100);
+      const bluePct = Math.round((buffCount / 10) * grayPct);
+      return `<div class="stat-row" data-tooltip="${lbl}: ${val}${buffCount > 0 ? ` (+${buffCount*10}%)` : ''}">
+        <span class="stat-lbl">${lbl}</span>
+        <div class="stat-bar-bg">
+          <div class="stat-bar-fill ${cls}" style="width:${grayPct}%"></div>
+          ${buffCount > 0 ? `<div class="stat-buff-overlay" style="width:${bluePct}%"></div>` : ''}
+        </div>
+      </div>`;
+    }).join('')}</div>
     <div class="poke-hp">${renderHpBar(pokemon.currentHp, pokemon.maxHp)}</div>
     <div class="poke-move">
       <div class="move-name">${move.name}</div>
@@ -72,6 +87,56 @@ function renderPokemonCard(pokemon, onClick, selected, dexCaught = false) {
       </div>
     </div>
   </div>`;
+}
+
+// ---- Trait preview below pick options ----
+function renderTraitPreview(pokemon, currentTeam) {
+  if (!state.isEndlessMode) return '';
+
+  // Count all types across team + this pokemon (shiny = 2)
+  const countAfter = {};
+  for (const p of [...currentTeam, pokemon]) {
+    const mult = p.isShiny ? 2 : 1;
+    for (const t of (p.types || [])) countAfter[t] = (countAfter[t] || 0) + mult;
+  }
+  const countBefore = {};
+  for (const p of currentTeam) {
+    const mult = p.isShiny ? 2 : 1;
+    for (const t of (p.types || [])) countBefore[t] = (countBefore[t] || 0) + mult;
+  }
+
+  const tierOf = n => n >= 6 ? 3 : n >= 4 ? 2 : n >= 2 ? 1 : 0;
+  const nextOf  = n => n < 2 ? 2 : n < 4 ? 4 : 6;
+
+  const myTypes = pokemon.types || [];
+  if (myTypes.length === 0) return '';
+
+  const rows = myTypes.map(type => {
+    const count    = countAfter[type] || 0;
+    const prevTier = tierOf(countBefore[type] || 0);
+    const newTier  = tierOf(count);
+    const tierUp   = newTier > prevTier;
+    const isNew    = prevTier === 0 && newTier > 0;
+    const next     = nextOf(count);
+
+    const traitEntry = getTraitDisplayData([...currentTeam, pokemon]).find(e => e.type === type);
+    const desc = traitEntry?.description ?? null;
+
+    let tierLabel = newTier > 0 ? ` T${newTier}` : '';
+    if (tierUp) tierLabel += ' ▲';
+    const newBadge = isNew ? `<span class="trait-preview-new-tag">NEW</span>` : '';
+
+    return `<div class="trait-preview-row${tierUp ? ' trait-preview-row-up' : ''}">
+      <div class="trait-preview-row-header">
+        <span class="trait-preview-count">${count}/${next}</span>
+        <span class="type-badge type-${type.toLowerCase()}" style="font-size:7px;padding:2px 5px;">${type}${tierLabel}</span>
+        ${newBadge}
+      </div>
+      ${desc ? `<div class="trait-preview-desc">${desc}</div>` : `<div class="trait-preview-desc" style="font-style:italic;">No trait</div>`}
+    </div>`;
+  }).join('');
+
+  return `<div class="poke-trait-preview">${rows}</div>`;
 }
 
 // ---- Team hover card popup ----
@@ -267,6 +332,7 @@ function renderBattleField(pTeam, eTeam) {
         <div class="poke-hp">${renderHpBar(p.currentHp, p.maxHp)}</div>
         <img src="ui/battleBase.png" class="battle-base" alt="">
         <img src="${p.spriteUrl||''}" alt="${p.name}" class="battle-sprite" onerror="this.src=''">
+        <div class="battle-stages"></div>
       </div>`;
     }).join('');
   }
@@ -279,6 +345,7 @@ function renderBattleField(pTeam, eTeam) {
         <div class="poke-hp">${renderHpBar(p.currentHp, p.maxHp)}</div>
         <img src="ui/battleBase.png" class="battle-base" alt="">
         <img src="${p.spriteUrl||''}" alt="${p.name}" class="battle-sprite" onerror="this.src=''">
+        <div class="battle-stages"></div>
       </div>`;
     }).join('');
   }
@@ -373,13 +440,18 @@ function runParticleCanvas(canvas, ctx, particles, duration) {
     function frame(now) {
       const elapsed = now - start;
       const scaledElapsed = elapsed * battleSpeedMultiplier;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.shadowColor = 'rgba(255,255,255,0.9)';
-      ctx.shadowBlur = 6;
-      let anyAlive = false;
-      for (const p of particles) { p.tick(scaledElapsed); if (p.alive) { p.draw(ctx); anyAlive = true; } }
-      if (elapsed < scaledDuration || anyAlive) requestAnimationFrame(frame);
-      else { ctx.clearRect(0, 0, canvas.width, canvas.height); canvas.style.display = 'none'; resolve(); }
+      try {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.shadowColor = 'rgba(255,255,255,0.9)';
+        ctx.shadowBlur = 6;
+        let anyAlive = false;
+        for (const p of particles) { p.tick(scaledElapsed); if (p.alive) { p.draw(ctx); anyAlive = true; } }
+        if (elapsed < scaledDuration || anyAlive) requestAnimationFrame(frame);
+        else { ctx.clearRect(0, 0, canvas.width, canvas.height); canvas.style.display = 'none'; resolve(); }
+      } catch(e) {
+        canvas.style.display = 'none';
+        resolve();
+      }
     }
     requestAnimationFrame(frame);
   });
@@ -1573,41 +1645,78 @@ function buildParticles(type, from, to) {
     }
 
   } else if (type === 'ice') {
-    // Ice Beam: expanding cyan beam + crystal shards at impact
-    let beamAge = 0;
-    ps.push({
-      alive: true,
-      tick(ms) { beamAge = ms; this.alive = ms < 600; },
+    // Freeze: spinning snowflake orb travels to target, then shatters into crystal shards
+    const TRAVEL = 370;
+    let orbX = from.x, orbY = from.y, orbAge = 0;
+    ps.push({ alive: true,
+      tick(ms) { orbAge = ms;
+        const t = Math.min(ms / TRAVEL, 1);
+        orbX = lerp(from.x, to.x, t); orbY = lerp(from.y, to.y, t);
+        this.alive = ms < TRAVEL + 80; },
       draw(ctx) {
-        const growT  = Math.min(beamAge / 300, 1);
-        const fadeT  = Math.max(0, (beamAge - 350) / 250);
-        const endX   = lerp(from.x, to.x, growT);
-        const endY   = lerp(from.y, to.y, growT);
-        const a      = (1 - fadeT) * 0.85;
+        const a = Math.max(0, 1 - Math.max(0, orbAge - TRAVEL) / 80);
         // outer glow
-        ctx.beginPath(); ctx.moveTo(from.x, from.y); ctx.lineTo(endX, endY);
-        ctx.strokeStyle = `rgba(140,230,255,${a * 0.5})`;
-        ctx.lineWidth = 10; ctx.stroke();
-        // core beam
-        ctx.beginPath(); ctx.moveTo(from.x, from.y); ctx.lineTo(endX, endY);
-        ctx.strokeStyle = `rgba(210,245,255,${a})`;
-        ctx.lineWidth = 3; ctx.stroke();
-        // ice crystals along beam
-        if (growT > 0.3) {
-          for (let i = 0; i < 5; i++) {
-            const bt = (i + 1) / 6;
-            if (bt > growT) continue;
-            const cx = lerp(from.x, to.x, bt), cy = lerp(from.y, to.y, bt);
-            ctx.save(); ctx.translate(cx, cy); ctx.rotate(beamAge * 0.003 + i);
-            ctx.beginPath();
-            for (let s = 0; s < 6; s++) {
-              const ang = (s / 6) * Math.PI * 2;
-              ctx.moveTo(0, 0); ctx.lineTo(Math.cos(ang) * 7, Math.sin(ang) * 7);
-            }
-            ctx.strokeStyle = `rgba(200,240,255,${a})`; ctx.lineWidth = 1.5; ctx.stroke();
-            ctx.restore();
-          }
+        const glow = ctx.createRadialGradient(orbX, orbY, 0, orbX, orbY, 22);
+        glow.addColorStop(0, `rgba(200,245,255,${a * 0.45})`);
+        glow.addColorStop(1, `rgba(100,200,255,0)`);
+        ctx.beginPath(); ctx.arc(orbX, orbY, 22, 0, Math.PI * 2);
+        ctx.fillStyle = glow; ctx.fill();
+        // spinning snowflake
+        ctx.save(); ctx.translate(orbX, orbY); ctx.rotate(orbAge * 0.005);
+        for (let s = 0; s < 6; s++) {
+          const ang = (s / 6) * Math.PI * 2;
+          const ex = Math.cos(ang) * 10, ey = Math.sin(ang) * 10;
+          ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(ex, ey);
+          ctx.strokeStyle = `rgba(215,248,255,${a})`; ctx.lineWidth = 2; ctx.stroke();
+          // branch arms
+          const perp = ang + Math.PI / 2;
+          const bx = Math.cos(ang) * 6, by = Math.sin(ang) * 6;
+          ctx.beginPath();
+          ctx.moveTo(bx, by); ctx.lineTo(bx + Math.cos(perp) * 3.5, by + Math.sin(perp) * 3.5);
+          ctx.moveTo(bx, by); ctx.lineTo(bx - Math.cos(perp) * 3.5, by - Math.sin(perp) * 3.5);
+          ctx.strokeStyle = `rgba(180,235,255,${a * 0.85})`; ctx.lineWidth = 1.2; ctx.stroke();
         }
+        // center dot
+        ctx.beginPath(); ctx.arc(0, 0, 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(240,252,255,${a})`; ctx.fill();
+        ctx.restore();
+      }
+    });
+    // Crystal shard burst at impact
+    for (let i = 0; i < 12; i++) {
+      const delay = TRAVEL + i * 12;
+      const angle = rnd(0, Math.PI * 2);
+      const speed = rnd(0.8, 2.0);
+      const life  = rnd(260, 440);
+      const size  = rnd(4, 10);
+      let px = to.x, py = to.y, age = -delay;
+      ps.push({ alive: true,
+        tick(ms) { age = ms - delay; if (age < 0) { this.alive = true; return; }
+          px += Math.cos(angle) * speed * 1.4;
+          py += Math.sin(angle) * speed * 1.4;
+          this.alive = age < life; },
+        draw(ctx) {
+          if (age < 0) return;
+          const a = Math.max(0, 1 - age / life);
+          const s = size * (1 - age / life * 0.5);
+          ctx.save(); ctx.translate(px, py); ctx.rotate(angle + age * 0.004);
+          ctx.beginPath();
+          ctx.moveTo(0, -s); ctx.lineTo(s * 0.4, 0); ctx.lineTo(0, s); ctx.lineTo(-s * 0.4, 0); ctx.closePath();
+          ctx.fillStyle = `rgba(175,232,255,${a * 0.9})`; ctx.fill();
+          ctx.strokeStyle = `rgba(230,250,255,${a})`; ctx.lineWidth = 1; ctx.stroke();
+          ctx.restore();
+        }
+      });
+    }
+    // Shockwave ring
+    let iceRingAge = -TRAVEL;
+    ps.push({ alive: true,
+      tick(ms) { iceRingAge = ms - TRAVEL; this.alive = iceRingAge < 380; },
+      draw(ctx) {
+        if (iceRingAge < 0) return;
+        const t = iceRingAge / 380;
+        ctx.beginPath(); ctx.arc(to.x, to.y, t * 48, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(150,225,255,${(1 - t) * 0.65})`; ctx.lineWidth = 2.5 * (1 - t) + 0.5; ctx.stroke();
       }
     });
 
@@ -2081,13 +2190,17 @@ function buildParticles(type, from, to) {
 async function animateBattleVisually(detailedLog, pTeamInit, eTeamInit) {
   renderBattleField(pTeamInit, eTeamInit);
 
-  // Track live HP during animation
+  // Track live HP and stat stages during animation
   const logEl = null; // combat log removed
   const pHp = pTeamInit.map(p => ({ current: p.currentHp, max: p.maxHp }));
   const eHp = eTeamInit.map(p => ({
     current: p.currentHp !== undefined ? p.currentHp : p.maxHp,
     max: p.maxHp,
   }));
+  const emptyStages = () => ({ atk: 0, def: 0, speed: 0, special: 0, spdef: 0 });
+  const pStages = pTeamInit.map(emptyStages);
+  const eStages = eTeamInit.map(emptyStages);
+  let lastAttack = null; // for replaying animation on Electric second hit
 
   function addLogEntry(msg, cls = '') {
     if (!logEl) return;
@@ -2109,6 +2222,7 @@ async function animateBattleVisually(detailedLog, pTeamInit, eTeamInit) {
     // Batch consecutive trait_trigger events into one canvas pass so they animate simultaneously
     if (event.type === 'trait_trigger') {
       const canvas = document.getElementById('battle-anim-canvas');
+      const batchTriggers = [];
       if (canvas) {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
@@ -2118,6 +2232,7 @@ async function animateBattleVisually(detailedLog, pTeamInit, eTeamInit) {
         const flyingEls = [];
         while (i < detailedLog.length && detailedLog[i].type === 'trait_trigger') {
           const e = detailedLog[i++];
+          batchTriggers.push(e);
           const sideId = e.side === 'player' ? 'player-side' : 'enemy-side';
           const el = document.querySelector(`#${sideId} .battle-pokemon[data-idx="${e.idx}"]`);
           if (el) {
@@ -2138,8 +2253,35 @@ async function animateBattleVisually(detailedLog, pTeamInit, eTeamInit) {
           setTimeout(() => popup.remove(), 800);
         }
       } else {
-        while (i < detailedLog.length && detailedLog[i].type === 'trait_trigger') i++;
+        while (i < detailedLog.length && detailedLog[i].type === 'trait_trigger') {
+          batchTriggers.push(detailedLog[i++]);
+        }
       }
+
+      // Electric second hit: replay the full attack + consume its effect event
+      const hasElectric = batchTriggers.some(e => e.traitType === 'Electric');
+      if (hasElectric && lastAttack) {
+        const effectEvt = detailedLog[i];
+        if (effectEvt?.type === 'effect') {
+          const { attackerEl, targetEl, moveType, moveName, isSpecial } = lastAttack;
+          if (attackerEl) attackerEl.classList.add('attacking');
+          if (attackerEl && targetEl)
+            await playAttackAnimation(moveType, attackerEl, targetEl, isSpecial, moveName);
+          if (attackerEl) attackerEl.classList.remove('attacking');
+          if (targetEl) {
+            const hitClass = `hit-${moveType.toLowerCase()}`;
+            targetEl.classList.add(hitClass);
+            const targetHpTrack = effectEvt.side === 'player' ? pHp : eHp;
+            const prev = targetHpTrack[effectEvt.idx]?.current ?? effectEvt.hpAfter;
+            await animateHpBar(targetEl, prev, effectEvt.hpAfter, targetHpTrack[effectEvt.idx]?.max ?? effectEvt.hpAfter);
+            if (targetHpTrack[effectEvt.idx]) targetHpTrack[effectEvt.idx].current = effectEvt.hpAfter;
+            await sleep(300);
+            targetEl.classList.remove(hitClass);
+          }
+          i++; // consume the Electric effect event
+        }
+      }
+
       await sleep(80);
       continue;
     }
@@ -2149,6 +2291,7 @@ async function animateBattleVisually(detailedLog, pTeamInit, eTeamInit) {
       const targetSideId = event.side === 'player' ? 'enemy-side' : 'player-side';
       const attackerEl = document.querySelector(`#${attackerSideId} .battle-pokemon[data-idx="${event.attackerIdx}"]`);
       const targetEl = document.querySelector(`#${targetSideId} .battle-pokemon[data-idx="${event.targetIdx}"]`);
+      lastAttack = { attackerEl, targetEl, moveType: event.moveType, moveName: event.moveName, isSpecial: event.isSpecial };
       const hitClass = `hit-${event.moveType.toLowerCase()}`;
 
       if (attackerEl) attackerEl.classList.add('attacking');
@@ -2278,7 +2421,14 @@ async function animateBattleVisually(detailedLog, pTeamInit, eTeamInit) {
     } else if (event.type === 'stat_change') {
       const sideId = event.side === 'player' ? 'player-side' : 'enemy-side';
       const el = document.querySelector(`#${sideId} .battle-pokemon[data-idx="${event.idx}"]`);
-      if (el) animateStatChange(el, event.stat, event.change); // fire and forget — don't stall combat
+      const stagesArr = event.side === 'player' ? pStages : eStages;
+      if (stagesArr[event.idx]) {
+        stagesArr[event.idx][event.stat] = (stagesArr[event.idx][event.stat] ?? 0) + event.change;
+      }
+      if (el) {
+        animateStatChange(el, event.stat, event.change); // fire and forget
+        updateBattleStages(el, stagesArr[event.idx] ?? {});
+      }
 
     } else if (event.type === 'status_apply') {
       const sideId = event.side === 'player' ? 'player-side' : 'enemy-side';
@@ -2326,6 +2476,19 @@ async function animateBattleVisually(detailedLog, pTeamInit, eTeamInit) {
 }
 
 // ── Stat change arrow animation ───────────────────────────────────────────────
+
+function updateBattleStages(pokemonEl, stages) {
+  const el = pokemonEl.querySelector('.battle-stages');
+  if (!el) return;
+  const labels = { atk: 'ATK', def: 'DEF', speed: 'SPE', special: 'SPA', spdef: 'SPD' };
+  el.innerHTML = Object.entries(stages)
+    .filter(([, v]) => v !== 0)
+    .map(([stat, v]) => {
+      const cls = v > 0 ? 'stage-up' : 'stage-down';
+      const arrow = v > 0 ? '▲' : '▼';
+      return `<span class="battle-stage-badge ${cls}">${labels[stat] ?? stat} ${arrow}${Math.abs(v)}</span>`;
+    }).join('');
+}
 
 function animateStatChange(pokemonEl, stat, change) {
   return new Promise(resolve => {
@@ -2422,7 +2585,7 @@ function renderEndlessRegionPanel(region, currentMapIndex) {
   const rows = region.trainers.map((trainer, i) => {
     const type = trainer.archetype?.type || '???';
     const name = trainer.archetype?.name || '???';
-    const isBigBoss = i === 4;
+    const isBigBoss = i === 2;
     const isDone = i < currentMapIndex;
     const isCurrent = i === currentMapIndex;
 
@@ -2443,66 +2606,43 @@ function renderEndlessRegionPanel(region, currentMapIndex) {
   panel.innerHTML = header + `<div class="region-stage-list">${rows}</div>`;
 }
 
-function renderRegionPreview(region, onContinue) {
-  const screen = document.getElementById('endless-region-preview');
-  if (!screen) return;
 
-  const headerEl = screen.querySelector('.region-preview-header');
-  const listEl   = screen.querySelector('.region-preview-trainers');
-  const btnEl    = document.getElementById('btn-region-preview-go');
-
-  if (headerEl) headerEl.textContent = `Stage ${region.stageNum} — Region ${region.regionNum}`;
-
-  if (listEl) {
-    listEl.innerHTML = region.trainers.map((t, i) => {
-      const isBigBoss = i === 4;
-      const typeStr = t.archetype.type || '???';
-      return `<div class="region-trainer-row${isBigBoss ? ' big-boss' : ''}">
-        <span class="region-trainer-num">${isBigBoss ? 'BOSS' : `Map ${i + 1}/4`}</span>
-        <span class="region-trainer-name">${t.archetype.name}</span>
-        <span class="region-trainer-type type-badge type-${typeStr.toLowerCase()}">${typeStr}</span>
-        <span class="region-trainer-level">~Lv ${t.level}</span>
-      </div>`;
-    }).join('');
-  }
-
-  if (btnEl) btnEl.onclick = onContinue;
-  showScreen('endless-region-preview');
+function renderBattleTraitBars(playerTiers, enemyTiers) {
+  _fillTraitBarEl('player-battle-traits', playerTiers || {});
+  _fillTraitBarEl('enemy-battle-traits',  enemyTiers  || {});
 }
 
-function renderTraitBar(tiers) {
-  let el = document.getElementById('endless-trait-bar');
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'endless-trait-bar';
-    el.className = 'endless-trait-bar';
-    const header = document.querySelector('#battle-screen .battle-header');
-    if (header) header.appendChild(el);
-  }
+function _fillTraitBarEl(elId, tiers) {
+  const el = document.getElementById(elId);
+  if (!el) return;
   el.innerHTML = '';
   for (const [type, tier] of Object.entries(tiers)) {
     if (!tier) continue;
     const badge = document.createElement('span');
     badge.className = `trait-badge type-badge type-${type.toLowerCase()}`;
     badge.textContent = `${type} T${tier}`;
-    badge.title = `${type} Trait Tier ${tier}`;
     el.appendChild(badge);
   }
 }
 
-function clearTraitBar() {
-  document.getElementById('endless-trait-bar')?.remove();
+function clearBattleTraitBars() {
+  const p = document.getElementById('player-battle-traits');
+  const e = document.getElementById('enemy-battle-traits');
+  if (p) p.innerHTML = '';
+  if (e) e.innerHTML = '';
 }
 
 function renderStageComplete(stageNum, team, onContinue) {
   const screen = document.getElementById('endless-stage-complete');
   if (!screen) return;
-  const msgEl  = document.getElementById('stage-complete-msg');
-  const teamEl = document.getElementById('stage-complete-team');
-  const btnEl  = document.getElementById('btn-stage-continue');
-  if (msgEl)  msgEl.textContent = `Stage ${stageNum} Complete!`;
-  if (teamEl) teamEl.innerHTML  = team.map(p => renderPokemonCard(p, false, false)).join('');
-  if (btnEl)  btnEl.onclick     = onContinue;
+  const msgEl    = document.getElementById('stage-complete-msg');
+  const unlockEl = document.getElementById('stage-complete-unlock');
+  const teamEl   = document.getElementById('stage-complete-team');
+  const btnEl    = document.getElementById('btn-stage-continue');
+  if (msgEl)    msgEl.textContent    = `Stage ${stageNum} Complete!`;
+  if (unlockEl) unlockEl.textContent = `Stage ${stageNum + 1} unlocked!`;
+  if (teamEl)   teamEl.innerHTML     = team.map(p => renderPokemonCard(p, false, false)).join('');
+  if (btnEl)    btnEl.onclick        = onContinue;
   showScreen('endless-stage-complete');
 }
 

@@ -72,7 +72,10 @@
 <!-- ===== STARTER SELECT ===== -->
 <div id="starter-screen" class="screen">
   <h2>Choose Your Starter!</h2>
-  <div id="starter-choices"></div>
+  <div id="starter-layout">
+    <div id="starter-choices"></div>
+    <div id="starter-region-panel" style="display:none;"></div>
+  </div>
 </div>
 
 <!-- Map node tooltip -->
@@ -134,11 +137,13 @@
     <div class="battle-side">
       <div class="battle-trainer" id="player-trainer-icon"></div>
       <div class="battle-side-label">Your Team</div>
+      <div id="player-battle-traits" class="battle-trait-bar"></div>
       <div id="player-side"></div>
     </div>
     <div class="battle-side">
       <div class="battle-trainer" id="enemy-trainer-icon"></div>
       <div class="battle-side-label">Enemy</div>
+      <div id="enemy-battle-traits" class="battle-trait-bar battle-trait-bar-right"></div>
       <div id="enemy-side"></div>
     </div>
   </div>
@@ -235,23 +240,30 @@
   </a>
 </div>
 
-<!-- ===== ENDLESS REGION PREVIEW ===== -->
-<div id="endless-region-preview" class="screen">
-  <h2 class="region-preview-header">Region Preview</h2>
-  <p style="text-align:center;color:var(--text-dim);font-size:9px;margin-bottom:12px;">Defeat all 5 trainers to advance</p>
-  <div class="region-preview-trainers"></div>
+<!-- ===== STAT BUFF SCREEN ===== -->
+<div id="stat-buff-screen" class="screen">
+  <h2 id="stat-buff-title"></h2>
+  <p id="stat-buff-subtitle" style="text-align:center;color:var(--text-dim);font-size:10px;margin-bottom:16px;"></p>
+  <div id="stat-buff-choices"></div>
+</div>
+
+<!-- ===== ENDLESS STAGE SELECT ===== -->
+<div id="endless-stage-select" class="screen">
+  <div style="font-family:'Press Start 2P',monospace;font-size:13px;color:#c8a0ff;text-align:center;margin-bottom:6px;">♾ Endless Mode</div>
+  <div style="font-size:8px;color:var(--text-dim);text-align:center;margin-bottom:18px;">Choose a stage to begin</div>
+  <div id="stage-select-list" style="display:flex;flex-direction:column;gap:8px;align-items:center;"></div>
   <div style="text-align:center;margin-top:16px;">
-    <button id="btn-region-preview-go" class="btn-primary">Begin!</button>
+    <button onclick="showScreen('title-screen')" class="btn-secondary">← Back</button>
   </div>
 </div>
 
 <!-- ===== ENDLESS STAGE COMPLETE ===== -->
 <div id="endless-stage-complete" class="screen">
   <div id="stage-complete-msg" class="win-title" style="font-size:14px;"></div>
-  <p style="color:var(--text-dim);text-align:center;font-size:9px;">The next stage will be harder!</p>
+  <div id="stage-complete-unlock" style="font-size:8px;color:#c8a0ff;text-align:center;margin:6px 0;"></div>
   <div id="stage-complete-team" style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:12px 0;"></div>
   <div style="text-align:center;">
-    <button id="btn-stage-continue" class="btn-primary">Next Stage →</button>
+    <button id="btn-stage-continue" class="btn-primary">Stage Select →</button>
   </div>
 </div>
 

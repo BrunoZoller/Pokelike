@@ -4,7 +4,7 @@ let endlessState = {
   active: false,
   stageNumber: 1,
   regionNumber: 1,
-  mapIndexInRegion: 0,  // 0-3 = map bosses, 4 = Big Boss
+  mapIndexInRegion: 0,  // 0-1 = map bosses, 2 = Big Boss
   currentRegion: null,  // { stageNum, regionNum, levelRange, trainers[] }
   traitTiers: {},       // { Fire: 2, Water: 1, ... } — recomputed before each fight
 };
@@ -14,9 +14,10 @@ let endlessState = {
 const TRAIT_DESCRIPTIONS = {
   Bug:     ['10% chance: +1 Level after fight',           '20% chance: +1 Level after fight',           '40% chance: +1 Level after fight'],
   Dark:    ['30% chance to steal enemy held item',        '60% chance to steal enemy held item',        '100% chance to steal enemy held item'],
-  Dragon:  ['+1 Spd/ATK/SpATK on KO (Dragon only)',      '+1 Spd/ATK/SpATK on KO (Dragon only)',      '+1 Spd/ATK/SpATK on KO (Dragon only)'],
+  Dragon:  ['+1 Spd/ATK/SpATK on KO',      '+1 Spd/ATK/SpATK on KO',      '+1 Spd/ATK/SpATK on KO'],
   Electric:['10% chance to attack again',                 '20% chance to attack again',                 '30% chance to attack again'],
   Fairy:   ['Enemy: -1 ATK & Sp.ATK at fight start',     'Enemy: -2 ATK & Sp.ATK at fight start',     'Enemy: -3 ATK & Sp.ATK at fight start'],
+  Fighting:['When a pokemon faints, survivors get +1 ATK', 'When a pokemon faints, survivors get +2 ATK', 'When a pokemon faints, survivors get +3 ATK'],
   Fire:    ['+1 ATK & Sp.ATK stages at fight start',     '+2 ATK & Sp.ATK stages at fight start',     '+3 ATK & Sp.ATK stages at fight start'],
   Flying:  ['15% chance to dodge incoming attacks',       '30% chance to dodge incoming attacks',       '50% chance to dodge incoming attacks'],
   Ghost:   ['Execute enemies below 15% HP',               'Execute enemies below 30% HP',               'Execute enemies below 50% HP'],
@@ -59,29 +60,30 @@ function getTraitDisplayData(team) {
 
 // ── Level scaling ─────────────────────────────────────────────────────────────
 
-// Slot 0-8 = normal mode MAP_LEVEL_RANGES exactly. Beyond slot 8: extrapolate +8/slot.
+// Slot 0-8: max = gym leader's highest pokemon level - 2 (Brock→12, Misty→18, Surge→24,
+// Erika→30, Koga→42, Sabrina→42, Blaine→51, Giovanni→58, Champion→63).
 const ENDLESS_LEVEL_SLOTS = [
-  [1, 5], [8, 15], [14, 21], [21, 29], [29, 37],
-  [37, 43], [43, 47], [47, 52], [53, 64],
+  [4, 10], [12, 18], [18, 24], [24, 30], [35, 42],
+  [42, 46], [46, 51], [52, 58], [57, 63],
 ];
+const ENDLESS_TEAM_SIZES = [2, 2, 3, 3, 4, 4, 5, 5, 6];
 
 function getEndlessLevelRange(stageNum, regionNum, mapIndex) {
-  // Each stage restarts from slot 0 with a +10 level boost per stage
-  const localSlot = (regionNum - 1) * 5 + mapIndex;  // 0-14 within the stage
-  const stageBoost = (stageNum - 1) * 10;
+  // R1M1 (slot 0) is identical every stage. Every subsequent slot gains
+  // floor(0.5 * slot * (stage - 1)) levels so later maps scale harder in higher stages.
+  const localSlot = (regionNum - 1) * 3 + mapIndex;  // 0-8 within the stage
+  const stageBonus = Math.floor(0.5 * localSlot * (stageNum - 1));
   if (localSlot < ENDLESS_LEVEL_SLOTS.length) {
     const [min, max] = ENDLESS_LEVEL_SLOTS[localSlot];
-    return [min + stageBoost, max + stageBoost];
+    return [min + stageBonus, max + stageBonus];
   }
   const extra = localSlot - (ENDLESS_LEVEL_SLOTS.length - 1);
-  return [53 + stageBoost + extra * 8, 64 + stageBoost + extra * 8];
+  return [53 + stageBonus + extra * 8, 64 + stageBonus + extra * 8];
 }
 
 // ── Archetype pool ────────────────────────────────────────────────────────────
 
 const ENDLESS_ARCHETYPES = [
-  { id: 'dragon_master',    name: 'Dragon Master',    type: 'Dragon',   sprite: 'aceTrainer',
-    pool: [147,148,149,230,445,373,334,330,384,383] },
   { id: 'fire_ace',         name: 'Fire Ace',         type: 'Fire',     sprite: 'aceTrainer',
     pool: [4,5,6,58,59,77,78,126,136,38,250,157,156] },
   { id: 'psychic_sage',     name: 'Psychic Sage',     type: 'Psychic',  sprite: 'scientist',
@@ -122,26 +124,34 @@ function rollRegion(stageNum, regionNum) {
   const pool = ENDLESS_ARCHETYPES.filter(a => a.id !== 'elite_alltype');
   const shuffled = [...pool].sort(() => rng() - 0.5);
 
-  const regularBosses = shuffled.slice(0, 4).map((arch, i) => {
-    const [minL, maxL] = getEndlessLevelRange(stageNum, regionNum, i);
-    const level = Math.floor(minL + rng() * (maxL - minL + 1));
+  const slotBase = (regionNum - 1) * 3;
+
+  const regularBosses = shuffled.slice(0, 2).map((arch, i) => {
+    const [, maxL] = getEndlessLevelRange(stageNum, regionNum, i);
+    const level = maxL;
+    const teamSize = ENDLESS_TEAM_SIZES[slotBase + i] ?? 4;
     const eligible = arch.pool.filter(id => minLevelForSpecies(id) <= level);
     const srcPool = eligible.length ? eligible : arch.pool;
-    const ids = [...srcPool].sort(() => rng() - 0.5).slice(0, 4);
-    return { archetype: arch, level, moveTier, teamSize: 4, speciesIds: ids };
+    const ids = [...srcPool].sort(() => rng() - 0.5).slice(0, teamSize);
+    return { archetype: arch, level, moveTier, teamSize, speciesIds: ids };
   });
 
-  const bigBossArch = shuffled[4] || ENDLESS_ARCHETYPES.find(a => a.id !== 'elite_alltype');
-  const [bigMinL, bigMaxL] = getEndlessLevelRange(stageNum, regionNum, 4);
-  const bigBossLevel = Math.floor(bigMinL + rng() * (bigMaxL - bigMinL + 1));
+  // Region 3 big boss IS the stage final boss — use elite_alltype at +5 levels
+  const isFinalRegion = regionNum === 3;
+  const bigBossArch = isFinalRegion
+    ? ENDLESS_ARCHETYPES.find(a => a.id === 'elite_alltype')
+    : (shuffled[2] || ENDLESS_ARCHETYPES.find(a => a.id !== 'elite_alltype'));
+  const [, bigMaxL] = getEndlessLevelRange(stageNum, regionNum, 2);
+  const bigBossLevel = isFinalRegion ? bigMaxL + 5 : bigMaxL;
+  const bigBossTeamSize = ENDLESS_TEAM_SIZES[slotBase + 2] ?? 6;
   const bigBossEligible = bigBossArch.pool.filter(id => minLevelForSpecies(id) <= bigBossLevel);
   const bigBossSrcPool = bigBossEligible.length ? bigBossEligible : bigBossArch.pool;
-  const bigBossIds = [...bigBossSrcPool].sort(() => rng() - 0.5).slice(0, 6);
+  const bigBossIds = [...bigBossSrcPool].sort(() => rng() - 0.5).slice(0, bigBossTeamSize);
   const bigBoss = {
     archetype: bigBossArch,
     level: bigBossLevel,
     moveTier: moveTier + 1,
-    teamSize: 6,
+    teamSize: bigBossTeamSize,
     speciesIds: bigBossIds,
   };
 
@@ -175,235 +185,258 @@ function computeTraitTiers(team) {
 // ── Trait config builder ──────────────────────────────────────────────────────
 
 // Returns a traitsConfig object to pass to runBattle, or null if no active traits.
-function buildTraitsConfig(tiers) {
-  if (!tiers || Object.keys(tiers).length === 0) return null;
+// enemyTiers is optional — pass it for boss fights so the enemy also benefits from type traits.
+function buildTraitsConfig(playerTiers, enemyTiers = {}) {
+  playerTiers = playerTiers || {};
+  enemyTiers  = enemyTiers  || {};
+  if (!Object.keys(playerTiers).length && !Object.keys(enemyTiers).length) return null;
 
-  const traitTier = type => tiers[type] || 0;
-  const traitActive = type => traitTier(type) >= 1;
+  const tierFor   = (type, side) => ((side === 'player' ? playerTiers : enemyTiers)[type] || 0);
+  const activeFor = (type, side) => tierFor(type, side) >= 1;
 
   return {
 
     onStartFight(pTeam, eTeam, log) {
-      // Fire: +1/+2/+3 ATK and Sp.ATK stages to whole player team
-      if (traitActive('Fire')) {
-        const tier = traitTier('Fire');
-        const alive = pTeam.map((p, i) => ({ p, i })).filter(x => x.p.currentHp > 0);
-        for (const { p, i } of alive)
-          log.push({ type: 'trait_trigger', traitType: 'Fire', side: 'player', idx: i,
-            name: p.nickname || p.name, description: `Fire Trait T${tier}: +ATK & Sp.ATK!` });
-        for (const { p, i } of alive) {
-          applyStageChange(p, 'atk',     tier, 'player', i, log);
-          applyStageChange(p, 'special', tier, 'player', i, log);
+      for (const [side, myTeam, theirTeam] of [['player', pTeam, eTeam], ['enemy', eTeam, pTeam]]) {
+        const oppSide = side === 'player' ? 'enemy' : 'player';
+
+        // Fire: +tier ATK and Sp.ATK to whole team
+        if (activeFor('Fire', side)) {
+          const tier = tierFor('Fire', side);
+          const alive = myTeam.map((p, i) => ({ p, i })).filter(x => x.p.currentHp > 0);
+          for (const { p, i } of alive)
+            log.push({ type: 'trait_trigger', traitType: 'Fire', side, idx: i,
+              name: p.nickname || p.name, description: `Fire Trait T${tier}: +ATK & Sp.ATK!` });
+          for (const { p, i } of alive) {
+            applyStageChange(p, 'atk',     tier, side, i, log);
+            applyStageChange(p, 'special', tier, side, i, log);
+          }
         }
-      }
 
-      // Ground: +2/+4/+6 DEF stages to whole player team
-      if (traitActive('Ground')) {
-        const tier = traitTier('Ground');
-        const boost = tier * 2;
-        const alive = pTeam.map((p, i) => ({ p, i })).filter(x => x.p.currentHp > 0);
-        for (const { p, i } of alive)
-          log.push({ type: 'trait_trigger', traitType: 'Ground', side: 'player', idx: i,
-            name: p.nickname || p.name, description: `Ground Trait T${tier}: +DEF!` });
-        for (const { p, i } of alive)
-          applyStageChange(p, 'def', boost, 'player', i, log);
-      }
-
-      // Fairy: enemy team gets -tier ATK and Sp.ATK at fight start
-      if (traitActive('Fairy')) {
-        const tier = traitTier('Fairy');
-        const pAlive = pTeam.map((p, i) => ({ p, i })).filter(x => x.p.currentHp > 0);
-        const eAlive = eTeam.map((p, i) => ({ p, i })).filter(x => x.p.currentHp > 0);
-        for (const { p, i } of pAlive)
-          log.push({ type: 'trait_trigger', traitType: 'Fairy', side: 'player', idx: i,
-            name: p.nickname || p.name, description: `Fairy Trait T${tier}: Charmed enemies!` });
-        for (const { p, i } of eAlive) {
-          applyStageChange(p, 'atk',     -tier, 'enemy', i, log);
-          applyStageChange(p, 'special', -tier, 'enemy', i, log);
+        // Ground: +tier*2 DEF to whole team
+        if (activeFor('Ground', side)) {
+          const tier = tierFor('Ground', side);
+          const boost = tier * 2;
+          const alive = myTeam.map((p, i) => ({ p, i })).filter(x => x.p.currentHp > 0);
+          for (const { p, i } of alive)
+            log.push({ type: 'trait_trigger', traitType: 'Ground', side, idx: i,
+              name: p.nickname || p.name, description: `Ground Trait T${tier}: +DEF!` });
+          for (const { p, i } of alive)
+            applyStageChange(p, 'def', boost, side, i, log);
         }
-      }
 
-      // Normal: +25/50/100% max HP bonus to whole player team
-      if (traitActive('Normal')) {
-        const tier = traitTier('Normal');
-        const pct = [0, 0.25, 0.50, 1.00][tier];
-        const alive = pTeam.map((p, i) => ({ p, i })).filter(x => x.p.currentHp > 0);
-        for (const { p, i } of alive)
-          log.push({ type: 'trait_trigger', traitType: 'Normal', side: 'player', idx: i,
-            name: p.nickname || p.name, description: `Normal Trait T${tier}: +${Math.round(pct*100)}% HP!` });
-        for (const { p, i } of alive) {
-          const bonus = Math.floor(p.maxHp * pct);
-          p.maxHp += bonus;
-          p.currentHp = Math.min(p.currentHp + bonus, p.maxHp);
-          log.push({ type: 'effect', side: 'player', idx: i, name: p.nickname || p.name,
-            hpChange: bonus, hpAfter: p.currentHp, newMaxHp: p.maxHp, reason: `Normal Trait: +${bonus} max HP!` });
+        // Fairy: opposing team gets -tier ATK and Sp.ATK
+        if (activeFor('Fairy', side)) {
+          const tier = tierFor('Fairy', side);
+          const myAlive   = myTeam.map((p, i) => ({ p, i })).filter(x => x.p.currentHp > 0);
+          const theirAlive = theirTeam.map((p, i) => ({ p, i })).filter(x => x.p.currentHp > 0);
+          for (const { p, i } of myAlive)
+            log.push({ type: 'trait_trigger', traitType: 'Fairy', side, idx: i,
+              name: p.nickname || p.name, description: `Fairy Trait T${tier}: Charmed enemies!` });
+          for (const { p, i } of theirAlive) {
+            applyStageChange(p, 'atk',     -tier, oppSide, i, log);
+            applyStageChange(p, 'special', -tier, oppSide, i, log);
+          }
         }
-      }
-    },
 
-    afterAttack(attacker, aIdx, aSide, target, tIdx, tSide, damage, log, pTeam, eTeam) {
-      if (aSide !== 'player' || damage <= 0) return;
-
-      // Electric: 10/20/30% chance to deal the same damage again
-      if (traitActive('Electric') && !attacker._electricBonusFired) {
-        const tier = traitTier('Electric');
-        const chance = [0, 0.10, 0.20, 0.30][tier];
-        if (rng() < chance) {
-          attacker._electricBonusFired = true;
-          target.currentHp = Math.max(0, target.currentHp - damage);
-          log.push({ type: 'trait_trigger', traitType: 'Electric', side: 'player', idx: aIdx,
-            name: attacker.nickname || attacker.name, description: `Electric Trait T${tier}: Second hit!` });
-          log.push({ type: 'effect', side: tSide, idx: tIdx, name: target.nickname || target.name,
-            hpChange: -damage, hpAfter: target.currentHp, reason: `Electric Trait: −${damage} HP` });
-          // Don't push faint here — battle.js faint check handles it after afterAttack returns
-          attacker._electricBonusFired = false;
-        }
-      }
-
-      // Ghost: execute enemy below 15/30/50% HP threshold
-      if (traitActive('Ghost') && tSide === 'enemy' && target.currentHp > 0) {
-        const tier = traitTier('Ghost');
-        const threshold = [0, 0.15, 0.30, 0.50][tier];
-        if (target.currentHp / target.maxHp < threshold) {
-          const execDmg = target.currentHp;
-          target.currentHp = 0;
-          log.push({ type: 'trait_trigger', traitType: 'Ghost', side: 'player', idx: aIdx,
-            name: attacker.nickname || attacker.name, description: `Ghost Trait T${tier}: Execute!` });
-          log.push({ type: 'effect', side: 'enemy', idx: tIdx, name: target.nickname || target.name,
-            hpChange: -execDmg, hpAfter: 0, reason: `Ghost Trait: executed!` });
-          // Don't push faint here — battle.js faint check handles it after afterAttack returns
-        }
-      }
-
-      // Grass: heal 7/14/21% of dealt damage
-      if (traitActive('Grass') && attacker.currentHp > 0) {
-        const tier = traitTier('Grass');
-        const pct = [0, 0.07, 0.14, 0.21][tier];
-        const heal = Math.max(1, Math.floor(damage * pct));
-        const actual = Math.min(heal, attacker.maxHp - attacker.currentHp);
-        if (actual > 0) {
-          attacker.currentHp += actual;
-          log.push({ type: 'trait_trigger', traitType: 'Grass', side: 'player', idx: aIdx,
-            name: attacker.nickname || attacker.name, description: `Grass Trait T${tier}: healed ${actual}!` });
-          log.push({ type: 'effect', side: 'player', idx: aIdx, name: attacker.nickname || attacker.name,
-            hpChange: actual, hpAfter: attacker.currentHp, reason: `Grass Trait: +${actual} HP` });
-        }
-      }
-
-      // Ice: 10/20/30% chance to freeze enemy
-      if (traitActive('Ice') && tSide === 'enemy' && target.currentHp > 0 && !target.status) {
-        const tier = traitTier('Ice');
-        const chance = [0, 0.10, 0.20, 0.30][tier];
-        if (rng() < chance) {
-          applyStatus(target, 'freeze', tSide, tIdx, log);
-          log.push({ type: 'trait_trigger', traitType: 'Ice', side: 'player', idx: aIdx,
-            name: attacker.nickname || attacker.name, description: `Ice Trait T${tier}: Froze enemy!` });
-        }
-      }
-
-      // Poison: 33/66/100% chance to poison enemy
-      if (traitActive('Poison') && tSide === 'enemy' && target.currentHp > 0 && !target.status) {
-        const tier = traitTier('Poison');
-        const chance = [0, 0.33, 0.66, 1.00][tier];
-        if (rng() < chance) {
-          applyStatus(target, 'poison', tSide, tIdx, log);
-          log.push({ type: 'trait_trigger', traitType: 'Poison', side: 'player', idx: aIdx,
-            name: attacker.nickname || attacker.name, description: `Poison Trait T${tier}: Poisoned!` });
-        }
-      }
-
-      // Dark: 30/60/100% chance to steal enemy held item
-      if (traitActive('Dark') && tSide === 'enemy' && target.currentHp > 0 && target.heldItem && !attacker.heldItem) {
-        const tier = traitTier('Dark');
-        const chance = [0, 0.30, 0.60, 1.00][tier];
-        if (rng() < chance) {
-          attacker.heldItem = target.heldItem;
-          target.heldItem = null;
-          log.push({ type: 'trait_trigger', traitType: 'Dark', side: 'player', idx: aIdx,
-            name: attacker.nickname || attacker.name, description: `Dark Trait T${tier}: Stole ${attacker.heldItem.name || attacker.heldItem.id}!` });
-        }
-      }
-
-      // Rock: attacker gets +1 DEF and +1 Sp.DEF after each attack
-      if (traitActive('Rock') && attacker.currentHp > 0) {
-        log.push({ type: 'trait_trigger', traitType: 'Rock', side: 'player', idx: aIdx,
-          name: attacker.nickname || attacker.name, description: `Rock Trait: +DEF, +Sp.DEF!` });
-        applyStageChange(attacker, 'def',   1, 'player', aIdx, log);
-        applyStageChange(attacker, 'spdef', 1, 'player', aIdx, log);
-      }
-
-      // Water: enemy gets -tier Speed, ATK, Sp.ATK
-      if (traitActive('Water') && tSide === 'enemy' && target.currentHp > 0) {
-        const tier = traitTier('Water');
-        log.push({ type: 'trait_trigger', traitType: 'Water', side: 'player', idx: aIdx,
-          name: attacker.nickname || attacker.name, description: `Water Trait T${tier}: debuffed enemy!` });
-        applyStageChange(target, 'speed',   -tier, tSide, tIdx, log);
-        applyStageChange(target, 'atk',     -tier, tSide, tIdx, log);
-        applyStageChange(target, 'special', -tier, tSide, tIdx, log);
-      }
-
-      // Psychic: deal 10% of dealt damage to all other alive enemy pokemon
-      if (traitActive('Psychic') && tSide === 'enemy') {
-        const splash = Math.max(1, Math.floor(damage * 0.10));
-        for (let i = 0; i < eTeam.length; i++) {
-          if (i === tIdx || eTeam[i].currentHp <= 0) continue;
-          eTeam[i].currentHp = Math.max(0, eTeam[i].currentHp - splash);
-          log.push({ type: 'trait_trigger', traitType: 'Psychic', side: 'enemy', idx: i,
-            name: eTeam[i].nickname || eTeam[i].name, description: `Psychic Trait: ${splash} splash!` });
-          log.push({ type: 'effect', side: 'enemy', idx: i, name: eTeam[i].nickname || eTeam[i].name,
-            hpChange: -splash, hpAfter: eTeam[i].currentHp, reason: `Psychic Trait: −${splash} HP` });
-          if (eTeam[i].currentHp === 0) {
-            log.push({ type: 'faint', side: 'enemy', idx: i, name: eTeam[i].nickname || eTeam[i].name });
+        // Normal: +25/50/100% max HP bonus to whole team
+        if (activeFor('Normal', side)) {
+          const tier = tierFor('Normal', side);
+          const pct = [0, 0.25, 0.50, 1.00][tier];
+          const alive = myTeam.map((p, i) => ({ p, i })).filter(x => x.p.currentHp > 0);
+          for (const { p, i } of alive)
+            log.push({ type: 'trait_trigger', traitType: 'Normal', side, idx: i,
+              name: p.nickname || p.name, description: `Normal Trait T${tier}: +${Math.round(pct*100)}% HP!` });
+          for (const { p, i } of alive) {
+            const bonus = Math.floor(p.maxHp * pct);
+            p.maxHp += bonus;
+            p.currentHp = Math.min(p.currentHp + bonus, p.maxHp);
+            log.push({ type: 'effect', side, idx: i, name: p.nickname || p.name,
+              hpChange: bonus, hpAfter: p.currentHp, newMaxHp: p.maxHp, reason: `Normal Trait: +${bonus} max HP!` });
           }
         }
       }
     },
 
-    whenAttacked(defender, dIdx, dSide, attacker, aIdx, aSide, damage, log) {
-      if (dSide !== 'player') return;
+    afterAttack(attacker, aIdx, aSide, target, tIdx, tSide, damage, log, pTeam, eTeam) {
+      if (damage <= 0) return;
 
-      // Steel: reduce incoming damage by 10/20/30% (retroactively heal the reduction back)
-      if (traitActive('Steel') && defender.currentHp > 0) {
-        const tier = traitTier('Steel');
+      // Collect triggers and effects separately so all trait_triggers are consecutive
+      // in the log (enabling simultaneous batch animation), matching onStartFight pattern.
+      const triggers = [];
+      const efx = [];
+
+      // Electric: 10/20/30% chance to deal the same damage again
+      if (activeFor('Electric', aSide) && !attacker._electricBonusFired) {
+        const tier = tierFor('Electric', aSide);
+        const chance = [0, 0.10, 0.20, 0.30][tier];
+        if (rng() < chance) {
+          attacker._electricBonusFired = true;
+          target.currentHp = Math.max(0, target.currentHp - damage);
+          triggers.push({ type: 'trait_trigger', traitType: 'Electric', side: aSide, idx: aIdx,
+            name: attacker.nickname || attacker.name, description: `Electric Trait T${tier}: Second hit!` });
+          efx.push({ type: 'effect', side: tSide, idx: tIdx, name: target.nickname || target.name,
+            hpChange: -damage, hpAfter: target.currentHp, reason: `Electric Trait: −${damage} HP` });
+          attacker._electricBonusFired = false;
+        }
+      }
+
+      // Ghost: execute target below HP threshold
+      if (activeFor('Ghost', aSide) && tSide !== aSide && target.currentHp > 0) {
+        const tier = tierFor('Ghost', aSide);
+        const threshold = [0, 0.15, 0.30, 0.50][tier];
+        if (target.currentHp / target.maxHp < threshold) {
+          const execDmg = target.currentHp;
+          target.currentHp = 0;
+          triggers.push({ type: 'trait_trigger', traitType: 'Ghost', side: aSide, idx: aIdx,
+            name: attacker.nickname || attacker.name, description: `Ghost Trait T${tier}: Execute!` });
+          efx.push({ type: 'effect', side: tSide, idx: tIdx, name: target.nickname || target.name,
+            hpChange: -execDmg, hpAfter: 0, reason: `Ghost Trait: executed!` });
+        }
+      }
+
+      // Grass: heal % of dealt damage
+      if (activeFor('Grass', aSide) && attacker.currentHp > 0) {
+        const tier = tierFor('Grass', aSide);
+        const pct = [0, 0.07, 0.14, 0.21][tier];
+        const heal = Math.max(1, Math.floor(damage * pct));
+        const actual = Math.min(heal, attacker.maxHp - attacker.currentHp);
+        if (actual > 0) {
+          attacker.currentHp += actual;
+          triggers.push({ type: 'trait_trigger', traitType: 'Grass', side: aSide, idx: aIdx,
+            name: attacker.nickname || attacker.name, description: `Grass Trait T${tier}: healed ${actual}!` });
+          efx.push({ type: 'effect', side: aSide, idx: aIdx, name: attacker.nickname || attacker.name,
+            hpChange: actual, hpAfter: attacker.currentHp, reason: `Grass Trait: +${actual} HP` });
+        }
+      }
+
+      // Ice: chance to freeze target
+      if (activeFor('Ice', aSide) && tSide !== aSide && target.currentHp > 0 && !target.status) {
+        const tier = tierFor('Ice', aSide);
+        const chance = [0, 0.10, 0.20, 0.30][tier];
+        if (rng() < chance) {
+          applyStatus(target, 'freeze', tSide, tIdx, efx);
+          triggers.push({ type: 'trait_trigger', traitType: 'Ice', side: aSide, idx: aIdx,
+            name: attacker.nickname || attacker.name, description: `Ice Trait T${tier}: Froze enemy!` });
+        }
+      }
+
+      // Poison: chance to poison target
+      if (activeFor('Poison', aSide) && tSide !== aSide && target.currentHp > 0 && !target.status) {
+        const tier = tierFor('Poison', aSide);
+        const chance = [0, 0.33, 0.66, 1.00][tier];
+        if (rng() < chance) {
+          applyStatus(target, 'poison', tSide, tIdx, efx);
+          triggers.push({ type: 'trait_trigger', traitType: 'Poison', side: aSide, idx: aIdx,
+            name: attacker.nickname || attacker.name, description: `Poison Trait T${tier}: Poisoned!` });
+        }
+      }
+
+      // Dark: chance to steal target's held item
+      if (activeFor('Dark', aSide) && tSide !== aSide && target.currentHp > 0 && target.heldItem && !attacker.heldItem) {
+        const tier = tierFor('Dark', aSide);
+        const chance = [0, 0.30, 0.60, 1.00][tier];
+        if (rng() < chance) {
+          attacker.heldItem = target.heldItem;
+          target.heldItem = null;
+          triggers.push({ type: 'trait_trigger', traitType: 'Dark', side: aSide, idx: aIdx,
+            name: attacker.nickname || attacker.name, description: `Dark Trait T${tier}: Stole ${attacker.heldItem.name || attacker.heldItem.id}!` });
+        }
+      }
+
+      // Rock: +1 DEF and +1 Sp.DEF to attacker after each attack
+      if (activeFor('Rock', aSide) && attacker.currentHp > 0) {
+        triggers.push({ type: 'trait_trigger', traitType: 'Rock', side: aSide, idx: aIdx,
+          name: attacker.nickname || attacker.name, description: `Rock Trait: +DEF, +Sp.DEF!` });
+        applyStageChange(attacker, 'def',   1, aSide, aIdx, efx);
+        applyStageChange(attacker, 'spdef', 1, aSide, aIdx, efx);
+      }
+
+      // Water: -tier Speed, ATK, Sp.ATK to target
+      if (activeFor('Water', aSide) && tSide !== aSide && target.currentHp > 0) {
+        const tier = tierFor('Water', aSide);
+        triggers.push({ type: 'trait_trigger', traitType: 'Water', side: aSide, idx: aIdx,
+          name: attacker.nickname || attacker.name, description: `Water Trait T${tier}: debuffed enemy!` });
+        applyStageChange(target, 'speed',   -tier, tSide, tIdx, efx);
+        applyStageChange(target, 'atk',     -tier, tSide, tIdx, efx);
+        applyStageChange(target, 'special', -tier, tSide, tIdx, efx);
+      }
+
+      // Psychic: 10% splash to all other members of target's team
+      if (activeFor('Psychic', aSide) && tSide !== aSide) {
+        const targetTeam = tSide === 'enemy' ? eTeam : pTeam;
+        const splash = Math.max(1, Math.floor(damage * 0.10));
+        for (let i = 0; i < targetTeam.length; i++) {
+          if (i === tIdx || targetTeam[i].currentHp <= 0) continue;
+          targetTeam[i].currentHp = Math.max(0, targetTeam[i].currentHp - splash);
+          triggers.push({ type: 'trait_trigger', traitType: 'Psychic', side: tSide, idx: i,
+            name: targetTeam[i].nickname || targetTeam[i].name, description: `Psychic Trait: ${splash} splash!` });
+          efx.push({ type: 'effect', side: tSide, idx: i, name: targetTeam[i].nickname || targetTeam[i].name,
+            hpChange: -splash, hpAfter: targetTeam[i].currentHp, reason: `Psychic Trait: −${splash} HP` });
+          if (targetTeam[i].currentHp === 0)
+            efx.push({ type: 'faint', side: tSide, idx: i, name: targetTeam[i].nickname || targetTeam[i].name });
+        }
+      }
+
+      for (const e of triggers) log.push(e);
+      for (const e of efx) log.push(e);
+    },
+
+    whenAttacked(defender, dIdx, dSide, attacker, aIdx, aSide, damage, log) {
+      // Steel: reduce incoming damage (retroactively heal back)
+      if (activeFor('Steel', dSide) && defender.currentHp > 0) {
+        const tier = tierFor('Steel', dSide);
         const reduction = Math.floor(damage * [0, 0.10, 0.20, 0.30][tier]);
         if (reduction > 0) {
           defender.currentHp = Math.min(defender.maxHp, defender.currentHp + reduction);
-          log.push({ type: 'trait_trigger', traitType: 'Steel', side: 'player', idx: dIdx,
+          log.push({ type: 'trait_trigger', traitType: 'Steel', side: dSide, idx: dIdx,
             name: defender.nickname || defender.name, description: `Steel Trait T${tier}: −${reduction} damage!` });
-          log.push({ type: 'effect', side: 'player', idx: dIdx, name: defender.nickname || defender.name,
+          log.push({ type: 'effect', side: dSide, idx: dIdx, name: defender.nickname || defender.name,
             hpChange: reduction, hpAfter: defender.currentHp, reason: `Steel Trait: absorbed ${reduction} damage` });
         }
       }
 
-      // Flying: 15/30/50% chance to dodge (retroactively heal the damage back)
-      if (traitActive('Flying') && defender.currentHp > 0) {
-        const tier = traitTier('Flying');
+      // Flying: chance to dodge (retroactively heal back)
+      if (activeFor('Flying', dSide) && defender.currentHp > 0) {
+        const tier = tierFor('Flying', dSide);
         const chance = [0, 0.15, 0.30, 0.50][tier];
         if (rng() < chance) {
           const recovered = Math.min(damage, defender.maxHp - defender.currentHp);
           if (recovered > 0) {
             defender.currentHp = Math.min(defender.maxHp, defender.currentHp + recovered);
-            log.push({ type: 'trait_trigger', traitType: 'Flying', side: 'player', idx: dIdx,
+            log.push({ type: 'trait_trigger', traitType: 'Flying', side: dSide, idx: dIdx,
               name: defender.nickname || defender.name, description: `Flying Trait T${tier}: Dodged!` });
-            log.push({ type: 'effect', side: 'player', idx: dIdx, name: defender.nickname || defender.name,
+            log.push({ type: 'effect', side: dSide, idx: dIdx, name: defender.nickname || defender.name,
               hpChange: recovered, hpAfter: defender.currentHp, reason: `Flying Trait: dodged! +${recovered} HP` });
           }
         }
       }
     },
 
-    onKO(fainted, fIdx, fSide, killer, kIdx, kSide, log) {
-      if (kSide !== 'player') return;
-
-      // Dragon: active Dragon-type killer gets +1 Speed, +1 ATK, +1 Sp.ATK on KO
-      if (traitActive('Dragon') && killer.currentHp > 0) {
-        if ((killer.types || []).some(t => t === 'Dragon')) {
-          log.push({ type: 'trait_trigger', traitType: 'Dragon', side: 'player', idx: kIdx,
-            name: killer.nickname || killer.name, description: `Dragon Trait: Powered up on KO!` });
-          applyStageChange(killer, 'speed',   1, 'player', kIdx, log);
-          applyStageChange(killer, 'atk',     1, 'player', kIdx, log);
-          applyStageChange(killer, 'special', 1, 'player', kIdx, log);
+    onKO(fainted, fIdx, fSide, killer, kIdx, kSide, log, pTeam, eTeam) {
+      // Fighting: when a pokemon faints, surviving teammates on the same side get ATK boost
+      if (activeFor('Fighting', fSide)) {
+        const tier = tierFor('Fighting', fSide);
+        const fTeam = fSide === 'player' ? pTeam : eTeam;
+        const survivors = fTeam.map((p, i) => ({ p, i })).filter(x => x.p.currentHp > 0);
+        const triggers = [];
+        const efx = [];
+        for (const { p, i } of survivors) {
+          triggers.push({ type: 'trait_trigger', traitType: 'Fighting', side: fSide, idx: i,
+            name: p.nickname || p.name, description: `Fighting Trait T${tier}: Rally!` });
+          applyStageChange(p, 'atk', tier, fSide, i, efx);
         }
+        for (const e of triggers) log.push(e);
+        for (const e of efx) log.push(e);
+      }
+
+      // Dragon: killer gets +1 Speed, ATK, Sp.ATK on KO
+      if (activeFor('Dragon', kSide) && killer.currentHp > 0) {
+        log.push({ type: 'trait_trigger', traitType: 'Dragon', side: kSide, idx: kIdx,
+          name: killer.nickname || killer.name, description: `Dragon Trait: Powered up on KO!` });
+        applyStageChange(killer, 'speed',   1, kSide, kIdx, log);
+        applyStageChange(killer, 'atk',     1, kSide, kIdx, log);
+        applyStageChange(killer, 'special', 1, kSide, kIdx, log);
       }
     },
   };

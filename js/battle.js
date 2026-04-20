@@ -93,7 +93,8 @@ function getEffectiveStat(pokemon, stat, items, stages = null) {
   const rawStat = stat === 'spdef'
     ? (pokemon.baseStats?.spdef ?? pokemon.baseStats?.special ?? 50)
     : (pokemon.baseStats?.[stat] ?? 50);
-  let val = rawStat || 50;
+  const buffCount = pokemon.statBuffs?.[stat] ?? 0;
+  let val = Math.floor((rawStat || 50) * (1 + 0.1 * buffCount));
   val = Math.floor(val * pokemon.level / 50) + 5;
 
   const team = typeof state !== 'undefined' ? state.team : [];
@@ -329,7 +330,7 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog, traitsCon
         addLog(`${tName} fainted!`, 'log-faint');
         detailedLog.push({ type: 'faint', side: tSide, idx: tIdx, name: tName });
         if (traitsConfig?.onKO) {
-          traitsConfig.onKO(target, tIdx, tSide, attacker, aIdx, side, detailedLog);
+          traitsConfig.onKO(target, tIdx, tSide, attacker, aIdx, side, detailedLog, pTeam, eTeam);
         }
         const nextTeam = tSide === 'player' ? pTeam : eTeam;
         const next = nextTeam.map((p, i) => ({ p, idx: i })).find(x => x.p.currentHp > 0);
