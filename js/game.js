@@ -183,8 +183,10 @@ async function showStarterSelect() {
   const startLevel = 5;
 
   container.innerHTML = '';
+  container.parentElement.querySelectorAll('.hof-starter-label').forEach(el => el.remove());
   if (hofMode) {
     const label = document.createElement('div');
+    label.className = 'hof-starter-label';
     label.style.cssText = 'font-family:"Press Start 2P",monospace;font-size:8px;color:gold;text-align:center;margin-bottom:6px;';
     label.textContent = 'Choose a Hall of Fame starter';
     container.parentElement.insertBefore(label, container);
