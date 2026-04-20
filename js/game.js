@@ -568,12 +568,16 @@ async function doCatchNode(node) {
     const filtered = choices.filter(sp => !teamIds.has(sp.id));
     choices = (filtered.length > 0 ? filtered : choices).slice(0, 1);
   }
+  if (state.isEndlessMode) {
+    const teamIds = new Set(state.team.map(p => p.speciesId));
+    const filtered = choices.filter(sp => !teamIds.has(sp.id ?? sp.speciesId));
+    if (filtered.length > 0) choices = filtered;
+  }
   const instances = choices.map(sp => createInstance(sp, level, rng() < (hasShinyCharm() ? 0.02 : 0.01), getMoveТierForMap(state.currentMap)));
+  const rerolled = new Set();
 
-  choicesEl.innerHTML = '';
-  const dex = getPokedex();
-  for (const inst of instances) {
-    const caught = !!(dex[inst.speciesId]?.caught);
+  function renderCatchSlot(inst, slotIdx) {
+    const caught = !!(getPokedex()[inst.speciesId]?.caught);
     const wrapper = document.createElement('div');
     wrapper.innerHTML = renderPokemonCard(inst, true, false, caught);
     const card = wrapper.querySelector('.poke-card');
@@ -581,12 +585,34 @@ async function doCatchNode(node) {
     card.setAttribute('role', 'button');
     card.setAttribute('tabindex', '0');
     card.addEventListener('click', () => catchPokemon(inst, node));
-    card.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' ') catchPokemon(inst, node); });
+    card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') catchPokemon(inst, node); });
     const wrap = document.createElement('div');
     wrap.className = 'poke-choice-wrap';
     wrap.appendChild(card);
     wrap.insertAdjacentHTML('beforeend', renderTraitPreview(inst, state.team));
-    choicesEl.appendChild(wrap);
+    if (state.isEndlessMode && !rerolled.has(slotIdx)) {
+      const btn = document.createElement('button');
+      btn.className = 'btn-secondary reroll-btn';
+      btn.textContent = 'Reroll';
+      btn.addEventListener('click', async () => {
+        rerolled.add(slotIdx);
+        btn.disabled = true;
+        const fresh = await getCatchChoices(getEncounterMapIndex());
+        const usedIds = new Set(instances.map(i => i.speciesId));
+        const pool = fresh.filter(sp => !usedIds.has(sp.id ?? sp.speciesId));
+        const pick = (pool.length > 0 ? pool : fresh)[Math.floor(rng() * (pool.length > 0 ? pool.length : fresh.length))];
+        const newInst = createInstance(pick, level, rng() < (hasShinyCharm() ? 0.02 : 0.01), getMoveТierForMap(state.currentMap));
+        instances[slotIdx] = newInst;
+        choicesEl.replaceChild(renderCatchSlot(newInst, slotIdx), choicesEl.children[slotIdx]);
+      });
+      wrap.appendChild(btn);
+    }
+    return wrap;
+  }
+
+  choicesEl.innerHTML = '';
+  for (let i = 0; i < instances.length; i++) {
+    choicesEl.appendChild(renderCatchSlot(instances[i], i));
   }
 
   document.getElementById('btn-skip-catch').onclick = () => {
@@ -1561,8 +1587,10 @@ function startEndlessMap() {
   // Full heal at the start of every map in endless mode
   for (const p of state.team) p.currentHp = p.maxHp;
 
-  // Pick a map template that scales with stage/region — higher stages use later map indices
-  const fakeMapIndex = Math.min(7, endlessState.stageNumber + endlessState.regionNumber);
+  // R1M1 always uses fakeMapIndex 2 so move tier and layout stay identical to stage 1.
+  // Other maps scale with stage+region as before.
+  const isFirstMap = endlessState.regionNumber === 1 && endlessState.mapIndexInRegion === 0;
+  const fakeMapIndex = isFirstMap ? 2 : Math.min(7, endlessState.stageNumber + endlessState.regionNumber);
   state.currentMap = fakeMapIndex;
   state.map = generateMap(fakeMapIndex, false);
   state.endlessLevelRange = getEndlessLevelRange(endlessState.stageNumber, endlessState.regionNumber, endlessState.mapIndexInRegion);

@@ -394,6 +394,7 @@ const TYPE_COLORS_RGB = {
   fighting:'220,60,30', poison:'160,60,220', ground:'180,140,60',
   flying:'130,180,255', psychic:'255,80,180', bug:'100,200,50',
   rock:'160,130,80', ghost:'100,60,180', dragon:'60,80,220',
+  dark:'80,60,80', steel:'160,160,180', fairy:'255,140,200',
 };
 
 function resizeCanvasIfNeeded(canvas) {
@@ -1259,6 +1260,203 @@ function animTeleport(canvas, ctx, from, to) {
   });
 }
 
+function animPlayRough(canvas, ctx, from, to) {
+  // Playful sparkle-charged tackle: attacker rushes to target, pink sparkles burst on impact
+  return runCanvas(canvas, ctx, 420, (ctx, t) => {
+    const dx = to.x - from.x, dy = to.y - from.y;
+    if (t < 0.45) {
+      const st = t / 0.45;
+      const px = lerp(from.x, to.x, st), py = lerp(from.y, to.y, st);
+      // Trail of pink sparkles
+      for (let i = 0; i < 4; i++) {
+        const bt = Math.max(0, st - i * 0.07);
+        const bx = lerp(from.x, to.x, bt) + (Math.random() - 0.5) * 12;
+        const by = lerp(from.y, to.y, bt) + (Math.random() - 0.5) * 12;
+        ctx.beginPath(); ctx.arc(bx, by, 4 * (1 - i * 0.2), 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255,160,210,${0.7 - i * 0.15})`; ctx.fill();
+      }
+      // Attacker indicator
+      ctx.beginPath(); ctx.arc(px, py, 10, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,100,180,0.5)'; ctx.fill();
+    } else {
+      // Impact burst
+      const it = (t - 0.45) / 0.55;
+      const a = 1 - it;
+      // 5-point star burst
+      for (let s = 0; s < 5; s++) {
+        const ang = (s / 5) * Math.PI * 2 - Math.PI / 2;
+        const r = it * 55;
+        const ex = to.x + Math.cos(ang) * r, ey = to.y + Math.sin(ang) * r;
+        ctx.beginPath(); ctx.moveTo(to.x, to.y); ctx.lineTo(ex, ey);
+        ctx.strokeStyle = `rgba(255,140,210,${a * 0.9})`; ctx.lineWidth = 3 - it * 2; ctx.stroke();
+        ctx.beginPath(); ctx.arc(ex, ey, 5 * (1 - it), 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255,200,230,${a})`; ctx.fill();
+      }
+      // Pink shockwave ring
+      ctx.beginPath(); ctx.arc(to.x, to.y, it * 45, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(255,120,200,${a * 0.8})`; ctx.lineWidth = 4 * (1 - it) + 1; ctx.stroke();
+    }
+  });
+}
+
+function animSpiritBreak(canvas, ctx, from, to) {
+  // Fairy energy spirals inward from all directions, then explodes through the target
+  return runCanvas(canvas, ctx, 600, (ctx, t) => {
+    if (t < 0.5) {
+      // Phase 1: 8 glowing orbs spiral in toward target
+      const st = t / 0.5;
+      for (let i = 0; i < 8; i++) {
+        const baseAng = (i / 8) * Math.PI * 2;
+        const ang = baseAng - st * Math.PI * 1.5;
+        const dist = lerp(120, 0, st * st);
+        const ox = to.x + Math.cos(ang) * dist, oy = to.y + Math.sin(ang) * dist;
+        const size = lerp(8, 3, st);
+        ctx.beginPath(); ctx.arc(ox, oy, size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255,${Math.floor(lerp(100,220,st))},240,${0.8 - st * 0.2})`; ctx.fill();
+        // Glow
+        const grad = ctx.createRadialGradient(ox, oy, 0, ox, oy, size * 2.5);
+        grad.addColorStop(0, `rgba(255,160,255,0.4)`);
+        grad.addColorStop(1, `rgba(255,160,255,0)`);
+        ctx.beginPath(); ctx.arc(ox, oy, size * 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = grad; ctx.fill();
+      }
+    } else {
+      // Phase 2: spirit shatter explosion
+      const it = (t - 0.5) / 0.5;
+      const a = 1 - it;
+      // Large expanding rings
+      for (let r = 0; r < 3; r++) {
+        const rp = Math.min(1, it + r * 0.15);
+        ctx.beginPath(); ctx.arc(to.x, to.y, rp * 80, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(255,${Math.floor(180 - r * 40)},255,${a * (0.9 - r * 0.2)})`; ctx.lineWidth = 5 - r * 1.5; ctx.stroke();
+      }
+      // Radial sparkle burst
+      for (let s = 0; s < 12; s++) {
+        const ang = (s / 12) * Math.PI * 2;
+        const r = it * 90;
+        ctx.beginPath(); ctx.moveTo(to.x + Math.cos(ang) * r * 0.3, to.y + Math.sin(ang) * r * 0.3);
+        ctx.lineTo(to.x + Math.cos(ang) * r, to.y + Math.sin(ang) * r);
+        ctx.strokeStyle = `rgba(255,200,255,${a * 0.8})`; ctx.lineWidth = 2; ctx.stroke();
+      }
+      // Central flash
+      const flash = Math.max(0, 1 - it * 3);
+      if (flash > 0) {
+        const g = ctx.createRadialGradient(to.x, to.y, 0, to.x, to.y, 40);
+        g.addColorStop(0, `rgba(255,255,255,${flash})`);
+        g.addColorStop(1, `rgba(255,160,255,0)`);
+        ctx.beginPath(); ctx.arc(to.x, to.y, 40, 0, Math.PI * 2);
+        ctx.fillStyle = g; ctx.fill();
+      }
+    }
+  });
+}
+
+function animDazzlingGleam(canvas, ctx, from, to) {
+  // Brilliant light rays radiate forward from attacker and wash over target
+  return runCanvas(canvas, ctx, 550, (ctx, t) => {
+    const dx = to.x - from.x, dy = to.y - from.y;
+    const dist = Math.hypot(dx, dy);
+    const nx = dx / dist, ny = dy / dist;
+    // Phase 1 (0–0.4): rays of light shoot forward
+    if (t < 0.55) {
+      const st = t / 0.55;
+      const reach = lerp(0, dist + 30, st);
+      for (let r = 0; r < 7; r++) {
+        const spread = (r - 3) * 18 * (Math.PI / 180);
+        const cos = Math.cos(spread), sin = Math.sin(spread);
+        const rvx = nx * cos - ny * sin, rvy = ny * cos + nx * sin;
+        const ex = from.x + rvx * reach, ey = from.y + rvy * reach;
+        const a = r === 3 ? 0.9 : 0.6 - Math.abs(r - 3) * 0.12;
+        const w = r === 3 ? 5 : 3 - Math.abs(r - 3) * 0.5;
+        const grad = ctx.createLinearGradient(from.x, from.y, ex, ey);
+        grad.addColorStop(0, `rgba(255,255,200,0)`);
+        grad.addColorStop(0.3, `rgba(255,240,160,${a})`);
+        grad.addColorStop(1, `rgba(255,255,255,${a * 0.6})`);
+        ctx.beginPath(); ctx.moveTo(from.x, from.y); ctx.lineTo(ex, ey);
+        ctx.strokeStyle = grad; ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.stroke();
+      }
+    }
+    // Phase 2 (0.45–1): golden flash at target
+    if (t > 0.4) {
+      const it = (t - 0.4) / 0.6;
+      const a = it < 0.4 ? it / 0.4 : 1 - (it - 0.4) / 0.6;
+      for (let r = 0; r < 3; r++) {
+        ctx.beginPath(); ctx.arc(to.x, to.y, (it * 60 + r * 10), 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(255,230,100,${a * (0.8 - r * 0.25)})`; ctx.lineWidth = 4 - r; ctx.stroke();
+      }
+      // Radial gleam lines
+      for (let s = 0; s < 8; s++) {
+        const ang = (s / 8) * Math.PI * 2 + it;
+        ctx.beginPath();
+        ctx.moveTo(to.x + Math.cos(ang) * 8, to.y + Math.sin(ang) * 8);
+        ctx.lineTo(to.x + Math.cos(ang) * (20 + it * 30), to.y + Math.sin(ang) * (20 + it * 30));
+        ctx.strokeStyle = `rgba(255,255,180,${a * 0.7})`; ctx.lineWidth = 1.5; ctx.stroke();
+      }
+    }
+  });
+}
+
+function animMoonblast(canvas, ctx, from, to) {
+  // Crescent moon orb travels to target, explodes into massive pink/white starburst
+  return runCanvas(canvas, ctx, 700, (ctx, t) => {
+    if (t < 0.5) {
+      // Phase 1: glowing orb travels to target
+      const st = t / 0.5;
+      const px = lerp(from.x, to.x, st), py = lerp(from.y, to.y, st);
+      // Glow aura
+      const grad = ctx.createRadialGradient(px, py, 0, px, py, 28);
+      grad.addColorStop(0, `rgba(255,180,255,0.9)`);
+      grad.addColorStop(0.5, `rgba(200,100,255,0.5)`);
+      grad.addColorStop(1, `rgba(180,80,255,0)`);
+      ctx.beginPath(); ctx.arc(px, py, 28, 0, Math.PI * 2);
+      ctx.fillStyle = grad; ctx.fill();
+      // Moon crescent (circle with overlapping darker circle)
+      ctx.save(); ctx.translate(px, py); ctx.rotate(st * Math.PI * 0.5 - Math.PI * 0.25);
+      ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,220,255,0.95)'; ctx.fill();
+      ctx.beginPath(); ctx.arc(5, -3, 9, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(120,40,180,0.85)'; ctx.fill();
+      ctx.restore();
+      // Trailing sparkles
+      for (let i = 1; i <= 4; i++) {
+        const bt = Math.max(0, st - i * 0.08);
+        const bx = lerp(from.x, to.x, bt), by = lerp(from.y, to.y, bt);
+        ctx.beginPath(); ctx.arc(bx + (Math.random()-0.5)*10, by + (Math.random()-0.5)*10, 3*(5-i)/5, 0, Math.PI*2);
+        ctx.fillStyle = `rgba(255,180,255,${0.6 - i*0.12})`; ctx.fill();
+      }
+    } else {
+      // Phase 2: explosion
+      const it = (t - 0.5) / 0.5;
+      const a = 1 - it;
+      // Large expanding rings
+      for (let r = 0; r < 4; r++) {
+        const rp = Math.min(1, it + r * 0.1);
+        ctx.beginPath(); ctx.arc(to.x, to.y, rp * 90, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(${255},${Math.floor(150 + r*20)},255,${a*(0.9-r*0.18)})`; ctx.lineWidth = 5-r; ctx.stroke();
+      }
+      // 16 starburst rays
+      for (let s = 0; s < 16; s++) {
+        const ang = (s / 16) * Math.PI * 2;
+        const inner = it * 20, outer = it * 100;
+        ctx.beginPath();
+        ctx.moveTo(to.x + Math.cos(ang) * inner, to.y + Math.sin(ang) * inner);
+        ctx.lineTo(to.x + Math.cos(ang) * outer, to.y + Math.sin(ang) * outer);
+        ctx.strokeStyle = `rgba(255,160,255,${a * 0.7})`; ctx.lineWidth = s % 2 === 0 ? 2.5 : 1.5; ctx.stroke();
+      }
+      // Central white flash
+      const flash = Math.max(0, 1 - it * 2.5);
+      if (flash > 0) {
+        const g = ctx.createRadialGradient(to.x, to.y, 0, to.x, to.y, 50);
+        g.addColorStop(0, `rgba(255,255,255,${flash})`);
+        g.addColorStop(0.5, `rgba(255,200,255,${flash * 0.6})`);
+        g.addColorStop(1, `rgba(200,100,255,0)`);
+        ctx.beginPath(); ctx.arc(to.x, to.y, 50, 0, Math.PI * 2);
+        ctx.fillStyle = g; ctx.fill();
+      }
+    }
+  });
+}
+
 function playAttackAnimation(moveType, attackerEl, targetEl, isSpecial = true, moveName = '') {
   if (!attackerEl || !targetEl) return Promise.resolve();
   const ac = animCanvas(attackerEl, targetEl);
@@ -1287,6 +1485,8 @@ function playAttackAnimation(moveType, attackerEl, targetEl, isSpecial = true, m
       case 'Rock Slide':   return animRockSlide(canvas, ctx, from, to);
       case 'Shadow Claw':  return animShadowClaw(canvas, ctx, from, to);
       case 'Dragon Claw':  return animDragonClaw(canvas, ctx, from, to);
+      case 'Play Rough':   return animPlayRough(canvas, ctx, from, to);
+      case 'Spirit Break': return animSpiritBreak(canvas, ctx, from, to);
       default: {
         // Generic physical fallback
         const rgb = TYPE_COLORS_RGB[moveType.toLowerCase()] || '200,200,200';
@@ -1320,7 +1520,9 @@ function playAttackAnimation(moveType, attackerEl, targetEl, isSpecial = true, m
       case 'Bug Buzz':     return animBugBuzz(canvas, ctx, from, to);
       case 'Power Gem':    return animPowerGem(canvas, ctx, from, to);
       case 'Shadow Ball':  return animShadowBall(canvas, ctx, from, to);
-      case 'Dragon Pulse': return animDragonPulse(canvas, ctx, from, to);
+      case 'Dragon Pulse':    return animDragonPulse(canvas, ctx, from, to);
+      case 'Dazzling Gleam':  return animDazzlingGleam(canvas, ctx, from, to);
+      case 'Moonblast':       return animMoonblast(canvas, ctx, from, to);
       default: {
         // Use existing buildParticles for remaining special moves (Flamethrower, Surf, Thunderbolt, Ice Beam, Psychic)
         const type = (moveType || 'normal').toLowerCase();
@@ -2409,7 +2611,7 @@ async function animateBattleVisually(detailedLog, pTeamInit, eTeamInit) {
       const el = document.querySelector(`#${sideId} .battle-pokemon[data-idx="${event.idx}"]`);
       const stagesArr = event.side === 'player' ? pStages : eStages;
       if (stagesArr[event.idx]) {
-        stagesArr[event.idx][event.stat] = (stagesArr[event.idx][event.stat] ?? 0) + event.change;
+        stagesArr[event.idx][event.stat] = event.newStage;
       }
       if (el) {
         animateStatChange(el, event.stat, event.change); // fire and forget

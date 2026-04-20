@@ -26,7 +26,7 @@ const TRAIT_DESCRIPTIONS = {
   Ice:     ['10% chance to freeze on hit',                '20% chance to freeze on hit',                '30% chance to freeze on hit'],
   Normal:  ['+25% max HP at fight start',                 '+50% max HP at fight start',                 '+100% max HP at fight start'],
   Poison:  ['33% chance to poison on hit',                '66% chance to poison on hit',                '100% chance to poison on hit'],
-  Psychic: ['10% of damage splashes to all enemies',      '10% of damage splashes to all enemies',      '10% of damage splashes to all enemies'],
+  Psychic: ['10% of damage splashes to all enemies',      '20% of damage splashes to all enemies',      '30% of damage splashes to all enemies'],
   Rock:    ['+1 DEF & Sp.DEF after each attack',          '+1 DEF & Sp.DEF after each attack',          '+1 DEF & Sp.DEF after each attack'],
   Steel:   ['Reduce incoming damage by 10%',              'Reduce incoming damage by 20%',              'Reduce incoming damage by 30%'],
   Water:   ['Enemy: -1 Spd/ATK/SpATK on hit',            'Enemy: -2 Spd/ATK/SpATK on hit',            'Enemy: -3 Spd/ATK/SpATK on hit'],
@@ -366,10 +366,11 @@ function buildTraitsConfig(playerTiers, enemyTiers = {}) {
         applyStageChange(target, 'special', -tier, tSide, tIdx, efx);
       }
 
-      // Psychic: 10% splash to all other members of target's team
+      // Psychic: 10/20/30% splash to all other members of target's team
       if (activeFor('Psychic', aSide) && tSide !== aSide) {
+        const tier = tierFor('Psychic', aSide);
         const targetTeam = tSide === 'enemy' ? eTeam : pTeam;
-        const splash = Math.max(1, Math.floor(damage * 0.10));
+        const splash = Math.max(1, Math.floor(damage * [0, 0.10, 0.20, 0.30][tier]));
         for (let i = 0; i < targetTeam.length; i++) {
           if (i === tIdx || targetTeam[i].currentHp <= 0) continue;
           targetTeam[i].currentHp = Math.max(0, targetTeam[i].currentHp - splash);

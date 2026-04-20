@@ -36,7 +36,7 @@ function getTypeEffectiveness(attackType, defenderTypes) {
 // PokeAPI type ID map for type icon sprites
 const TYPE_IDS = {
   Normal:1, Fighting:2, Flying:3, Poison:4, Ground:5, Rock:6, Bug:7, Ghost:8, Steel:9,
-  Fire:10, Water:11, Grass:12, Electric:13, Psychic:14, Ice:15, Dragon:16, Dark:17,
+  Fire:10, Water:11, Grass:12, Electric:13, Psychic:14, Ice:15, Dragon:16, Dark:17, Steel:9, Fairy:18,
 };
 
 // Move pools by type — each has physical/special arrays of [tier0, tier1, tier2]
@@ -144,6 +144,12 @@ const MOVE_POOL = {
               special:  [{name:'Steel Wing',        power:60,  desc:'Strikes the foe with hard, steel-edged wings.'},
                          {name:'Flash Cannon',      power:90,  desc:'Fires a flash of steel-type energy at the foe.'},
                          {name:'Doom Desire',       power:140, desc:'Stores power for two turns, then fires a concentrated bundle of light.'}] },
+  Fairy:    { physical: [{name:'Fairy Wind',        power:40,  desc:'Stirs up a fairy-type breeze and attacks the foe.'},
+                         {name:'Play Rough',        power:90,  desc:'Plays rough with the foe, tossing it around wildly.'},
+                         {name:'Spirit Break',      power:130, desc:'Attacks the foe with such force it crushes their fighting spirit.'}],
+              special:  [{name:'Disarming Voice',   power:40,  desc:'Lets out a charming cry that never misses its mark.'},
+                         {name:'Dazzling Gleam',    power:80,  desc:'Emits a powerful flash of brilliant fairy light.'},
+                         {name:'Moonblast',         power:130, desc:'Borrows the overwhelming power of the moon to blast the foe.'}] },
 };
 
 function getMoveТierForMap(mapIndex) {
