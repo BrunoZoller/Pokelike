@@ -719,6 +719,18 @@ function evolveIdForLevel(id, level) {
   return current;
 }
 
+// Walk back to the unevolved base form of any pokemon ID
+function getBaseForm(id) {
+  const evolvedFrom = {};
+  for (const [from, evo] of Object.entries(GEN1_EVOLUTIONS)) {
+    evolvedFrom[evo.into] = parseInt(from);
+  }
+  [134, 135, 136].forEach(eid => evolvedFrom[eid] = 133);
+  let current = id;
+  while (evolvedFrom[current]) current = evolvedFrom[current];
+  return current;
+}
+
 // Endless-mode catch pool: all non-legendary base forms evolved to the appropriate level
 async function getCatchChoicesEndless(level) {
   const baseIds = getBaseFormIds();

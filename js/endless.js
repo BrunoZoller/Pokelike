@@ -315,18 +315,24 @@ async function buildEndlessBossTeam(mapIndex) {
 
   const isRegionBoss = mapIndex % 5 === 4;
 
+  const evolveToLevel = id => typeof getBaseForm === 'function' && typeof evolveIdForLevel === 'function'
+    ? evolveIdForLevel(getBaseForm(id), level) : id;
+
   let speciesList;
   if (isRegionBoss) {
-    const aceId = strategy.aceId || (strategy.pool ? strategy.pool[0] : 130);
+    const rawAceId = strategy.aceId || (strategy.pool ? strategy.pool[0] : 130);
+    const aceId = evolveToLevel(rawAceId);
     const ace = await fetchPokemonById(aceId);
     speciesList = ace ? [ace] : [];
   } else if (strategy.pool) {
     const shuffled = [...strategy.pool].sort(() => rng() - 0.5);
-    const ids = Array.from({ length: teamSize }, (_, i) => shuffled[i % shuffled.length]);
+    const ids = Array.from({ length: teamSize }, (_, i) => evolveToLevel(shuffled[i % shuffled.length]));
     const fetched = await Promise.all(ids.map(id => fetchPokemonById(id)));
     speciesList = fetched.filter(Boolean);
   } else {
-    const choices = await getCatchChoices(Math.min(mapIndex, 8));
+    const choices = typeof getCatchChoicesEndless === 'function'
+      ? await getCatchChoicesEndless(level)
+      : await getCatchChoices(Math.min(mapIndex, 8));
     speciesList = choices.slice(0, teamSize);
   }
   const team = speciesList.map(sp => createInstance(sp, level, false, moveTier));
