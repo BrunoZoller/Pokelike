@@ -63,7 +63,7 @@ function getTraitDisplayData(team) {
 // Slot 0-8: max = gym leader's highest pokemon level - 2 (Brock→12, Misty→18, Surge→24,
 // Erika→30, Koga→42, Sabrina→42, Blaine→51, Giovanni→58, Champion→63).
 const ENDLESS_LEVEL_SLOTS = [
-  [4, 10], [12, 18], [18, 24], [24, 30], [35, 42],
+  [1, 7], [12, 18], [18, 24], [24, 30], [35, 42],
   [42, 46], [46, 51], [52, 58], [57, 63],
 ];
 const ENDLESS_TEAM_SIZES = [2, 2, 3, 3, 4, 4, 5, 5, 6];

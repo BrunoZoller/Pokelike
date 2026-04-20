@@ -1530,6 +1530,15 @@ h1, h2, .pixel-font {
   overflow-y: auto;
   background: #0e0404;
 }
+.dex-gen-header {
+  grid-column: 1 / -1;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  color: #cc3333;
+  padding: 6px 4px 2px;
+  border-bottom: 1px solid #3a1010;
+  margin-bottom: 2px;
+}
 .dex-card {
   background: #1c0c0c;
   border: 2px solid #4a1818;

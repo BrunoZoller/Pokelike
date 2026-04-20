@@ -398,9 +398,19 @@ function getEncounterMapIndex() {
   return state.currentMap;
 }
 
-// Returns a level scaled to the node's layer (layer 1 = map min, layer 6 = map max).
+// Returns a level scaled to the node's layer.
 function getLevelForNode(node) {
-  const [minL, maxL] = state.endlessLevelRange || MAP_LEVEL_RANGES[state.currentMap];
+  if (state.isEndlessMode) {
+    // Endless R1M1: level exactly equals layer number (1–7), no spread
+    if (endlessState.regionNumber === 1 && endlessState.mapIndexInRegion === 0) return node.layer;
+    const [minL, maxL] = state.endlessLevelRange;
+    const t = Math.min(1, Math.max(0, (node.layer - 1) / 6)); // 0.0 at layer 1, 1.0 at layer 7
+    const base = Math.round(minL + t * (maxL - minL));
+    const spread = Math.max(1, Math.round((maxL - minL) / 8));
+    return Math.min(maxL, Math.max(minL, base + Math.floor(rng() * spread)));
+  }
+  // Normal mode (original behaviour)
+  const [minL, maxL] = MAP_LEVEL_RANGES[state.currentMap];
   const t = Math.min(1, Math.max(0, (node.layer - 1) / 5)); // 0.0 at layer 1, 1.0 at layer 6
   const base = Math.round(minL + t * (maxL - minL));
   const spread = Math.max(1, Math.round((maxL - minL) / 8));
@@ -408,7 +418,7 @@ function getLevelForNode(node) {
 }
 
 async function doBattleNode(node) {
-  const level = state.currentMap >= 1 ? getLevelForNode(node) - 1 : getLevelForNode(node);
+  const level = (!state.isEndlessMode && state.currentMap >= 1) ? getLevelForNode(node) - 1 : getLevelForNode(node);
   let choices = await getCatchChoices(getEncounterMapIndex());
   const lvlFiltered = choices.filter(sp => minLevelForSpecies(sp.id ?? sp.speciesId) <= level);
   if (lvlFiltered.length > 0) choices = lvlFiltered;

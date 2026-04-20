@@ -396,11 +396,17 @@ const TYPE_COLORS_RGB = {
   rock:'160,130,80', ghost:'100,60,180', dragon:'60,80,220',
 };
 
+function resizeCanvasIfNeeded(canvas) {
+  if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+}
+
 function animCanvas(attackerEl, targetEl) {
   const canvas = document.getElementById('battle-anim-canvas');
   if (!canvas) return null;
-  canvas.width  = window.innerWidth;
-  canvas.height = window.innerHeight;
+  resizeCanvasIfNeeded(canvas);
   canvas.style.display = 'block';
   const ctx = canvas.getContext('2d');
   const aR = attackerEl.getBoundingClientRect();
@@ -418,8 +424,6 @@ function runCanvas(canvas, ctx, duration, drawFn) {
       const t = Math.min((now - start) / scaledDuration, 1);
       try {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.shadowColor = 'rgba(255,255,255,0.9)';
-        ctx.shadowBlur = 6;
         drawFn(ctx, t);
       } catch(e) {
         canvas.style.display = 'none';
@@ -442,8 +446,6 @@ function runParticleCanvas(canvas, ctx, particles, duration) {
       const scaledElapsed = elapsed * battleSpeedMultiplier;
       try {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.shadowColor = 'rgba(255,255,255,0.9)';
-        ctx.shadowBlur = 6;
         let anyAlive = false;
         for (const p of particles) { p.tick(scaledElapsed); if (p.alive) { p.draw(ctx); anyAlive = true; } }
         if (elapsed < scaledDuration || anyAlive) requestAnimationFrame(frame);
@@ -1457,39 +1459,24 @@ function buildParticles(type, from, to) {
         const waveFreq = 3.5; // oscillations along the stream
         const waveAmp  = 5;   // perpendicular pixels
         const phase = streamAge * 0.012; // scrolling phase = water flowing
-        ctx.beginPath();
+        // Compute wave points once, reuse for all three strokes
+        const pts = [];
         for (let s = 0; s <= drawSegs; s++) {
           const t = s / segs;
-          const bx = lerp(from.x, to.x, t);
-          const by = lerp(from.y, to.y, t);
+          const bx = lerp(from.x, to.x, t), by = lerp(from.y, to.y, t);
           const wave = Math.sin(t * Math.PI * 2 * waveFreq - phase) * waveAmp;
-          const wx = bx - ny * wave, wy = by + nx * wave;
-          s === 0 ? ctx.moveTo(wx, wy) : ctx.lineTo(wx, wy);
+          pts.push(bx - ny * wave, by + nx * wave);
         }
-        // outer glow
-        ctx.strokeStyle = `rgba(60,140,255,${fadeA * 0.45})`;
+        const strokePath = () => {
+          ctx.beginPath();
+          for (let s = 0; s < pts.length; s += 2)
+            s === 0 ? ctx.moveTo(pts[s], pts[s+1]) : ctx.lineTo(pts[s], pts[s+1]);
+        };
+        strokePath(); ctx.strokeStyle = `rgba(60,140,255,${fadeA * 0.45})`;
         ctx.lineWidth = 12; ctx.lineCap = 'round'; ctx.stroke();
-        // mid band
-        ctx.beginPath();
-        for (let s = 0; s <= drawSegs; s++) {
-          const t = s / segs;
-          const bx = lerp(from.x, to.x, t), by = lerp(from.y, to.y, t);
-          const wave = Math.sin(t * Math.PI * 2 * waveFreq - phase) * waveAmp;
-          const wx = bx - ny * wave, wy = by + nx * wave;
-          s === 0 ? ctx.moveTo(wx, wy) : ctx.lineTo(wx, wy);
-        }
-        ctx.strokeStyle = `rgba(100,190,255,${fadeA * 0.85})`;
+        strokePath(); ctx.strokeStyle = `rgba(100,190,255,${fadeA * 0.85})`;
         ctx.lineWidth = 5; ctx.stroke();
-        // bright core
-        ctx.beginPath();
-        for (let s = 0; s <= drawSegs; s++) {
-          const t = s / segs;
-          const bx = lerp(from.x, to.x, t), by = lerp(from.y, to.y, t);
-          const wave = Math.sin(t * Math.PI * 2 * waveFreq - phase) * waveAmp;
-          const wx = bx - ny * wave, wy = by + nx * wave;
-          s === 0 ? ctx.moveTo(wx, wy) : ctx.lineTo(wx, wy);
-        }
-        ctx.strokeStyle = `rgba(220,240,255,${fadeA * 0.7})`;
+        strokePath(); ctx.strokeStyle = `rgba(220,240,255,${fadeA * 0.7})`;
         ctx.lineWidth = 1.5; ctx.stroke();
       }
     });
@@ -2224,8 +2211,7 @@ async function animateBattleVisually(detailedLog, pTeamInit, eTeamInit) {
       const canvas = document.getElementById('battle-anim-canvas');
       const batchTriggers = [];
       if (canvas) {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        resizeCanvasIfNeeded(canvas);
         canvas.style.display = 'block';
         const ctx = canvas.getContext('2d');
         const allParticles = [];
@@ -2315,7 +2301,7 @@ async function animateBattleVisually(detailedLog, pTeamInit, eTeamInit) {
         // Show dodge animation instead of hit — consume trait_trigger and effect events
         const canvas = document.getElementById('battle-anim-canvas');
         if (canvas) {
-          canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+          resizeCanvasIfNeeded(canvas);
           canvas.style.display = 'block';
           const ctx = canvas.getContext('2d');
           const rect = targetEl.getBoundingClientRect();
@@ -2512,8 +2498,7 @@ function animateStatChange(pokemonEl, stat, change) {
 async function playTraitTriggerAnimation(traitType, pokemonEl) {
   const canvas = document.getElementById('battle-anim-canvas');
   if (!canvas) return;
-  canvas.width  = window.innerWidth;
-  canvas.height = window.innerHeight;
+  resizeCanvasIfNeeded(canvas);
   canvas.style.display = 'block';
   const ctx = canvas.getContext('2d');
   const rect = pokemonEl.getBoundingClientRect();
@@ -2979,16 +2964,19 @@ function openPokedexModal(initialTab = 'normal') {
 
   const BASE = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/';
 
+  const GEN_HEADERS = { 1: 'Generation I', 152: 'Generation II', 252: 'Generation III' };
+
   function buildNormalGrid() {
     const dex = getPokedex();
     const caughtCount = [...ALL_CATCHABLE_IDS].filter(id => dex[id]?.caught).length;
-    const grid = Array.from({ length: 151 }, (_, i) => {
+    const grid = Array.from({ length: 386 }, (_, i) => {
       const id = i + 1;
+      const header = GEN_HEADERS[id] ? `<div class="dex-gen-header">${GEN_HEADERS[id]}</div>` : '';
       const e = dex[id];
       if (e) {
         const types = (e.types || []).map(t =>
           `<span class="type-badge type-${t.toLowerCase()}">${t}</span>`).join('');
-        return `<div class="dex-card dex-caught">
+        return header + `<div class="dex-card dex-caught">
           <div class="dex-num">#${String(id).padStart(3,'0')}</div>
           <img src="${BASE + id + '.png'}" alt="${e.name}" class="dex-sprite"
                onerror="this.src='';this.style.display='none'">
@@ -2996,7 +2984,7 @@ function openPokedexModal(initialTab = 'normal') {
           <div class="dex-types">${types}</div>
         </div>`;
       }
-      return `<div class="dex-card dex-unknown">
+      return header + `<div class="dex-card dex-unknown">
         <div class="dex-num">#${String(id).padStart(3,'0')}</div>
         <img src="${BASE + id + '.png'}" alt="???" class="dex-sprite dex-silhouette"
              onerror="this.src='';this.style.display='none'">
@@ -3010,13 +2998,14 @@ function openPokedexModal(initialTab = 'normal') {
     const dex = getShinyDex();
     const BASE_SHINY = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/';
     const count = [...ALL_CATCHABLE_IDS].filter(id => dex[id]).length;
-    const grid = Array.from({ length: 151 }, (_, i) => {
+    const grid = Array.from({ length: 386 }, (_, i) => {
       const id = i + 1;
+      const header = GEN_HEADERS[id] ? `<div class="dex-gen-header">${GEN_HEADERS[id]}</div>` : '';
       const e = dex[id];
       if (e) {
         const types = (e.types || []).map(t =>
           `<span class="type-badge type-${t.toLowerCase()}">${t}</span>`).join('');
-        return `<div class="dex-card shiny-dex-card">
+        return header + `<div class="dex-card shiny-dex-card">
           <div class="dex-num">#${String(id).padStart(3,'0')}</div>
           <img src="${e.shinySpriteUrl || BASE_SHINY + id + '.png'}" alt="${e.name}" class="dex-sprite"
                onerror="this.src='';this.style.display='none'">
@@ -3025,7 +3014,7 @@ function openPokedexModal(initialTab = 'normal') {
           <div class="shiny-star">★</div>
         </div>`;
       }
-      return `<div class="dex-card dex-unknown">
+      return header + `<div class="dex-card dex-unknown">
         <div class="dex-num">#${String(id).padStart(3,'0')}</div>
         <img src="${BASE_SHINY + id + '.png'}" alt="???" class="dex-sprite dex-silhouette"
              onerror="this.src='';this.style.display='none'">
