@@ -461,26 +461,79 @@ async function getSpeciesPool() {
   return _speciesPool;
 }
 
-// Gen 1 legendary Pokemon — removed from all wild/catch pools, available only via Legendary node
-const LEGENDARY_IDS = [144, 145, 146, 150, 151];
+// Legendary Pokemon (Gen 1-3) — excluded from wild/catch pools, available only via Legendary node
+const LEGENDARY_IDS = [
+  144,145,146,150,151,                          // Gen 1
+  243,244,245,249,250,251,                       // Gen 2
+  377,378,379,380,381,382,383,384,385,386,       // Gen 3
+];
 
-// All catchable Gen 1 IDs by BST bucket (module-level so other code can reference them)
-// Legendaries are excluded from all buckets — they appear only via the Legendary node
+// Catchable Pokemon by BST bucket — Gen 1, 2, and 3
 const GEN1_BST_APPROX = {
-  low:      [10,11,13,14,16,17,19,20,21,23,27,29,32,41,46,48,52,54,56,60,
-             69,72,74,79,81,84,86,96,98,100,102,108,111,116,118,120,129,133],
-  midLow:   [25,30,33,35,37,39,43,50,58,61,63,66,73,77,83,92,95,96,104,109,
-             113,114,116,120,122,126,127,128,138,140],
-  mid:      [26,36,42,49,51,64,67,70,75,82,85,93,97,101,103,105,107,110,119,
-             121,124,125,130,137,139,141],
-  midHigh:  [40,44,55,62,76,80,87,88,89,90,91,99,106,115,117,123,131,
-             132,137,142,143],
-  high:     [3,6,9,12,15,18,22,24,28,31,34,38,45,47,53,57,59,
-             65,68,71,76,78,80,89,94,112,121,130,142,143,149],
-  veryHigh: [6,9,65,68,94,112,130,131,143,147,148,149],
+  low: [
+    // Gen 1
+    10,11,13,14,16,17,19,20,21,23,27,29,32,41,46,48,52,54,56,60,
+    69,72,74,79,81,84,86,96,98,100,102,108,111,116,118,120,129,133,
+    // Gen 2
+    152,155,158,161,163,165,167,170,172,173,174,175,177,179,183,187,
+    191,194,201,204,209,216,218,220,223,225,228,231,235,236,238,246,
+    // Gen 3
+    252,255,258,261,263,265,266,268,270,273,276,278,280,281,283,285,
+    287,290,292,293,296,298,300,304,307,309,316,318,322,325,327,328,
+    331,333,339,341,343,349,353,355,360,361,363,366,370,371,374,
+  ],
+  midLow: [
+    // Gen 1
+    25,30,33,35,37,39,43,50,58,61,63,66,73,77,83,92,95,96,104,109,
+    113,114,116,120,122,126,127,128,138,140,
+    // Gen 2
+    166,168,180,188,190,193,222,239,240,
+    // Gen 3
+    267,269,271,274,294,299,302,303,329,345,347,
+  ],
+  mid: [
+    // Gen 1
+    26,36,42,49,51,64,67,70,75,82,85,93,97,101,103,105,107,110,119,
+    121,124,125,130,137,139,141,
+    // Gen 2
+    153,156,159,162,176,184,185,192,195,198,202,206,207,215,219,247,
+    // Gen 3
+    253,256,259,262,264,277,279,284,288,301,305,308,311,312,313,314,
+    315,320,337,338,351,352,358,364,372,
+  ],
+  midHigh: [
+    // Gen 1
+    40,44,55,62,76,80,87,88,89,90,91,99,106,115,117,123,131,132,137,142,143,
+    // Gen 2
+    164,176,178,200,203,205,207,210,211,215,221,224,226,227,234,237,
+    // Gen 3
+    272,275,286,291,297,310,317,319,323,324,326,332,335,336,340,342,
+    354,356,357,359,362,367,368,369,375,
+  ],
+  high: [
+    // Gen 1
+    3,6,9,12,15,18,22,24,28,31,34,38,45,47,53,57,59,
+    65,68,71,76,78,80,89,94,112,121,130,142,143,149,
+    // Gen 2
+    154,164,171,181,182,186,189,196,197,199,205,208,212,213,214,217,
+    229,232,233,241,
+    // Gen 3
+    282,295,321,330,334,344,346,348,
+  ],
+  veryHigh: [
+    // Gen 1
+    6,9,65,68,94,112,130,131,143,147,148,149,
+    // Gen 2
+    157,160,169,230,242,248,
+    // Gen 3
+    254,257,260,289,306,350,365,373,376,
+  ],
 };
 
-const ALL_CATCHABLE_IDS = new Set(Array.from({ length: 151 }, (_, i) => i + 1));
+const LEGENDARY_ID_SET = new Set(LEGENDARY_IDS);
+const ALL_CATCHABLE_IDS = new Set(
+  Array.from({ length: 386 }, (_, i) => i + 1).filter(id => !LEGENDARY_ID_SET.has(id))
+);
 
 function isPokedexComplete() {
   const dex = getPokedex();
@@ -664,6 +717,107 @@ const GEN1_EVOLUTIONS = {
   129:{ into: 130, level: 20, name: 'Gyarados' },
   147:{ into: 148, level: 30, name: 'Dragonair' },
   148:{ into: 149, level: 55, name: 'Dragonite' },
+  // Gen 1 -> Gen 2 cross-gen evolutions
+  42: { into: 169, level: 30, name: 'Crobat' },
+  // Gen 2 starters
+  152:{ into: 153, level: 16, name: 'Bayleef' },
+  153:{ into: 154, level: 32, name: 'Meganium' },
+  155:{ into: 156, level: 14, name: 'Quilava' },
+  156:{ into: 157, level: 36, name: 'Typhlosion' },
+  158:{ into: 159, level: 18, name: 'Croconaw' },
+  159:{ into: 160, level: 30, name: 'Feraligatr' },
+  // Gen 2 routes
+  161:{ into: 162, level: 15, name: 'Furret' },
+  163:{ into: 164, level: 20, name: 'Noctowl' },
+  165:{ into: 166, level: 18, name: 'Ledian' },
+  167:{ into: 168, level: 22, name: 'Ariados' },
+  170:{ into: 171, level: 27, name: 'Lanturn' },
+  172:{ into: 25,  level: 15, name: 'Pikachu' },
+  173:{ into: 35,  level: 15, name: 'Clefairy' },
+  174:{ into: 39,  level: 15, name: 'Jigglypuff' },
+  175:{ into: 176, level: 15, name: 'Togetic' },
+  177:{ into: 178, level: 25, name: 'Xatu' },
+  179:{ into: 180, level: 15, name: 'Flaaffy' },
+  180:{ into: 181, level: 30, name: 'Ampharos' },
+  183:{ into: 184, level: 18, name: 'Azumarill' },
+  187:{ into: 188, level: 18, name: 'Skiploom' },
+  188:{ into: 189, level: 27, name: 'Jumpluff' },
+  191:{ into: 192, level: 30, name: 'Sunflora' },
+  194:{ into: 195, level: 20, name: 'Quagsire' },
+  204:{ into: 205, level: 31, name: 'Forretress' },
+  209:{ into: 210, level: 23, name: 'Granbull' },
+  216:{ into: 217, level: 30, name: 'Ursaring' },
+  218:{ into: 219, level: 38, name: 'Magcargo' },
+  220:{ into: 221, level: 33, name: 'Piloswine' },
+  223:{ into: 224, level: 25, name: 'Octillery' },
+  228:{ into: 229, level: 24, name: 'Houndoom' },
+  231:{ into: 232, level: 25, name: 'Donphan' },
+  236:{ into: 237, level: 20, name: 'Hitmontop' },
+  238:{ into: 124, level: 30, name: 'Jynx' },
+  239:{ into: 125, level: 30, name: 'Electabuzz' },
+  240:{ into: 126, level: 30, name: 'Magmar' },
+  246:{ into: 247, level: 30, name: 'Pupitar' },
+  247:{ into: 248, level: 55, name: 'Tyranitar' },
+  360:{ into: 202, level: 15, name: 'Wobbuffet' },
+  // Gen 3 starters
+  252:{ into: 253, level: 16, name: 'Grovyle' },
+  253:{ into: 254, level: 36, name: 'Sceptile' },
+  255:{ into: 256, level: 16, name: 'Combusken' },
+  256:{ into: 257, level: 36, name: 'Blaziken' },
+  258:{ into: 259, level: 16, name: 'Marshtomp' },
+  259:{ into: 260, level: 36, name: 'Swampert' },
+  // Gen 3 routes
+  261:{ into: 262, level: 18, name: 'Mightyena' },
+  263:{ into: 264, level: 20, name: 'Linoone' },
+  265:{ into: 266, level: 7,  name: 'Silcoon' },
+  266:{ into: 267, level: 10, name: 'Beautifly' },
+  268:{ into: 269, level: 10, name: 'Dustox' },
+  270:{ into: 271, level: 14, name: 'Lombre' },
+  271:{ into: 272, level: 30, name: 'Ludicolo' },
+  273:{ into: 274, level: 14, name: 'Nuzleaf' },
+  274:{ into: 275, level: 30, name: 'Shiftry' },
+  276:{ into: 277, level: 22, name: 'Swellow' },
+  278:{ into: 279, level: 25, name: 'Pelipper' },
+  280:{ into: 281, level: 20, name: 'Kirlia' },
+  281:{ into: 282, level: 30, name: 'Gardevoir' },
+  283:{ into: 284, level: 22, name: 'Masquerain' },
+  285:{ into: 286, level: 23, name: 'Breloom' },
+  287:{ into: 288, level: 18, name: 'Vigoroth' },
+  288:{ into: 289, level: 36, name: 'Slaking' },
+  290:{ into: 291, level: 20, name: 'Ninjask' },
+  293:{ into: 294, level: 20, name: 'Loudred' },
+  294:{ into: 295, level: 40, name: 'Exploud' },
+  296:{ into: 297, level: 24, name: 'Hariyama' },
+  298:{ into: 183, level: 15, name: 'Marill' },
+  300:{ into: 301, level: 30, name: 'Delcatty' },
+  304:{ into: 305, level: 32, name: 'Lairon' },
+  305:{ into: 306, level: 42, name: 'Aggron' },
+  307:{ into: 308, level: 37, name: 'Medicham' },
+  309:{ into: 310, level: 26, name: 'Manectric' },
+  316:{ into: 317, level: 26, name: 'Swalot' },
+  318:{ into: 319, level: 30, name: 'Sharpedo' },
+  320:{ into: 321, level: 40, name: 'Wailord' },
+  322:{ into: 323, level: 33, name: 'Camerupt' },
+  325:{ into: 326, level: 32, name: 'Grumpig' },
+  328:{ into: 329, level: 35, name: 'Vibrava' },
+  329:{ into: 330, level: 45, name: 'Flygon' },
+  331:{ into: 332, level: 32, name: 'Cacturne' },
+  333:{ into: 334, level: 35, name: 'Altaria' },
+  339:{ into: 340, level: 30, name: 'Whiscash' },
+  341:{ into: 342, level: 30, name: 'Crawdaunt' },
+  343:{ into: 344, level: 36, name: 'Claydol' },
+  345:{ into: 346, level: 40, name: 'Cradily' },
+  347:{ into: 348, level: 40, name: 'Armaldo' },
+  349:{ into: 350, level: 35, name: 'Milotic' },
+  353:{ into: 354, level: 37, name: 'Banette' },
+  355:{ into: 356, level: 37, name: 'Dusclops' },
+  361:{ into: 362, level: 42, name: 'Glalie' },
+  363:{ into: 364, level: 32, name: 'Sealeo' },
+  364:{ into: 365, level: 44, name: 'Walrein' },
+  371:{ into: 372, level: 30, name: 'Shelgon' },
+  372:{ into: 373, level: 50, name: 'Salamence' },
+  374:{ into: 375, level: 20, name: 'Metang' },
+  375:{ into: 376, level: 45, name: 'Metagross' },
 };
 
 // Returns the minimum realistic level for a species based on its evolution chain.
@@ -685,6 +839,8 @@ const EEVEE_EVOLUTIONS = [
   { into: 136, level: 36, name: 'Flareon',  types: ['Fire'] },
   { into: 134, level: 36, name: 'Vaporeon', types: ['Water'] },
   { into: 135, level: 36, name: 'Jolteon',  types: ['Electric'] },
+  { into: 196, level: 25, name: 'Espeon',   types: ['Psychic'] },
+  { into: 197, level: 25, name: 'Umbreon',  types: ['Dark'] },
 ];
 
 // ---- Achievements ----
