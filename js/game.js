@@ -531,14 +531,10 @@ function showStageSelectScreen() {
   const container = document.getElementById('stage-select-list');
   if (!container) { if (typeof startEndlessRun === 'function') startEndlessRun(0); return; }
   container.innerHTML = '';
-  const maxStage = highscore + 1;
-  const [minLvl] = typeof getEndlessLevelRange === 'function' ? getEndlessLevelRange(0) : [5, 15];
-  const [, maxLvl] = typeof getEndlessLevelRange === 'function' ? getEndlessLevelRange(14) : [68, 78];
-  for (let s = 0; s <= maxStage; s++) {
+  for (let s = 0; s <= highscore; s++) {
     const btn = document.createElement('button');
     btn.className = 'stage-select-btn';
-    btn.textContent = `Stage ${s + 1}  —  Lv ${minLvl}–${maxLvl}`;
-    if (s === 0 && highscore === 0) btn.textContent += '  ◀ Start here';
+    btn.textContent = `Stage ${s + 1}`;
     btn.onclick = () => { if (typeof startEndlessRun === 'function') startEndlessRun(s); };
     container.appendChild(btn);
   }
