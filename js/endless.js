@@ -303,13 +303,14 @@ function buildTraitsConfig(tiers) {
         applyStageChange(attacker, 'spdef', 1, 'player', aIdx, log);
       }
 
-      // Water: enemy gets -1 Speed, -1 ATK, -1 Sp.ATK
+      // Water: enemy gets -tier Speed, ATK, Sp.ATK
       if (traitActive('Water') && tSide === 'enemy' && target.currentHp > 0) {
+        const tier = traitTier('Water');
         log.push({ type: 'trait_trigger', traitType: 'Water', side: 'player', idx: aIdx,
-          name: attacker.nickname || attacker.name, description: `Water Trait: debuffed enemy!` });
-        applyStageChange(target, 'speed',   -1, tSide, tIdx, log);
-        applyStageChange(target, 'atk',     -1, tSide, tIdx, log);
-        applyStageChange(target, 'special', -1, tSide, tIdx, log);
+          name: attacker.nickname || attacker.name, description: `Water Trait T${tier}: debuffed enemy!` });
+        applyStageChange(target, 'speed',   -tier, tSide, tIdx, log);
+        applyStageChange(target, 'atk',     -tier, tSide, tIdx, log);
+        applyStageChange(target, 'special', -tier, tSide, tIdx, log);
       }
 
       // Psychic: deal 10% of dealt damage to all other alive enemy pokemon
