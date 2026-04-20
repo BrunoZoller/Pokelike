@@ -1747,7 +1747,7 @@ function buildParticles(type, from, to) {
     ps.push({ alive: true, tick(ms) { qAge = ms; this.alive = ms < 500; },
       draw(ctx) {
         for (let i = 1; i <= 3; i++) {
-          const r = (qAge / 500) * 60 * i / 3;
+          const r = Math.max(0.01, (qAge / 500) * 60 * i / 3);
           const a = (1 - qAge / 500) * 0.6;
           ctx.beginPath(); ctx.ellipse(to.x, to.y, r, r * 0.35, 0, 0, Math.PI * 2);
           ctx.strokeStyle = `rgba(140,80,20,${a})`; ctx.lineWidth = 2; ctx.stroke();
