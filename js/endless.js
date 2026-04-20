@@ -12,20 +12,23 @@ let endlessState = {
 // ── Trait descriptions (per tier) ─────────────────────────────────────────────
 
 const TRAIT_DESCRIPTIONS = {
-  Bug:     ['10% chance: +1 Level after fight',      '20% chance: +1 Level after fight',      '40% chance: +1 Level after fight'],
-  Dragon:  ['+1 Spd/ATK/SpATK on KO (Dragon only)',  '+1 Spd/ATK/SpATK on KO (Dragon only)',  '+1 Spd/ATK/SpATK on KO (Dragon only)'],
-  Electric:['10% chance to attack again',            '20% chance to attack again',            '30% chance to attack again'],
-  Fire:    ['+1 ATK & Sp.ATK stages at fight start', '+2 ATK & Sp.ATK stages at fight start', '+3 ATK & Sp.ATK stages at fight start'],
-  Flying:  ['15% chance to dodge incoming attacks',  '30% chance to dodge incoming attacks',  '50% chance to dodge incoming attacks'],
-  Ghost:   ['Execute enemies below 15% HP',          'Execute enemies below 30% HP',          'Execute enemies below 50% HP'],
-  Grass:   ['Heal 7% of damage dealt',               'Heal 14% of damage dealt',              'Heal 21% of damage dealt'],
-  Ground:  ['+2 DEF stages at fight start',          '+4 DEF stages at fight start',          '+6 DEF stages at fight start'],
-  Ice:     ['10% chance to freeze on hit',           '20% chance to freeze on hit',           '30% chance to freeze on hit'],
-  Normal:  ['+25% max HP at fight start',            '+50% max HP at fight start',            '+100% max HP at fight start'],
-  Poison:  ['33% chance to poison on hit',           '66% chance to poison on hit',           '100% chance to poison on hit'],
-  Psychic: ['10% of damage splashes to all enemies', '10% of damage splashes to all enemies', '10% of damage splashes to all enemies'],
-  Rock:    ['+1 DEF & Sp.DEF after each attack',     '+1 DEF & Sp.DEF after each attack',     '+1 DEF & Sp.DEF after each attack'],
-  Water:   ['Enemy: -1 Spd/ATK/SpATK on hit',        'Enemy: -1 Spd/ATK/SpATK on hit',        'Enemy: -1 Spd/ATK/SpATK on hit'],
+  Bug:     ['10% chance: +1 Level after fight',           '20% chance: +1 Level after fight',           '40% chance: +1 Level after fight'],
+  Dark:    ['30% chance to steal enemy held item',        '60% chance to steal enemy held item',        '100% chance to steal enemy held item'],
+  Dragon:  ['+1 Spd/ATK/SpATK on KO (Dragon only)',      '+1 Spd/ATK/SpATK on KO (Dragon only)',      '+1 Spd/ATK/SpATK on KO (Dragon only)'],
+  Electric:['10% chance to attack again',                 '20% chance to attack again',                 '30% chance to attack again'],
+  Fairy:   ['Enemy: -1 ATK & Sp.ATK at fight start',     'Enemy: -2 ATK & Sp.ATK at fight start',     'Enemy: -3 ATK & Sp.ATK at fight start'],
+  Fire:    ['+1 ATK & Sp.ATK stages at fight start',     '+2 ATK & Sp.ATK stages at fight start',     '+3 ATK & Sp.ATK stages at fight start'],
+  Flying:  ['15% chance to dodge incoming attacks',       '30% chance to dodge incoming attacks',       '50% chance to dodge incoming attacks'],
+  Ghost:   ['Execute enemies below 15% HP',               'Execute enemies below 30% HP',               'Execute enemies below 50% HP'],
+  Grass:   ['Heal 7% of damage dealt',                    'Heal 14% of damage dealt',                   'Heal 21% of damage dealt'],
+  Ground:  ['+2 DEF stages at fight start',               '+4 DEF stages at fight start',               '+6 DEF stages at fight start'],
+  Ice:     ['10% chance to freeze on hit',                '20% chance to freeze on hit',                '30% chance to freeze on hit'],
+  Normal:  ['+25% max HP at fight start',                 '+50% max HP at fight start',                 '+100% max HP at fight start'],
+  Poison:  ['33% chance to poison on hit',                '66% chance to poison on hit',                '100% chance to poison on hit'],
+  Psychic: ['10% of damage splashes to all enemies',      '10% of damage splashes to all enemies',      '10% of damage splashes to all enemies'],
+  Rock:    ['+1 DEF & Sp.DEF after each attack',          '+1 DEF & Sp.DEF after each attack',          '+1 DEF & Sp.DEF after each attack'],
+  Steel:   ['Reduce incoming damage by 10%',              'Reduce incoming damage by 20%',              'Reduce incoming damage by 30%'],
+  Water:   ['Enemy: -1 Spd/ATK/SpATK on hit',            'Enemy: -2 Spd/ATK/SpATK on hit',            'Enemy: -3 Spd/ATK/SpATK on hit'],
 };
 
 // Returns sorted type count data for the trait display panel.
@@ -206,6 +209,20 @@ function buildTraitsConfig(tiers) {
           applyStageChange(p, 'def', boost, 'player', i, log);
       }
 
+      // Fairy: enemy team gets -tier ATK and Sp.ATK at fight start
+      if (traitActive('Fairy')) {
+        const tier = traitTier('Fairy');
+        const pAlive = pTeam.map((p, i) => ({ p, i })).filter(x => x.p.currentHp > 0);
+        const eAlive = eTeam.map((p, i) => ({ p, i })).filter(x => x.p.currentHp > 0);
+        for (const { p, i } of pAlive)
+          log.push({ type: 'trait_trigger', traitType: 'Fairy', side: 'player', idx: i,
+            name: p.nickname || p.name, description: `Fairy Trait T${tier}: Charmed enemies!` });
+        for (const { p, i } of eAlive) {
+          applyStageChange(p, 'atk',     -tier, 'enemy', i, log);
+          applyStageChange(p, 'special', -tier, 'enemy', i, log);
+        }
+      }
+
       // Normal: +25/50/100% max HP bonus to whole player team
       if (traitActive('Normal')) {
         const tier = traitTier('Normal');
@@ -295,6 +312,18 @@ function buildTraitsConfig(tiers) {
         }
       }
 
+      // Dark: 30/60/100% chance to steal enemy held item
+      if (traitActive('Dark') && tSide === 'enemy' && target.currentHp > 0 && target.heldItem && !attacker.heldItem) {
+        const tier = traitTier('Dark');
+        const chance = [0, 0.30, 0.60, 1.00][tier];
+        if (rng() < chance) {
+          attacker.heldItem = target.heldItem;
+          target.heldItem = null;
+          log.push({ type: 'trait_trigger', traitType: 'Dark', side: 'player', idx: aIdx,
+            name: attacker.nickname || attacker.name, description: `Dark Trait T${tier}: Stole ${attacker.heldItem.name || attacker.heldItem.id}!` });
+        }
+      }
+
       // Rock: attacker gets +1 DEF and +1 Sp.DEF after each attack
       if (traitActive('Rock') && attacker.currentHp > 0) {
         log.push({ type: 'trait_trigger', traitType: 'Rock', side: 'player', idx: aIdx,
@@ -332,6 +361,19 @@ function buildTraitsConfig(tiers) {
 
     whenAttacked(defender, dIdx, dSide, attacker, aIdx, aSide, damage, log) {
       if (dSide !== 'player') return;
+
+      // Steel: reduce incoming damage by 10/20/30% (retroactively heal the reduction back)
+      if (traitActive('Steel') && defender.currentHp > 0) {
+        const tier = traitTier('Steel');
+        const reduction = Math.floor(damage * [0, 0.10, 0.20, 0.30][tier]);
+        if (reduction > 0) {
+          defender.currentHp = Math.min(defender.maxHp, defender.currentHp + reduction);
+          log.push({ type: 'trait_trigger', traitType: 'Steel', side: 'player', idx: dIdx,
+            name: defender.nickname || defender.name, description: `Steel Trait T${tier}: −${reduction} damage!` });
+          log.push({ type: 'effect', side: 'player', idx: dIdx, name: defender.nickname || defender.name,
+            hpChange: reduction, hpAfter: defender.currentHp, reason: `Steel Trait: absorbed ${reduction} damage` });
+        }
+      }
 
       // Flying: 15/30/50% chance to dodge (retroactively heal the damage back)
       if (traitActive('Flying') && defender.currentHp > 0) {
