@@ -87,7 +87,7 @@ const ENDLESS_ARCHETYPES = [
   { id: 'fire_ace',         name: 'Fire Ace',         type: 'Fire',     sprite: 'aceTrainer',
     pool: [4,5,6,58,59,77,78,126,136,38,250,157,156] },
   { id: 'psychic_sage',     name: 'Psychic Sage',     type: 'Psychic',  sprite: 'scientist',
-    pool: [63,64,65,79,80,96,97,102,103,122,150,151,196] },
+    pool: [63,64,65,79,80,96,97,102,103,122,196] },
   { id: 'water_lord',       name: 'Water Lord',       type: 'Water',    sprite: 'fisherman',
     pool: [54,55,60,61,62,72,73,86,87,90,91,98,99,116,117,118,119,129,130,134] },
   { id: 'rock_titan',       name: 'Rock Titan',       type: 'Rock',     sprite: 'hiker',
@@ -97,9 +97,9 @@ const ENDLESS_ARCHETYPES = [
   { id: 'ghost_lord',       name: 'Ghost Lord',       type: 'Ghost',    sprite: 'scientist',
     pool: [92,93,94,200,292,356,477,302,354,355] },
   { id: 'electric_sage',    name: 'Electric Sage',    type: 'Electric', sprite: 'aceTrainer',
-    pool: [25,26,81,82,100,101,125,135,145,243,125,466] },
+    pool: [25,26,81,82,100,101,125,135,466] },
   { id: 'ice_master',       name: 'Ice Master',       type: 'Ice',      sprite: 'aceTrainer',
-    pool: [87,91,124,131,144,215,220,221,361,362,471,473] },
+    pool: [87,91,124,131,215,220,221,361,362,471,473] },
   { id: 'ground_giant',     name: 'Ground Giant',     type: 'Ground',   sprite: 'hiker',
     pool: [27,28,50,51,74,75,76,104,105,111,112,194,195] },
   { id: 'poison_witch',     name: 'Poison Witch',     type: 'Poison',   sprite: 'teamrocket',
@@ -107,7 +107,7 @@ const ENDLESS_ARCHETYPES = [
   { id: 'normal_champion',  name: 'Normal Champion',  type: 'Normal',   sprite: 'aceTrainer',
     pool: [19,20,52,53,55,83,84,85,128,133,143,163,164,241,235] },
   { id: 'flying_master',    name: 'Flying Master',    type: 'Flying',   sprite: 'aceTrainer',
-    pool: [16,17,18,21,22,83,84,85,123,142,145,146,149,469,227] },
+    pool: [16,17,18,21,22,83,84,85,123,142,149,469,227] },
   { id: 'grass_druid',      name: 'Grass Druid',      type: 'Grass',    sprite: 'aceTrainer',
     pool: [1,2,3,43,44,45,69,70,71,102,103,114,182,187,188,189,357] },
   // Stage Final Boss — mixed elite team
@@ -126,12 +126,14 @@ function rollRegion(stageNum, regionNum) {
 
   const slotBase = (regionNum - 1) * 3;
 
+  const noLegend = id => !LEGENDARY_ID_SET.has(id);
+
   const regularBosses = shuffled.slice(0, 2).map((arch, i) => {
     const [, maxL] = getEndlessLevelRange(stageNum, regionNum, i);
     const level = maxL;
     const teamSize = ENDLESS_TEAM_SIZES[slotBase + i] ?? 4;
-    const eligible = arch.pool.filter(id => minLevelForSpecies(id) <= level);
-    const srcPool = eligible.length ? eligible : arch.pool;
+    const eligible = arch.pool.filter(id => noLegend(id) && minLevelForSpecies(id) <= level);
+    const srcPool = eligible.length ? eligible : arch.pool.filter(noLegend);
     const ids = [...srcPool].sort(() => rng() - 0.5).slice(0, teamSize);
     return { archetype: arch, level, moveTier, teamSize, speciesIds: ids };
   });
@@ -144,8 +146,10 @@ function rollRegion(stageNum, regionNum) {
   const [, bigMaxL] = getEndlessLevelRange(stageNum, regionNum, 2);
   const bigBossLevel = isFinalRegion ? bigMaxL + 5 : bigMaxL;
   const bigBossTeamSize = ENDLESS_TEAM_SIZES[slotBase + 2] ?? 6;
-  const bigBossEligible = bigBossArch.pool.filter(id => minLevelForSpecies(id) <= bigBossLevel);
-  const bigBossSrcPool = bigBossEligible.length ? bigBossEligible : bigBossArch.pool;
+  // Non-final big bosses also exclude legendaries; final boss (elite_alltype) keeps them
+  const bigBossFilter = id => minLevelForSpecies(id) <= bigBossLevel && (isFinalRegion || noLegend(id));
+  const bigBossEligible = bigBossArch.pool.filter(bigBossFilter);
+  const bigBossSrcPool = bigBossEligible.length ? bigBossEligible : bigBossArch.pool.filter(isFinalRegion ? () => true : noLegend);
   const bigBossIds = [...bigBossSrcPool].sort(() => rng() - 0.5).slice(0, bigBossTeamSize);
   const bigBoss = {
     archetype: bigBossArch,
