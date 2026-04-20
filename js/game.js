@@ -1792,9 +1792,20 @@ function savePersistentBuffs(store) {
   try { localStorage.setItem('poke_stat_buffs', JSON.stringify(store)); } catch {}
 }
 
+// Returns the base-form species ID for any member of an evolution line.
+function getEvoLineRoot(speciesId) {
+  const parentOf = {};
+  for (const [from, evo] of Object.entries(GEN1_EVOLUTIONS)) {
+    parentOf[evo.into] = Number(from);
+  }
+  let id = speciesId;
+  while (parentOf[id] !== undefined) id = parentOf[id];
+  return id;
+}
+
 function loadBuffsIntoPokemon(p) {
   const store = loadPersistentBuffs();
-  const buffs = store[p.speciesId];
+  const buffs = store[getEvoLineRoot(p.speciesId)];
   if (!buffs) return;
   p.statBuffs = { ...buffs };
   const hpBuff = buffs.hp ?? 0;
@@ -1814,9 +1825,9 @@ function applyStatBuff(pokemon, statKey) {
     pokemon.maxHp += hpGain;
     pokemon.currentHp = Math.min(pokemon.currentHp + hpGain, pokemon.maxHp);
   }
-  // Persist buffs by speciesId so they survive across runs
+  // Persist buffs by evo line root so they apply to the whole evolution line
   const store = loadPersistentBuffs();
-  store[pokemon.speciesId] = { ...pokemon.statBuffs };
+  store[getEvoLineRoot(pokemon.speciesId)] = { ...pokemon.statBuffs };
   savePersistentBuffs(store);
   saveRun();
   saveEndlessState();

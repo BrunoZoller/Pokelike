@@ -17,7 +17,7 @@ const TRAIT_DESCRIPTIONS = {
   Dragon:  ['+1 Spd/ATK/SpATK on KO',      '+1 Spd/ATK/SpATK on KO',      '+1 Spd/ATK/SpATK on KO'],
   Electric:['10% chance to attack again',                 '20% chance to attack again',                 '30% chance to attack again'],
   Fairy:   ['Enemy: -1 ATK & Sp.ATK at fight start',     'Enemy: -2 ATK & Sp.ATK at fight start',     'Enemy: -3 ATK & Sp.ATK at fight start'],
-  Fighting:['When a pokemon faints, survivors get +1 ATK', 'When a pokemon faints, survivors get +2 ATK', 'When a pokemon faints, survivors get +3 ATK'],
+  Fighting:['When a pokemon faints, survivors get +1 ATK & Sp.ATK', 'When a pokemon faints, survivors get +2 ATK & Sp.ATK', 'When a pokemon faints, survivors get +3 ATK & Sp.ATK'],
   Fire:    ['+1 ATK & Sp.ATK stages at fight start',     '+2 ATK & Sp.ATK stages at fight start',     '+3 ATK & Sp.ATK stages at fight start'],
   Flying:  ['15% chance to dodge incoming attacks',       '30% chance to dodge incoming attacks',       '50% chance to dodge incoming attacks'],
   Ghost:   ['Execute enemies below 15% HP',               'Execute enemies below 30% HP',               'Execute enemies below 50% HP'],
@@ -430,6 +430,7 @@ function buildTraitsConfig(playerTiers, enemyTiers = {}) {
           triggers.push({ type: 'trait_trigger', traitType: 'Fighting', side: fSide, idx: i,
             name: p.nickname || p.name, description: `Fighting Trait T${tier}: Rally!` });
           applyStageChange(p, 'atk', tier, fSide, i, efx);
+          applyStageChange(p, 'spatk', tier, fSide, i, efx);
         }
         for (const e of triggers) log.push(e);
         for (const e of efx) log.push(e);
