@@ -2102,7 +2102,39 @@ async function animateBattleVisually(detailedLog, pTeamInit, eTeamInit) {
     return new Promise(r => setTimeout(r, ms / battleSpeedMultiplier));
   }
 
-  for (const event of detailedLog) {
+  let i = 0;
+  while (i < detailedLog.length) {
+    const event = detailedLog[i];
+
+    // Batch consecutive trait_trigger events into one canvas pass so they animate simultaneously
+    if (event.type === 'trait_trigger') {
+      const canvas = document.getElementById('battle-anim-canvas');
+      if (canvas) {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        canvas.style.display = 'block';
+        const ctx = canvas.getContext('2d');
+        const allParticles = [];
+        while (i < detailedLog.length && detailedLog[i].type === 'trait_trigger') {
+          const e = detailedLog[i++];
+          const sideId = e.side === 'player' ? 'player-side' : 'enemy-side';
+          const el = document.querySelector(`#${sideId} .battle-pokemon[data-idx="${e.idx}"]`);
+          if (el) {
+            const rect = el.getBoundingClientRect();
+            const center = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+            const above  = { x: center.x, y: center.y - 30 };
+            allParticles.push(...buildParticles(e.traitType.toLowerCase(), center, above));
+          }
+        }
+        if (allParticles.length > 0) await runParticleCanvas(canvas, ctx, allParticles, 400);
+        else canvas.style.display = 'none';
+      } else {
+        while (i < detailedLog.length && detailedLog[i].type === 'trait_trigger') i++;
+      }
+      await sleep(80);
+      continue;
+    }
+
     if (event.type === 'attack') {
       const attackerSideId = event.side === 'player' ? 'player-side' : 'enemy-side';
       const targetSideId = event.side === 'player' ? 'enemy-side' : 'player-side';
@@ -2204,8 +2236,7 @@ async function animateBattleVisually(detailedLog, pTeamInit, eTeamInit) {
     } else if (event.type === 'stat_change') {
       const sideId = event.side === 'player' ? 'player-side' : 'enemy-side';
       const el = document.querySelector(`#${sideId} .battle-pokemon[data-idx="${event.idx}"]`);
-      if (el) await animateStatChange(el, event.stat, event.change);
-      await sleep(120);
+      if (el) animateStatChange(el, event.stat, event.change); // fire and forget — don't stall combat
 
     } else if (event.type === 'status_apply') {
       const sideId = event.side === 'player' ? 'player-side' : 'enemy-side';
@@ -2242,18 +2273,13 @@ async function animateBattleVisually(detailedLog, pTeamInit, eTeamInit) {
       }
       await sleep(100);
 
-    } else if (event.type === 'trait_trigger') {
-      const sideId = event.side === 'player' ? 'player-side' : 'enemy-side';
-      const el = document.querySelector(`#${sideId} .battle-pokemon[data-idx="${event.idx}"]`);
-      if (el) await playTraitTriggerAnimation(event.traitType, el);
-      await sleep(80);
-
     } else if (event.type === 'result') {
       addLogEntry(
         event.playerWon ? '--- Victory! ---' : '--- Defeat! ---',
         event.playerWon ? 'log-win' : 'log-lose'
       );
     }
+    i++;
   }
 }
 

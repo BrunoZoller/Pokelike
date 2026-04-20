@@ -507,13 +507,13 @@ async function getCatchChoices(mapIndex) {
   else if (range.min >= 280) bucket = GEN1_BST_APPROX.midLow;
   else bucket = GEN1_BST_APPROX.low;
 
-  // Shuffle and pick 3 (filter legendaries as safety net)
+  // Shuffle and pick — fetch extra IDs as fallback so we always return 3
   const filtered = bucket.filter(id => !LEGENDARY_IDS.includes(id));
   const shuffled = [...filtered].sort(() => (typeof rng === 'function' ? rng() : Math.random()) - 0.5);
-  const ids = shuffled.slice(0, 3);
+  const ids = shuffled.slice(0, 9);
 
   const results = await Promise.all(ids.map(id => fetchPokemonById(id)));
-  return results.filter(Boolean);
+  return results.filter(Boolean).slice(0, 3);
 }
 
 function calcHp(baseHp, level) {

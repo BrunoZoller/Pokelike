@@ -490,7 +490,12 @@ async function doCatchNode(node) {
   const isFirstMap = state.currentMap === 0 || (state.isEndlessMode && endlessState.regionNumber === 1 && endlessState.mapIndexInRegion === 0);
   const level = isFirstMap ? Math.max(4, getLevelForNode(node)) : getLevelForNode(node);
   const lvlFiltered = choices.filter(sp => minLevelForSpecies(sp.id ?? sp.speciesId) <= level);
-  if (lvlFiltered.length > 0) choices = lvlFiltered;
+  if (lvlFiltered.length > 0) {
+    // Pad with ineligible choices if filtering drops below 3 so there are always 3 options
+    choices = lvlFiltered.length < 3
+      ? [...lvlFiltered, ...choices.filter(sp => !lvlFiltered.includes(sp))].slice(0, 3)
+      : lvlFiltered;
+  }
 
   // Nuzlocke map 1: restrict to curated pool
   if (state.nuzlockeMode && state.currentMap === 0) {
