@@ -6,6 +6,4 @@ directory = "."
 
 [env.staging]
 name = "pokelike-staging"
-
-[env.staging.assets]
-directory = "."
+assets = { directory = "." }
