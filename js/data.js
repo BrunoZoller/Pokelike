@@ -603,6 +603,8 @@ const GEN1_EVOLUTIONS = {
   17: { into: 18,  level: 36, name: 'Pidgeot' },
   19: { into: 20,  level: 20, name: 'Raticate' },
   21: { into: 22,  level: 20, name: 'Fearow' },
+  // Pikachu (Thunder Stone → treated as lv 36)
+  25: { into: 26,  level: 36, name: 'Raichu' },
   // Snakes / ground
   23: { into: 24,  level: 22, name: 'Arbok' },
   27: { into: 28,  level: 22, name: 'Sandslash' },
