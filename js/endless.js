@@ -288,10 +288,9 @@ function getEndlessTraitEffects(team) {
   return fx;
 }
 
-// Level range for any map index — smooth curve, +20 per stage
+// Level range for any map index — smooth curve
 function getEndlessLevelRange(mapIndex, stage = 0) {
-  const stageBonus = stage * 20;
-  const min = Math.min(100, 5 + Math.floor(mapIndex * 4.5) + stageBonus);
+  const min = Math.min(100, 5 + Math.floor(mapIndex * 4.5));
   const max = Math.min(100, min + 10);
   return [min, max];
 }
@@ -532,7 +531,7 @@ function showRegionPreview(regionIndex) {
 }
 
 // Endless starter select — show artifact choice, then region preview, then pick 1 from 3
-async function showEndlessStarterSelect() {
+async function showEndlessStarterSelect(stage = 0) {
   // Artifact choice before anything else
   const artOpts = [...ENDLESS_ARTIFACTS].sort(() => rng() - 0.5).slice(0, 3);
   if (typeof showArtifactChoice === 'function') {
@@ -544,60 +543,70 @@ async function showEndlessStarterSelect() {
   await showRegionPreview(0);
 
   const pool = typeof getBaseFormIds === 'function' ? getBaseFormIds() : GEN1_BST_APPROX.low.filter(id => !LEGENDARY_IDS.includes(id));
-  const shuffled = [...pool].sort(() => rng() - 0.5);
-  const speciesArr = await Promise.all(shuffled.slice(0, 3).map(id => fetchPokemonById(id)));
-  const valid = speciesArr.filter(Boolean).slice(0, 3);
-  const choices = valid.map(sp => createInstance(sp, 5, rng() < (hasShinyCharm() ? 0.02 : 0.01), 0));
+  const picksNeeded = stage + 1;
+  const team = [];
+  const usedIds = new Set();
 
-  const picked = await new Promise(resolve => {
-    showScreen('starter-screen');
-    if (typeof renderRegionSidebar === 'function') renderRegionSidebar('starter-region-sidebar', 0);
-    const container = document.getElementById('starter-choices');
-    container.innerHTML = '';
-    container.style.flexDirection = 'column';
-    container.style.alignItems = 'center';
+  for (let pick = 0; pick < picksNeeded; pick++) {
+    const available = [...pool].filter(id => !usedIds.has(id)).sort(() => rng() - 0.5);
+    const speciesArr = await Promise.all(available.slice(0, 3).map(id => fetchPokemonById(id)));
+    const valid = speciesArr.filter(Boolean).slice(0, 3);
+    const choices = valid.map(sp => createInstance(sp, 5, rng() < (hasShinyCharm() ? 0.02 : 0.01), 0));
 
-    const header = document.createElement('div');
-    header.className = 'draft-header';
-    const label = document.createElement('div');
-    label.className = 'draft-label';
-    label.textContent = 'Choose your Starter!';
-    header.appendChild(label);
-    container.appendChild(header);
+    const picked = await new Promise(resolve => {
+      showScreen('starter-screen');
+      if (typeof renderRegionSidebar === 'function') renderRegionSidebar('starter-region-sidebar', 0);
+      const container = document.getElementById('starter-choices');
+      container.innerHTML = '';
+      container.style.flexDirection = 'column';
+      container.style.alignItems = 'center';
 
-    const choicesRow = document.createElement('div');
-    choicesRow.className = 'draft-choices-row';
+      const header = document.createElement('div');
+      header.className = 'draft-header';
+      const label = document.createElement('div');
+      label.className = 'draft-label';
+      label.textContent = picksNeeded > 1
+        ? `Choose Starter ${pick + 1} of ${picksNeeded}!`
+        : 'Choose your Starter!';
+      header.appendChild(label);
+      container.appendChild(header);
 
-    for (const inst of choices) {
-      const col = document.createElement('div');
-      col.className = 'draft-choice-col';
+      const choicesRow = document.createElement('div');
+      choicesRow.className = 'draft-choices-row';
 
-      const wrap = document.createElement('div');
-      wrap.innerHTML = renderPokemonCard(inst, true, false);
-      const card = wrap.querySelector('.poke-card');
-      if (!card) continue;
-      card.style.cursor = 'pointer';
-      card.setAttribute('role', 'button');
-      card.setAttribute('tabindex', '0');
-      col.appendChild(card);
-      col.insertAdjacentHTML('beforeend', _draftBadgeHtml(inst, []));
+      for (const inst of choices) {
+        const col = document.createElement('div');
+        col.className = 'draft-choice-col';
 
-      const pick = () => resolve(inst);
-      col.addEventListener('click', pick);
-      col.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') pick(); });
-      col.setAttribute('tabindex', '0');
-      choicesRow.appendChild(col);
-    }
+        const wrap = document.createElement('div');
+        wrap.innerHTML = renderPokemonCard(inst, true, false);
+        const card = wrap.querySelector('.poke-card');
+        if (!card) continue;
+        card.style.cursor = 'pointer';
+        card.setAttribute('role', 'button');
+        card.setAttribute('tabindex', '0');
+        col.appendChild(card);
+        col.insertAdjacentHTML('beforeend', _draftBadgeHtml(inst, []));
 
-    container.appendChild(choicesRow);
+        const pickFn = () => resolve(inst);
+        col.addEventListener('click', pickFn);
+        col.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') pickFn(); });
+        col.setAttribute('tabindex', '0');
+        choicesRow.appendChild(col);
+      }
 
-  });
+      container.appendChild(choicesRow);
+    });
 
-  const url = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${picked.speciesId}.png`;
-  markPokedexCaught(picked.speciesId, picked.name, picked.types, url);
-  if (picked.isShiny) markShinyDexCaught(picked.speciesId, picked.name, picked.types, picked.spriteUrl);
-  state.team = [picked];
-  state.starterSpeciesId = picked.speciesId;
+    const url = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${picked.speciesId}.png`;
+    markPokedexCaught(picked.speciesId, picked.name, picked.types, url);
+    if (picked.isShiny) markShinyDexCaught(picked.speciesId, picked.name, picked.types, picked.spriteUrl);
+    usedIds.add(picked.speciesId);
+    team.push(picked);
+  }
+
+  state.team = team;
+  state.starterSpeciesId = team[0].speciesId;
   state.maxTeamSize = 6;
   startMap(0);
 }
@@ -620,7 +629,7 @@ async function startEndlessRun(stage = 0) {
     artifacts: [],
   };
   if (savedTrainer) {
-    await showStarterSelect();
+    await showEndlessStarterSelect(stage);
   } else {
     await showTrainerSelect();
   }
