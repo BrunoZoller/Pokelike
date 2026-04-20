@@ -1,8 +1,9 @@
 // battle.js - Auto-battle engine (1v1: active pokemon only)
 
-// Gen II stat stage multiplier: +n → (2+n)/2, -n → 2/(2+n)
+// Stage multiplier: +10 = 4x, -10 = 0.25x, 0 = 1x (linear between)
+// Formula: (10 + 3n) / 10 for n >= 0, 10 / (10 + 3|n|) for n < 0
 function stageMultiplier(n) {
-  return n >= 0 ? (2 + n) / 2 : 2 / (2 + Math.abs(n));
+  return n >= 0 ? (10 + 3 * n) / 10 : 10 / (10 + 3 * Math.abs(n));
 }
 
 // Attach per-battle mutable state to a pokemon copy
@@ -12,10 +13,10 @@ function initBattleState(p) {
   return p;
 }
 
-// Push a stat_change event and clamp stages to [-6, +6]
+// Push a stat_change event and clamp stages to [-10, +10]
 function applyStageChange(pokemon, stat, delta, side, idx, log) {
   const prev = pokemon.stages[stat];
-  const newStage = Math.max(-6, Math.min(6, prev + delta));
+  const newStage = Math.max(-10, Math.min(10, prev + delta));
   if (newStage === prev) return;
   pokemon.stages[stat] = newStage;
   log.push({ type: 'stat_change', side, idx,
