@@ -184,11 +184,11 @@ function buildTraitsConfig(tiers) {
       // Fire: +1/+2/+3 ATK and Sp.ATK stages to whole player team
       if (traitActive('Fire')) {
         const tier = traitTier('Fire');
-        for (let i = 0; i < pTeam.length; i++) {
-          const p = pTeam[i];
-          if (p.currentHp <= 0) continue;
+        const alive = pTeam.map((p, i) => ({ p, i })).filter(x => x.p.currentHp > 0);
+        for (const { p, i } of alive)
           log.push({ type: 'trait_trigger', traitType: 'Fire', side: 'player', idx: i,
             name: p.nickname || p.name, description: `Fire Trait T${tier}: +ATK & Sp.ATK!` });
+        for (const { p, i } of alive) {
           applyStageChange(p, 'atk',     tier, 'player', i, log);
           applyStageChange(p, 'special', tier, 'player', i, log);
         }
@@ -198,27 +198,26 @@ function buildTraitsConfig(tiers) {
       if (traitActive('Ground')) {
         const tier = traitTier('Ground');
         const boost = tier * 2;
-        for (let i = 0; i < pTeam.length; i++) {
-          const p = pTeam[i];
-          if (p.currentHp <= 0) continue;
+        const alive = pTeam.map((p, i) => ({ p, i })).filter(x => x.p.currentHp > 0);
+        for (const { p, i } of alive)
           log.push({ type: 'trait_trigger', traitType: 'Ground', side: 'player', idx: i,
             name: p.nickname || p.name, description: `Ground Trait T${tier}: +DEF!` });
+        for (const { p, i } of alive)
           applyStageChange(p, 'def', boost, 'player', i, log);
-        }
       }
 
       // Normal: +25/50/100% max HP bonus to whole player team
       if (traitActive('Normal')) {
         const tier = traitTier('Normal');
         const pct = [0, 0.25, 0.50, 1.00][tier];
-        for (let i = 0; i < pTeam.length; i++) {
-          const p = pTeam[i];
-          if (p.currentHp <= 0) continue;
+        const alive = pTeam.map((p, i) => ({ p, i })).filter(x => x.p.currentHp > 0);
+        for (const { p, i } of alive)
+          log.push({ type: 'trait_trigger', traitType: 'Normal', side: 'player', idx: i,
+            name: p.nickname || p.name, description: `Normal Trait T${tier}: +${Math.round(pct*100)}% HP!` });
+        for (const { p, i } of alive) {
           const bonus = Math.floor(p.maxHp * pct);
           p.maxHp += bonus;
           p.currentHp = Math.min(p.currentHp + bonus, p.maxHp);
-          log.push({ type: 'trait_trigger', traitType: 'Normal', side: 'player', idx: i,
-            name: p.nickname || p.name, description: `Normal Trait T${tier}: +${Math.round(pct*100)}% HP!` });
           log.push({ type: 'effect', side: 'player', idx: i, name: p.nickname || p.name,
             hpChange: bonus, hpAfter: p.currentHp, reason: `Normal Trait: +${bonus} max HP!` });
         }
