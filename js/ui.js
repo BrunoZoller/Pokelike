@@ -2161,26 +2161,58 @@ async function animateBattleVisually(detailedLog, pTeamInit, eTeamInit) {
       }
       if (attackerEl) attackerEl.classList.remove('attacking');
 
-      // Hit flash + SFX on target while HP bar animates
-      if (targetEl) targetEl.classList.add(hitClass);
-      if (event.crit && targetEl) {
-        targetEl.classList.add('crit-flash');
-        const popup = document.createElement('div');
-        popup.className = 'crit-popup';
-        popup.textContent = 'Critical!';
-        targetEl.appendChild(popup);
-        setTimeout(() => popup.remove(), 800);
-      }
-      if (targetEl) {
-        const targetHpTrack = event.side === 'player' ? eHp : pHp;
-        const prev = targetHpTrack[event.targetIdx].current;
-        await animateHpBar(targetEl, prev, event.targetHpAfter, targetHpTrack[event.targetIdx].max);
-        targetHpTrack[event.targetIdx].current = event.targetHpAfter;
-      }
+      // Look ahead: check if a Flying dodge immediately follows this attack
+      const nextEvt = detailedLog[i + 1];
+      const flyingDodge = nextEvt?.type === 'trait_trigger'
+        && nextEvt.traitType === 'Flying'
+        && nextEvt.side === event.targetSide
+        && nextEvt.idx === event.targetIdx;
 
-      await sleep(300);
-      if (targetEl) targetEl.classList.remove(hitClass);
-      if (targetEl) targetEl.classList.remove('crit-flash');
+      if (flyingDodge && targetEl) {
+        // Show dodge animation instead of hit — consume trait_trigger and effect events
+        const canvas = document.getElementById('battle-anim-canvas');
+        if (canvas) {
+          canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+          canvas.style.display = 'block';
+          const ctx = canvas.getContext('2d');
+          const rect = targetEl.getBoundingClientRect();
+          const center = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+          const above  = { x: center.x, y: center.y - 30 };
+          await runParticleCanvas(canvas, ctx, buildParticles('flying', center, above), 400);
+        }
+        const dodgePopup = document.createElement('div');
+        dodgePopup.className = 'crit-popup';
+        dodgePopup.textContent = 'Dodge!';
+        targetEl.appendChild(dodgePopup);
+        setTimeout(() => dodgePopup.remove(), 800);
+        i++; // consume trait_trigger
+        // Consume the following effect event and sync HP tracker (HP unchanged)
+        if (detailedLog[i + 1]?.type === 'effect' && detailedLog[i + 1].idx === event.targetIdx) {
+          const targetHpTrack = event.targetSide === 'player' ? pHp : eHp;
+          targetHpTrack[event.targetIdx].current = detailedLog[i + 1].hpAfter;
+          i++; // consume effect
+        }
+      } else {
+        // Normal hit flash + HP bar animation
+        if (targetEl) targetEl.classList.add(hitClass);
+        if (event.crit && targetEl) {
+          targetEl.classList.add('crit-flash');
+          const popup = document.createElement('div');
+          popup.className = 'crit-popup';
+          popup.textContent = 'Critical!';
+          targetEl.appendChild(popup);
+          setTimeout(() => popup.remove(), 800);
+        }
+        if (targetEl) {
+          const targetHpTrack = event.side === 'player' ? eHp : pHp;
+          const prev = targetHpTrack[event.targetIdx].current;
+          await animateHpBar(targetEl, prev, event.targetHpAfter, targetHpTrack[event.targetIdx].max);
+          targetHpTrack[event.targetIdx].current = event.targetHpAfter;
+        }
+        await sleep(300);
+        if (targetEl) targetEl.classList.remove(hitClass);
+        if (targetEl) targetEl.classList.remove('crit-flash');
+      }
 
       let effText = '';
       if (event.typeEff >= 2) effText = ' Super effective!';

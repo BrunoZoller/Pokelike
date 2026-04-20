@@ -264,11 +264,6 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog, traitsCon
         target.currentHp = 1;
       }
 
-      // whenAttacked hook (Flying dodge: retroactively heal damage if target still alive)
-      if (target.currentHp > 0 && traitsConfig?.whenAttacked) {
-        traitsConfig.whenAttacked(target, tIdx, tSide, attacker, aIdx, side, damage, detailedLog);
-      }
-
       const aName = attacker.nickname || attacker.name;
       const tName = target.nickname || target.name;
 
@@ -280,12 +275,18 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog, traitsCon
       addLog(`${side === 'player' ? '' : '(enemy) '}${aName} used ${move.name} → ${tName} took ${damage} dmg.${effText}`,
              side === 'player' ? 'log-player' : 'log-enemy');
 
+      // Push attack event FIRST so whenAttacked hooks (Flying dodge etc.) appear after it in the log
       detailedLog.push({
         type: 'attack', side, attackerIdx: aIdx, attackerName: aName,
         targetSide: tSide, targetIdx: tIdx, targetName: tName,
         moveName: move.name, moveType, damage, typeEff, crit, isSpecial: move.isSpecial,
         attackerHpAfter: attacker.currentHp, targetHpAfter: target.currentHp,
       });
+
+      // whenAttacked hook — events pushed here appear after the attack event in the log
+      if (target.currentHp > 0 && traitsConfig?.whenAttacked) {
+        traitsConfig.whenAttacked(target, tIdx, tSide, attacker, aIdx, side, damage, detailedLog);
+      }
 
       // afterAttack hook (Grass, Ghost, Electric, Ice, Poison, Rock, Water, Psychic)
       if (damage > 0 && traitsConfig?.afterAttack) {
