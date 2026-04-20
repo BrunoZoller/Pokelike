@@ -3,3 +3,9 @@ compatibility_date = "2026-04-20"
 
 [assets]
 directory = "."
+
+[env.staging]
+name = "pokelike-staging"
+
+[env.staging.assets]
+directory = "."
