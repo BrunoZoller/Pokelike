@@ -31,8 +31,10 @@
   <div class="game-subtitle">Pokemon Roguelike</div>
   <div style="color:var(--text-dim);font-size:9px;margin-bottom:6px;cursor:pointer;" onclick="openPatchNotesModal()">v1.3.1 — patch notes</div>
   <button id="btn-continue-run" class="btn-primary" style="display:none;margin-bottom:10px;">Continue Run</button>
+  <button id="btn-continue-endless" class="btn-primary" style="display:none;margin-bottom:10px;background:linear-gradient(135deg,#1a0a3e,#3a0a6e);">Continue Endless</button>
   <button id="btn-new-run" class="btn-primary">Normal Mode</button>
   <button id="btn-hard-run" class="btn-primary" style="margin-top:6px;">Nuzlocke</button>
+  <button id="btn-endless-run" class="btn-primary" style="margin-top:6px;background:linear-gradient(135deg,#1a0a3e,#3a0a6e);">♾ Endless Mode</button>
   <div style="display:flex;gap:8px;margin-top:8px;">
     <button onclick="openPokedexModal()" class="btn-secondary">📖 Pokédex</button>
     <button onclick="openAchievementsModal()" class="btn-secondary">🏆 Achievements</button>
@@ -99,6 +101,7 @@
   </div>
 
   <div class="map-panels">
+    <div id="endless-trait-panel" class="hud-box map-panel-traits" style="display:none;"></div>
     <div class="hud-box map-panel-left">
       <div class="hud-label">TEAM</div>
       <div id="team-bar"></div>
@@ -109,6 +112,7 @@
       <div class="hud-label map-badges-label">BADGES</div>
       <div id="badge-count-panel"></div>
     </div>
+    <div id="endless-region-panel" class="hud-box map-panel-region" style="display:none;"></div>
   </div>
 
   <div id="map-container"></div>
@@ -231,6 +235,26 @@
   </a>
 </div>
 
+<!-- ===== ENDLESS REGION PREVIEW ===== -->
+<div id="endless-region-preview" class="screen">
+  <h2 class="region-preview-header">Region Preview</h2>
+  <p style="text-align:center;color:var(--text-dim);font-size:9px;margin-bottom:12px;">Defeat all 5 trainers to advance</p>
+  <div class="region-preview-trainers"></div>
+  <div style="text-align:center;margin-top:16px;">
+    <button id="btn-region-preview-go" class="btn-primary">Begin!</button>
+  </div>
+</div>
+
+<!-- ===== ENDLESS STAGE COMPLETE ===== -->
+<div id="endless-stage-complete" class="screen">
+  <div id="stage-complete-msg" class="win-title" style="font-size:14px;"></div>
+  <p style="color:var(--text-dim);text-align:center;font-size:9px;">The next stage will be harder!</p>
+  <div id="stage-complete-team" style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:12px 0;"></div>
+  <div style="text-align:center;">
+    <button id="btn-stage-continue" class="btn-primary">Next Stage →</button>
+  </div>
+</div>
+
 <!-- ===== EVOLUTION OVERLAY ===== -->
 <div id="evo-overlay" style="display:none;position:fixed;inset:0;z-index:200;background:#000;
      align-items:center;justify-content:center;flex-direction:column;gap:20px;">
@@ -255,6 +279,7 @@
 <script src="js/data.js"></script>
 <script src="js/map.js"></script>
 <script src="js/battle.js"></script>
+<script src="js/endless.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/game.js"></script>
 <!-- Firebase (loaded last so game functions are available) -->

@@ -2201,6 +2201,53 @@ async function animateBattleVisually(detailedLog, pTeamInit, eTeamInit) {
       addLogEntry(`${event.name} transformed into ${event.intoName}!`, 'log-player');
       await sleep(400);
 
+    } else if (event.type === 'stat_change') {
+      const sideId = event.side === 'player' ? 'player-side' : 'enemy-side';
+      const el = document.querySelector(`#${sideId} .battle-pokemon[data-idx="${event.idx}"]`);
+      if (el) await animateStatChange(el, event.stat, event.change);
+      await sleep(120);
+
+    } else if (event.type === 'status_apply') {
+      const sideId = event.side === 'player' ? 'player-side' : 'enemy-side';
+      const el = document.querySelector(`#${sideId} .battle-pokemon[data-idx="${event.idx}"]`);
+      if (el) {
+        const icon  = event.status === 'poison' ? '☠' : '❄';
+        const color = event.status === 'poison' ? '#a040a0' : '#7ecff0';
+        showStatusBadge(el, icon, color, event.status);
+      }
+      await sleep(200);
+
+    } else if (event.type === 'status_tick') {
+      const sideId = event.side === 'player' ? 'player-side' : 'enemy-side';
+      const el = document.querySelector(`#${sideId} .battle-pokemon[data-idx="${event.idx}"]`);
+      const teamHp = event.side === 'player' ? pHp : eHp;
+
+      if (event.status === 'poison' && el) {
+        el.classList.add('hit-poison');
+        const prev = teamHp[event.idx]?.current ?? event.hpAfter - event.hpChange;
+        await animateHpBar(el, prev, event.hpAfter, teamHp[event.idx]?.max ?? event.hpAfter + 1);
+        if (teamHp[event.idx]) teamHp[event.idx].current = event.hpAfter;
+        el.classList.remove('hit-poison');
+      } else if (event.status === 'freeze_thaw' && el) {
+        removeStatusBadge(el, 'freeze');
+        const popup = document.createElement('div');
+        popup.className = 'crit-popup';
+        popup.textContent = 'Thawed!';
+        el.appendChild(popup);
+        setTimeout(() => popup.remove(), 800);
+      } else if (event.status === 'freeze_skip' && el) {
+        el.classList.add('frozen-flash');
+        await sleep(300);
+        el.classList.remove('frozen-flash');
+      }
+      await sleep(100);
+
+    } else if (event.type === 'trait_trigger') {
+      const sideId = event.side === 'player' ? 'player-side' : 'enemy-side';
+      const el = document.querySelector(`#${sideId} .battle-pokemon[data-idx="${event.idx}"]`);
+      if (el) await playTraitTriggerAnimation(event.traitType, el);
+      await sleep(80);
+
     } else if (event.type === 'result') {
       addLogEntry(
         event.playerWon ? '--- Victory! ---' : '--- Defeat! ---',
@@ -2208,6 +2255,187 @@ async function animateBattleVisually(detailedLog, pTeamInit, eTeamInit) {
       );
     }
   }
+}
+
+// ── Stat change arrow animation ───────────────────────────────────────────────
+
+function animateStatChange(pokemonEl, stat, change) {
+  return new Promise(resolve => {
+    const isUp = change > 0;
+    const color = isUp ? '#5af055' : '#f05545';
+    const arrow = isUp ? '▲' : '▼';
+    const statLabels = { atk: 'ATK', def: 'DEF', speed: 'SPD', special: 'Sp.ATK', spdef: 'Sp.DEF' };
+
+    const popup = document.createElement('div');
+    popup.className = 'stat-change-popup';
+    popup.style.color = color;
+    popup.textContent = `${arrow} ${statLabels[stat] || stat}`;
+    pokemonEl.appendChild(popup);
+
+    setTimeout(() => { popup.remove(); resolve(); }, 700 / battleSpeedMultiplier);
+  });
+}
+
+// ── Trait trigger burst animation (reuses existing particle system) ────────────
+
+async function playTraitTriggerAnimation(traitType, pokemonEl) {
+  const canvas = document.getElementById('battle-anim-canvas');
+  if (!canvas) return;
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+  canvas.style.display = 'block';
+  const ctx = canvas.getContext('2d');
+  const rect = pokemonEl.getBoundingClientRect();
+  const center = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+  const above  = { x: center.x, y: center.y - 30 };
+  const particles = buildParticles(traitType.toLowerCase(), center, above);
+  await runParticleCanvas(canvas, ctx, particles, 400);
+}
+
+// ── Status badge helpers ──────────────────────────────────────────────────────
+
+function showStatusBadge(pokemonEl, icon, color, statusId) {
+  removeStatusBadge(pokemonEl, statusId);
+  const badge = document.createElement('div');
+  badge.className = 'status-badge';
+  badge.dataset.statusId = statusId;
+  badge.style.background = color;
+  badge.textContent = icon;
+  pokemonEl.appendChild(badge);
+}
+
+function removeStatusBadge(pokemonEl, statusId) {
+  pokemonEl.querySelector(`.status-badge[data-status-id="${statusId}"]`)?.remove();
+}
+
+// ── Endless mode UI ───────────────────────────────────────────────────────────
+
+// ── Endless map trait panel ───────────────────────────────────────────────────
+
+function renderEndlessTraitPanel(team) {
+  const panel = document.getElementById('endless-trait-panel');
+  if (!panel) return;
+
+  const data = getTraitDisplayData(team);
+  if (data.length === 0) {
+    panel.style.display = 'none';
+    return;
+  }
+
+  panel.style.display = '';
+  panel.innerHTML = `<div class="hud-label">TRAITS</div>` + data.map(({ type, count, tier, nextThreshold, description, active }) => {
+    const displayCount = Math.min(count, nextThreshold);
+    const pct = (displayCount / nextThreshold) * 100;
+    const tierLabel = tier > 0 ? ` T${tier}` : '';
+    return `<div class="trait-row${active ? '' : ' trait-row-inactive'}">
+      <div class="trait-row-header">
+        <span class="type-badge type-${type.toLowerCase()}" style="font-size:7px;padding:1px 4px;">${type}</span>
+        <span class="trait-count">${count}/${nextThreshold}${tierLabel}</span>
+      </div>
+      <div class="trait-progress-bar">
+        <div class="trait-progress-fill type-${type.toLowerCase()}" style="width:${pct}%"></div>
+      </div>
+      <div class="trait-desc">${description}</div>
+    </div>`;
+  }).join('');
+}
+
+function hideEndlessTraitPanel() {
+  const panel = document.getElementById('endless-trait-panel');
+  if (panel) panel.style.display = 'none';
+}
+
+function renderEndlessRegionPanel(region, currentMapIndex) {
+  const panel = document.getElementById('endless-region-panel');
+  if (!panel || !region) return;
+  panel.style.display = '';
+
+  const header = `<div class="hud-label">S${region.stageNum} R${region.regionNum}</div>`;
+  const rows = region.trainers.map((trainer, i) => {
+    const type = trainer.archetype?.type || '???';
+    const name = trainer.archetype?.name || '???';
+    const isBigBoss = i === 4;
+    const isDone = i < currentMapIndex;
+    const isCurrent = i === currentMapIndex;
+
+    const typeClass = type.toLowerCase();
+    const statusIcon = isDone ? '✓ ' : isCurrent ? '▶ ' : '';
+    const rowClass = isDone ? 'region-stage-row done'
+      : isCurrent ? 'region-stage-row current'
+      : isBigBoss ? 'region-stage-row boss'
+      : 'region-stage-row';
+
+    return `<div class="${rowClass}">
+      <span class="type-badge type-${typeClass}" style="font-size:6px;padding:1px 3px;">${type}</span>
+      <span class="region-stage-name">${statusIcon}${isBigBoss ? '★ ' : ''}${name}</span>
+      <span class="region-stage-level">Lv${trainer.level}</span>
+    </div>`;
+  }).join('');
+
+  panel.innerHTML = header + `<div class="region-stage-list">${rows}</div>`;
+}
+
+function renderRegionPreview(region, onContinue) {
+  const screen = document.getElementById('endless-region-preview');
+  if (!screen) return;
+
+  const headerEl = screen.querySelector('.region-preview-header');
+  const listEl   = screen.querySelector('.region-preview-trainers');
+  const btnEl    = document.getElementById('btn-region-preview-go');
+
+  if (headerEl) headerEl.textContent = `Stage ${region.stageNum} — Region ${region.regionNum}`;
+
+  if (listEl) {
+    listEl.innerHTML = region.trainers.map((t, i) => {
+      const isBigBoss = i === 4;
+      const typeStr = t.archetype.type || '???';
+      return `<div class="region-trainer-row${isBigBoss ? ' big-boss' : ''}">
+        <span class="region-trainer-num">${isBigBoss ? 'BOSS' : `Map ${i + 1}/4`}</span>
+        <span class="region-trainer-name">${t.archetype.name}</span>
+        <span class="region-trainer-type type-badge type-${typeStr.toLowerCase()}">${typeStr}</span>
+        <span class="region-trainer-level">~Lv ${t.level}</span>
+      </div>`;
+    }).join('');
+  }
+
+  if (btnEl) btnEl.onclick = onContinue;
+  showScreen('endless-region-preview');
+}
+
+function renderTraitBar(tiers) {
+  let el = document.getElementById('endless-trait-bar');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'endless-trait-bar';
+    el.className = 'endless-trait-bar';
+    const header = document.querySelector('#battle-screen .battle-header');
+    if (header) header.appendChild(el);
+  }
+  el.innerHTML = '';
+  for (const [type, tier] of Object.entries(tiers)) {
+    if (!tier) continue;
+    const badge = document.createElement('span');
+    badge.className = `trait-badge type-badge type-${type.toLowerCase()}`;
+    badge.textContent = `${type} T${tier}`;
+    badge.title = `${type} Trait Tier ${tier}`;
+    el.appendChild(badge);
+  }
+}
+
+function clearTraitBar() {
+  document.getElementById('endless-trait-bar')?.remove();
+}
+
+function renderStageComplete(stageNum, team, onContinue) {
+  const screen = document.getElementById('endless-stage-complete');
+  if (!screen) return;
+  const msgEl  = document.getElementById('stage-complete-msg');
+  const teamEl = document.getElementById('stage-complete-team');
+  const btnEl  = document.getElementById('btn-stage-continue');
+  if (msgEl)  msgEl.textContent = `Stage ${stageNum} Complete!`;
+  if (teamEl) teamEl.innerHTML  = team.map(p => renderPokemonCard(p, false, false)).join('');
+  if (btnEl)  btnEl.onclick     = onContinue;
+  showScreen('endless-stage-complete');
 }
 
 // Show a brief notification banner on the map screen

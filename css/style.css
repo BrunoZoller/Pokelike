@@ -1977,3 +1977,223 @@ body.dark-mode #btn-new-run  { border-color: #2266dd; box-shadow: 3px 3px 0 0 #2
 body.dark-mode #btn-new-run:hover  { box-shadow: 4px 4px 0 0 #2266dd; }
 body.dark-mode #btn-hard-run { border-color: #cc2222; box-shadow: 3px 3px 0 0 #cc2222; color: #ff6666; }
 body.dark-mode #btn-hard-run:hover { box-shadow: 4px 4px 0 0 #cc2222; }
+
+/* ── Endless Trait Panel (map screen) ──────────────────────────────────────── */
+
+.map-panel-traits {
+  flex: 0 0 auto;
+  min-width: 140px;
+  max-width: 180px;
+}
+.trait-row {
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.trait-row:last-child { border-bottom: none; margin-bottom: 0; }
+.trait-row-inactive { opacity: 0.4; }
+.trait-row-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  margin-bottom: 3px;
+}
+.trait-count {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.trait-progress-bar {
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 3px;
+}
+.trait-progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+/* Use type badge colors for the fill */
+.trait-progress-fill.type-fire     { background: #f08030; }
+.trait-progress-fill.type-water    { background: #6890f0; }
+.trait-progress-fill.type-grass    { background: #78c850; }
+.trait-progress-fill.type-electric { background: #f8d030; }
+.trait-progress-fill.type-ice      { background: #98d8d8; }
+.trait-progress-fill.type-poison   { background: #a040a0; }
+.trait-progress-fill.type-ground   { background: #e0c068; }
+.trait-progress-fill.type-flying   { background: #a890f0; }
+.trait-progress-fill.type-psychic  { background: #f85888; }
+.trait-progress-fill.type-bug      { background: #a8b820; }
+.trait-progress-fill.type-rock     { background: #b8a038; }
+.trait-progress-fill.type-ghost    { background: #705898; }
+.trait-progress-fill.type-dragon   { background: #7038f8; }
+.trait-progress-fill.type-dark     { background: #705848; }
+.trait-progress-fill.type-steel    { background: #b8b8d0; }
+.trait-progress-fill.type-normal   { background: #a8a878; }
+.trait-desc {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 6px;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+
+/* On desktop, trait panel goes to the left of the team panel */
+@media (min-width: 769px) {
+  .map-panel-traits {
+    order: 0;
+    align-self: start;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+  }
+}
+
+/* ── Endless Region Panel (map screen, right of items) ─────────────────────── */
+
+.map-panel-region {
+  flex: 0 0 auto;
+  min-width: 130px;
+}
+.region-stage-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+.region-stage-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 4px;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  font-size: 7px;
+  opacity: 0.6;
+}
+.region-stage-row.done {
+  opacity: 0.35;
+}
+.region-stage-row.current {
+  opacity: 1;
+  border-color: var(--gold);
+  background: rgba(255, 200, 0, 0.08);
+}
+.region-stage-row.boss {
+  border-color: var(--border);
+  opacity: 0.6;
+}
+.region-stage-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 6px;
+}
+.region-stage-level {
+  font-size: 6px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+@media (min-width: 769px) {
+  .map-panel-region {
+    order: 4;
+    align-self: start;
+  }
+}
+
+/* ── Endless Mode ───────────────────────────────────────────────────────────── */
+
+/* Floating stat-change arrow popup */
+.stat-change-popup {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  font-weight: bold;
+  pointer-events: none;
+  z-index: 20;
+  text-shadow: 0 1px 3px #000;
+  white-space: nowrap;
+  animation: stat-float 0.7s ease-out forwards;
+}
+@keyframes stat-float {
+  0%   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-28px); }
+}
+
+/* Status badge (poison ☠ / freeze ❄) pinned to pokemon sprite corner */
+.status-badge {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  font-size: 11px;
+  padding: 1px 3px;
+  border-radius: 3px;
+  font-family: 'Press Start 2P', monospace;
+  z-index: 10;
+  pointer-events: none;
+}
+.frozen-flash {
+  animation: frozen-pulse 0.3s ease-in-out;
+}
+@keyframes frozen-pulse {
+  0%, 100% { filter: brightness(1); }
+  50%       { filter: brightness(2) saturate(0); }
+}
+
+/* Trait bar shown inside battle-header during endless fights */
+.endless-trait-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: center;
+  padding: 4px 0 2px;
+}
+.trait-badge {
+  font-size: 8px;
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-family: 'Press Start 2P', monospace;
+  letter-spacing: 0;
+}
+
+/* Region preview screen */
+.region-preview-header {
+  text-align: center;
+  font-size: 13px;
+  margin-bottom: 8px;
+  color: var(--gold);
+}
+.region-preview-trainers {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 500px;
+  margin: 0 auto;
+  width: 100%;
+}
+.region-trainer-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+}
+.region-trainer-row.big-boss {
+  border-color: var(--gold);
+  background: linear-gradient(135deg, #1a1200, #2a2000);
+}
+.region-trainer-num  { color: var(--text-dim); min-width: 52px; }
+.region-trainer-name { flex: 1; color: var(--text); }
+.region-trainer-type { font-size: 8px; }
+.region-trainer-level { color: var(--text-dim); font-size: 8px; }

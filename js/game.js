@@ -62,8 +62,21 @@ async function initGame() {
   document.getElementById('btn-new-run').onclick = () => startNewRun(false);
   document.getElementById('btn-hard-run').onclick = () => startNewRun(true);
 
+  const endlessBtn = document.getElementById('btn-endless-run');
+  if (endlessBtn) endlessBtn.onclick = () => startEndlessRun();
+
+  const continueEndlessBtn = document.getElementById('btn-continue-endless');
+  if (continueEndlessBtn) {
+    if (localStorage.getItem('poke_endless_state') && localStorage.getItem('poke_current_run')) {
+      continueEndlessBtn.style.display = '';
+      continueEndlessBtn.onclick = () => continueEndlessRun();
+    } else {
+      continueEndlessBtn.style.display = 'none';
+    }
+  }
+
   const continueBtn = document.getElementById('btn-continue-run');
-  if (localStorage.getItem('poke_current_run')) {
+  if (localStorage.getItem('poke_current_run') && !localStorage.getItem('poke_endless_state')) {
     continueBtn.style.display = '';
     continueBtn.onclick = async () => {
       if (!loadRun()) return;
@@ -117,7 +130,13 @@ async function showStarterSelect() {
   const container = document.getElementById('starter-choices');
   container.innerHTML = '<div class="loading">Loading starters...</div>';
 
-  const starters = await Promise.all(STARTER_IDS.map(id => fetchPokemonById(id)));
+  let starters;
+  if (state.isEndlessMode) {
+    // Pick 3 random base-form pokemon from the low BST pool
+    starters = await getCatchChoices(0);
+  } else {
+    starters = await Promise.all(STARTER_IDS.map(id => fetchPokemonById(id)));
+  }
   const startLevel = 5;
 
   container.innerHTML = '';
@@ -144,7 +163,11 @@ function selectStarter(pokemon) {
   state.team = [pokemon];
   state.starterSpeciesId = pokemon.speciesId;
   state.maxTeamSize = 1;
-  startMap(0);
+  if (state.isEndlessMode) {
+    startEndlessRegion();
+  } else {
+    startMap(0);
+  }
 }
 
 // ---- Map Management ----
@@ -167,6 +190,12 @@ function startMap(mapIndex) {
 }
 
 function showMapScreen() {
+  // In endless mode, delegate to the endless map renderer (which uses the correct click handler)
+  if (state.isEndlessMode) { showEndlessMapScreen(); return; }
+
+  if (typeof hideEndlessTraitPanel === 'function') hideEndlessTraitPanel();
+  const regionPanel = document.getElementById('endless-region-panel');
+  if (regionPanel) regionPanel.style.display = 'none';
   showScreen('map-screen');
   const mapInfo = document.getElementById('map-info');
   if (mapInfo) {
@@ -321,9 +350,27 @@ function resolveQuestionMark() {
 
 // ---- Node Handlers ----
 
+// Maps a max level to an appropriate map index for BST bucket selection.
+function levelToMapIndex(maxLevel) {
+  if (maxLevel <= 10) return 0;
+  if (maxLevel <= 20) return 1;
+  if (maxLevel <= 30) return 3;
+  if (maxLevel <= 42) return 4;
+  if (maxLevel <= 52) return 6;
+  return 7;
+}
+
+// In endless mode, use a BST bucket matching the current level range instead of fakeMapIndex.
+function getEncounterMapIndex() {
+  if (state.isEndlessMode && state.endlessLevelRange) {
+    return levelToMapIndex(state.endlessLevelRange[1]);
+  }
+  return state.currentMap;
+}
+
 // Returns a level scaled to the node's layer (layer 1 = map min, layer 6 = map max).
 function getLevelForNode(node) {
-  const [minL, maxL] = MAP_LEVEL_RANGES[state.currentMap];
+  const [minL, maxL] = state.endlessLevelRange || MAP_LEVEL_RANGES[state.currentMap];
   const t = Math.min(1, Math.max(0, (node.layer - 1) / 5)); // 0.0 at layer 1, 1.0 at layer 6
   const base = Math.round(minL + t * (maxL - minL));
   const spread = Math.max(1, Math.round((maxL - minL) / 8));
@@ -332,7 +379,9 @@ function getLevelForNode(node) {
 
 async function doBattleNode(node) {
   const level = state.currentMap >= 1 ? getLevelForNode(node) - 1 : getLevelForNode(node);
-  let choices = await getCatchChoices(state.currentMap);
+  let choices = await getCatchChoices(getEncounterMapIndex());
+  const lvlFiltered = choices.filter(sp => minLevelForSpecies(sp.id ?? sp.speciesId) <= level);
+  if (lvlFiltered.length > 0) choices = lvlFiltered;
 
   // On the first layer of the first map, exclude enemies super effective against the starter
   if (state.currentMap === 0 && node.layer === 1 && state.team.length > 0) {
@@ -437,8 +486,11 @@ async function doCatchNode(node) {
   const choicesEl = document.getElementById('catch-choices');
   choicesEl.innerHTML = '<div class="loading">Finding Pokemon...</div>';
 
-  let choices = await getCatchChoices(state.currentMap);
-  const level = (state.currentMap === 0) ? Math.max(4, getLevelForNode(node)) : getLevelForNode(node);
+  let choices = await getCatchChoices(getEncounterMapIndex());
+  const isFirstMap = state.currentMap === 0 || (state.isEndlessMode && endlessState.regionNumber === 1 && endlessState.mapIndexInRegion === 0);
+  const level = isFirstMap ? Math.max(4, getLevelForNode(node)) : getLevelForNode(node);
+  const lvlFiltered = choices.filter(sp => minLevelForSpecies(sp.id ?? sp.speciesId) <= level);
+  if (lvlFiltered.length > 0) choices = lvlFiltered;
 
   // Nuzlocke map 1: restrict to curated pool
   if (state.nuzlockeMode && state.currentMap === 0) {
@@ -885,7 +937,7 @@ async function doTrainerNode(node) {
     const fetched = await Promise.all(ids.map(id => fetchPokemonById(id)));
     speciesList = fetched.filter(Boolean);
   } else {
-    const choices = await getCatchChoices(state.currentMap);
+    const choices = await getCatchChoices(getEncounterMapIndex());
     speciesList = choices.slice(0, teamSize);
   }
 
@@ -1038,7 +1090,7 @@ async function doTradeNode(node) {
 
     const idx = i;
     const doTrade = async () => {
-      const pool = await getCatchChoices(state.currentMap);
+      const pool = await getCatchChoices(getEncounterMapIndex());
       const species = pool[Math.floor(rng() * pool.length)];
       if (!species) { advanceFromNode(state.map, node.id); showMapScreen(); return; }
       const offerLevel = Math.min(100, mine.level + 3);
@@ -1075,7 +1127,7 @@ async function doTradeNode(node) {
 }
 
 async function doShinyNode(node) {
-  const choices = await getCatchChoices(state.currentMap);
+  const choices = await getCatchChoices(getEncounterMapIndex());
   const level = getLevelForNode(node);
   const species = choices[0];
   if (!species) { advanceFromNode(state.map, node.id); showMapScreen(); return; }
@@ -1113,8 +1165,18 @@ async function doShinyNode(node) {
 
 // ---- Battle Screen ----
 
-function runBattleScreen(enemyTeam, isBoss, onWin, onLose, enemyName = null, enemyItems = [], baseGainOverride = null, showPlayerPortrait = null) {
+function runBattleScreen(enemyTeam, isBoss, onWin, onLose, enemyName = null, enemyItems = [], baseGainOverride = null, showPlayerPortrait = null, traitsConfig = null) {
+  // In endless mode, always apply traits — compute them if not pre-computed by the caller
+  if (state.isEndlessMode && traitsConfig === null) {
+    const tiers = computeTraitTiers(state.team);
+    traitsConfig = buildTraitsConfig(tiers);
+    renderTraitBar(tiers);
+  }
+
   return new Promise(async resolve => {
+    // Clean up trait bar when the battle resolves (works for both win and loss paths)
+    const _origResolve = resolve;
+    resolve = (val) => { if (state.isEndlessMode) clearTraitBar(); _origResolve(val); };
     showScreen('battle-screen');
     const showPlayer = showPlayerPortrait !== null ? showPlayerPortrait : !!(isBoss || enemyName);
     renderTrainerIcons(state.trainer, enemyName || null, showPlayer);
@@ -1131,7 +1193,7 @@ function runBattleScreen(enemyTeam, isBoss, onWin, onLose, enemyName = null, ene
 
     // Pre-compute the full battle result
     const { playerWon, detailedLog, pTeam: resultP, eTeam: resultE, playerParticipants } = runBattle(
-      pTeamCopy, enemyTeam, state.items, enemyItems, null
+      pTeamCopy, enemyTeam, state.items, enemyItems, null, traitsConfig
     );
 
     // Read auto-skip settings
@@ -1338,6 +1400,220 @@ function showWinScreen() {
 
   clearSavedRun();
   if (typeof syncToCloud === 'function') syncToCloud();
+}
+
+// ── Endless Mode ─────────────────────────────────────────────────────────────
+
+async function startEndlessRun() {
+  const seed = (Date.now() ^ (Math.random() * 0x100000000 | 0)) >>> 0;
+  seedRng(seed);
+  const savedTrainer = localStorage.getItem('poke_trainer') || 'boy';
+  state = {
+    currentMap: 0, currentNode: null, team: [], items: [], badges: 0,
+    map: null, eliteIndex: 0, trainer: savedTrainer, starterSpeciesId: null,
+    maxTeamSize: 1, nuzlockeMode: false, usedPokecenter: false, pickedUpItem: false,
+    runSeed: seed, isEndlessMode: true,
+  };
+  endlessState = {
+    active: true, stageNumber: 1, regionNumber: 1, mapIndexInRegion: 0,
+    currentRegion: null, traitTiers: {},
+  };
+  clearEndlessState();
+  if (!localStorage.getItem('poke_trainer')) {
+    await showTrainerSelect();
+  } else {
+    await showStarterSelect();
+  }
+}
+
+async function continueEndlessRun() {
+  if (!loadRun()) return;
+  if (!loadEndlessState()) return;
+  if (!endlessState.active) { initGame(); return; }
+  if (endlessState.currentRegion) {
+    showEndlessMapScreen();
+  } else {
+    startEndlessRegion();
+  }
+}
+
+async function startEndlessRegion() {
+  endlessState.currentRegion = rollRegion(endlessState.stageNumber, endlessState.regionNumber);
+  endlessState.mapIndexInRegion = 0;
+  saveEndlessState();
+
+  await new Promise(resolve => {
+    renderRegionPreview(endlessState.currentRegion, resolve);
+  });
+
+  startEndlessMap();
+}
+
+function startEndlessMap() {
+  // Full heal at the start of every map in endless mode
+  for (const p of state.team) p.currentHp = p.maxHp;
+
+  // Pick a map template that scales with stage/region — higher stages use later map indices
+  const fakeMapIndex = Math.min(7, endlessState.stageNumber + endlessState.regionNumber);
+  state.currentMap = fakeMapIndex;
+  state.map = generateMap(fakeMapIndex, false);
+  state.endlessLevelRange = getEndlessLevelRange(endlessState.stageNumber, endlessState.regionNumber, endlessState.mapIndexInRegion);
+
+  // Pick a random map background (1-8) for this map
+  endlessState.currentMapBg = Math.floor(Math.random() * 8) + 1;
+
+  saveEndlessState();
+  saveRun();
+  showEndlessMapScreen();
+}
+
+function showEndlessMapScreen() {
+  showScreen('map-screen');
+  const region = endlessState.currentRegion;
+  const mapNum = endlessState.mapIndexInRegion + 1;
+  const isBoss = endlessState.mapIndexInRegion === 4;
+  const trainerName = region.trainers[endlessState.mapIndexInRegion]?.archetype?.name || '???';
+
+  const mapInfo = document.getElementById('map-info');
+  if (mapInfo) {
+    const label = isBoss ? 'BIG BOSS' : `Map ${mapNum}/4`;
+    mapInfo.innerHTML = `<span style="font-size:9px">S${endlessState.stageNumber} R${endlessState.regionNumber} — ${label}: <b>${trainerName}</b></span>`;
+  }
+
+  renderTeamBar(state.team);
+  renderItemBadges(state.items);
+  renderEndlessTraitPanel(state.team);
+  renderEndlessRegionPanel(endlessState.currentRegion, endlessState.mapIndexInRegion);
+
+  const mapContainer = document.getElementById('map-container');
+  const bg = endlessState.currentMapBg || 1;
+  mapContainer.style.backgroundImage = `url('ui/map${bg}.png')`;
+  renderMap(state.map, mapContainer, onEndlessNodeClick);
+}
+
+async function onEndlessNodeClick(node) {
+  state.currentNode = node;
+  if (node.type === NODE_TYPES.BOSS) {
+    await doEndlessBossNode();
+    return;
+  }
+  // Non-boss nodes use the standard handler. showMapScreen() auto-delegates to showEndlessMapScreen().
+  await onNodeClick(node);
+}
+
+async function doEndlessBossNode() {
+  const region = endlessState.currentRegion;
+  const trainerData = region.trainers[endlessState.mapIndexInRegion];
+  const isBigBoss = endlessState.mapIndexInRegion === 4;
+
+  // Fetch all species for this trainer's team
+  const speciesArr = await Promise.all(trainerData.speciesIds.map(id => fetchPokemonById(id)));
+  const enemyTeam = speciesArr
+    .filter(Boolean)
+    .map(sp => createInstance(sp, trainerData.level, false, Math.min(2, trainerData.moveTier)));
+
+  if (enemyTeam.length === 0) {
+    // Fallback if fetching fails
+    advanceEndless();
+    return;
+  }
+
+  // Compute traits right before the fight
+  endlessState.traitTiers = computeTraitTiers(state.team);
+  const traitsConfig = buildTraitsConfig(endlessState.traitTiers);
+
+  const title = isBigBoss ? `Big Boss: ${trainerData.archetype.name}!` : `Trainer: ${trainerData.archetype.name}!`;
+  const battleInfoEl = document.getElementById('battle-title');
+  if (battleInfoEl) battleInfoEl.textContent = title;
+
+  const won = await runBattleScreen(
+    enemyTeam, true, null, null,
+    trainerData.archetype.name,
+    [],
+    null, // baseGainOverride — use default level gain
+    true, // showPlayerPortrait
+    traitsConfig
+  );
+  // clearTraitBar() is handled automatically by runBattleScreen in endless mode
+
+  if (!won) {
+    clearEndlessState();
+    clearSavedRun();
+    showGameOver();
+    return;
+  }
+
+  // Bug trait: chance for +1 level on alive pokemon after fight
+  const bugBonus = getBugLevelBonus(endlessState.traitTiers);
+  if (bugBonus > 0) {
+    for (const p of state.team) {
+      if (p.currentHp > 0 && p.level < 100) {
+        const oldLevel = p.level;
+        p.level = Math.min(100, p.level + bugBonus);
+        p.maxHp = calcHp(p.baseStats.hp, p.level);
+        p.currentHp = Math.min(p.currentHp + (p.maxHp - calcHp(p.baseStats.hp, oldLevel)), p.maxHp);
+      }
+    }
+    showMapNotification('Bug Trait: team gained a level!');
+    await new Promise(r => setTimeout(r, 1200));
+  }
+
+  advanceEndless();
+}
+
+function advanceEndless() {
+  endlessState.mapIndexInRegion++;
+  saveEndlessState();
+
+  if (endlessState.mapIndexInRegion >= 5) {
+    endlessState.regionNumber++;
+    if (endlessState.regionNumber > 3) {
+      doEndlessStageFinalBoss();
+    } else {
+      startEndlessRegion();
+    }
+  } else {
+    startEndlessMap();
+  }
+}
+
+async function doEndlessStageFinalBoss() {
+  // Slot 15 = one step past the last region map of this stage
+  const [minL, maxL] = getEndlessLevelRange(endlessState.stageNumber, 3, 5);
+  const level = Math.floor(minL + rng() * (maxL - minL + 1));
+  const eliteArch = ENDLESS_ARCHETYPES.find(a => a.id === 'elite_alltype');
+  const ids = [...eliteArch.pool].sort(() => rng() - 0.5).slice(0, 6);
+  const speciesArr = await Promise.all(ids.map(id => fetchPokemonById(id)));
+  const enemyTeam = speciesArr.filter(Boolean).map(sp => createInstance(sp, level, false, 2));
+
+  endlessState.traitTiers = computeTraitTiers(state.team);
+  const traitsConfig = buildTraitsConfig(endlessState.traitTiers);
+
+  const won = await runBattleScreen(
+    enemyTeam, true, null, null,
+    `Stage ${endlessState.stageNumber} Final Boss`, [],
+    null, true, traitsConfig
+  );
+  // clearTraitBar() handled automatically by runBattleScreen
+
+  if (!won) {
+    clearEndlessState();
+    clearSavedRun();
+    showGameOver();
+    return;
+  }
+
+  const completedStage = endlessState.stageNumber;
+  endlessState.stageNumber++;
+  endlessState.regionNumber = 1;
+  endlessState.mapIndexInRegion = 0;
+  endlessState.currentRegion = null;
+  saveEndlessState();
+  saveRun();
+
+  renderStageComplete(completedStage, state.team, () => {
+    startEndlessRegion();
+  });
 }
 
 // ---- Boot ----
