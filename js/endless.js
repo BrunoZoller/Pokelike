@@ -290,8 +290,8 @@ function getEndlessTraitEffects(team) {
 
 // Level range for any map index — smooth curve, baseline rises by 1 per stage
 function getEndlessLevelRange(mapIndex, stage = 0) {
-  const min = Math.min(100, (stage + 1) + Math.floor(mapIndex * (4.5 + stage * 0.5)));
-  const max = Math.min(100, min + 10);
+  const min = (stage + 1) + Math.floor(mapIndex * (4.5 + stage * 0.5));
+  const max = min + 10;
   return [min, max];
 }
 
