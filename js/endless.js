@@ -348,8 +348,8 @@ function buildTraitsConfig(tiers) {
         for (let i = 0; i < eTeam.length; i++) {
           if (i === tIdx || eTeam[i].currentHp <= 0) continue;
           eTeam[i].currentHp = Math.max(0, eTeam[i].currentHp - splash);
-          log.push({ type: 'trait_trigger', traitType: 'Psychic', side: 'player', idx: aIdx,
-            name: attacker.nickname || attacker.name, description: `Psychic Trait: ${splash} splash!` });
+          log.push({ type: 'trait_trigger', traitType: 'Psychic', side: 'enemy', idx: i,
+            name: eTeam[i].nickname || eTeam[i].name, description: `Psychic Trait: ${splash} splash!` });
           log.push({ type: 'effect', side: 'enemy', idx: i, name: eTeam[i].nickname || eTeam[i].name,
             hpChange: -splash, hpAfter: eTeam[i].currentHp, reason: `Psychic Trait: −${splash} HP` });
           if (eTeam[i].currentHp === 0) {
