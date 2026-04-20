@@ -2115,6 +2115,7 @@ async function animateBattleVisually(detailedLog, pTeamInit, eTeamInit) {
         canvas.style.display = 'block';
         const ctx = canvas.getContext('2d');
         const allParticles = [];
+        const flyingEls = [];
         while (i < detailedLog.length && detailedLog[i].type === 'trait_trigger') {
           const e = detailedLog[i++];
           const sideId = e.side === 'player' ? 'player-side' : 'enemy-side';
@@ -2124,10 +2125,18 @@ async function animateBattleVisually(detailedLog, pTeamInit, eTeamInit) {
             const center = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
             const above  = { x: center.x, y: center.y - 30 };
             allParticles.push(...buildParticles(e.traitType.toLowerCase(), center, above));
+            if (e.traitType === 'Flying') flyingEls.push(el);
           }
         }
         if (allParticles.length > 0) await runParticleCanvas(canvas, ctx, allParticles, 400);
         else canvas.style.display = 'none';
+        for (const el of flyingEls) {
+          const popup = document.createElement('div');
+          popup.className = 'crit-popup';
+          popup.textContent = 'Dodge!';
+          el.appendChild(popup);
+          setTimeout(() => popup.remove(), 800);
+        }
       } else {
         while (i < detailedLog.length && detailedLog[i].type === 'trait_trigger') i++;
       }
@@ -2192,6 +2201,7 @@ async function animateBattleVisually(detailedLog, pTeamInit, eTeamInit) {
       const el = document.querySelector(`#${sideId} .battle-pokemon[data-idx="${event.idx}"]`);
       const teamHp = event.side === 'player' ? pHp : eHp;
       const prev = teamHp[event.idx].current;
+      if (event.newMaxHp) teamHp[event.idx].max = event.newMaxHp;
 
       if (el) {
         await animateHpBar(el, prev, event.hpAfter, teamHp[event.idx].max);

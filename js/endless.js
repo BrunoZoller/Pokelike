@@ -236,7 +236,7 @@ function buildTraitsConfig(tiers) {
           p.maxHp += bonus;
           p.currentHp = Math.min(p.currentHp + bonus, p.maxHp);
           log.push({ type: 'effect', side: 'player', idx: i, name: p.nickname || p.name,
-            hpChange: bonus, hpAfter: p.currentHp, reason: `Normal Trait: +${bonus} max HP!` });
+            hpChange: bonus, hpAfter: p.currentHp, newMaxHp: p.maxHp, reason: `Normal Trait: +${bonus} max HP!` });
         }
       }
     },
