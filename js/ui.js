@@ -3540,7 +3540,7 @@ function openHallOfFameModal() {
         return `
           <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-              <span style="font-size:10px;color:gold;font-weight:bold;">Championship #${e.runNumber}${e.hardMode ? ' ☠️' : ''}</span>
+              <span style="font-size:10px;color:gold;font-weight:bold;">${e.endless ? `Endless Stage ${e.stageNumber}` : `Championship #${e.runNumber}`}${e.hardMode ? ' ☠️' : ''}</span>
               <span style="font-size:9px;color:var(--text-dim);">${e.date}</span>
             </div>
             <div style="display:flex;gap:10px;flex-wrap:wrap;">${pokemonHtml}</div>

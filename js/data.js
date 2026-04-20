@@ -96,7 +96,7 @@ const MOVE_POOL = {
               special:  [{name:'Bulldoze',          power:60,  desc:'Stomps down on the ground and attacks everything nearby.'},
                          {name:'Earth Power',       power:90,  desc:'The earth erupts with force from directly below.'},
                          {name:'Land\'s Wrath',     power:110, desc:'Gathers the energy of the land and uses it to attack.'}] },
-  Flying:   { physical: [{name:'Peck',              power:35,  desc:'Jabs the foe with a sharply pointed beak.'},
+  Flying:   { physical: [{name:'Peck',              power:50,  desc:'Jabs the foe with a sharply pointed beak.'},
                          {name:'Aerial Ace',        power:60,  desc:'An extremely fast attack that never misses.'},
                          {name:'Sky Attack',        power:140, desc:'A swooping high-speed attack from above.'}],
               special:  [{name:'Gust',              power:40,  desc:'Strikes the foe with a gust of wind.'},
@@ -554,7 +554,7 @@ function hasShinyCharm() { return isPokedexComplete(); }
 
 
 // Get 3 random pokemon ids from the right BST bucket for a given mapIndex
-async function getCatchChoices(mapIndex) {
+async function getCatchChoices(mapIndex, count = 3) {
   const range = MAP_BST_RANGES[Math.min(mapIndex, MAP_BST_RANGES.length - 1)];
   const pool = await getSpeciesPool();
 
@@ -566,13 +566,12 @@ async function getCatchChoices(mapIndex) {
   else if (range.min >= 280) bucket = GEN1_BST_APPROX.midLow;
   else bucket = GEN1_BST_APPROX.low;
 
-  // Shuffle and pick — fetch extra IDs as fallback so we always return 3
   const filtered = bucket.filter(id => !LEGENDARY_IDS.includes(id));
   const shuffled = [...filtered].sort(() => (typeof rng === 'function' ? rng() : Math.random()) - 0.5);
-  const ids = shuffled.slice(0, 9);
+  const ids = shuffled.slice(0, Math.max(9, count * 3));
 
   const results = await Promise.all(ids.map(id => fetchPokemonById(id)));
-  return results.filter(Boolean).slice(0, 3);
+  return results.filter(Boolean).slice(0, count);
 }
 
 function calcHp(baseHp, level) {
@@ -970,11 +969,13 @@ function getHallOfFame() {
   catch { return []; }
 }
 
-function saveHallOfFameEntry(team, runNumber, hardMode) {
+function saveHallOfFameEntry(team, runNumber, hardMode, endless = false, stageNumber = null) {
   const entries = getHallOfFame();
   entries.push({
     runNumber,
     hardMode: !!hardMode,
+    endless: !!endless,
+    stageNumber: stageNumber ?? null,
     date: new Date().toLocaleDateString(),
     team: team.map(p => ({
       speciesId: p.speciesId,

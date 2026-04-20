@@ -27,9 +27,9 @@ const TRAIT_DESCRIPTIONS = {
   Normal:  ['+25% max HP at fight start',                 '+50% max HP at fight start',                 '+100% max HP at fight start'],
   Poison:  ['33% chance to poison on hit',                '66% chance to poison on hit',                '100% chance to poison on hit'],
   Psychic: ['10% of damage splashes to all enemies',      '20% of damage splashes to all enemies',      '30% of damage splashes to all enemies'],
-  Rock:    ['+1 DEF & Sp.DEF after each attack',          '+1 DEF & Sp.DEF after each attack',          '+1 DEF & Sp.DEF after each attack'],
+  Rock:    ['33% chance: +1 DEF & Sp.DEF after attack',   '66% chance: +1 DEF & Sp.DEF after attack',   '100% chance: +1 DEF & Sp.DEF after attack'],
   Steel:   ['Reduce incoming damage by 10%',              'Reduce incoming damage by 20%',              'Reduce incoming damage by 30%'],
-  Water:   ['Enemy: -1 Spd/ATK/SpATK on hit',            'Enemy: -2 Spd/ATK/SpATK on hit',            'Enemy: -3 Spd/ATK/SpATK on hit'],
+  Water:   ['33% chance: Enemy -1 Spd/ATK/SpATK on hit', '66% chance: Enemy -2 Spd/ATK/SpATK on hit', '100% chance: Enemy -3 Spd/ATK/SpATK on hit'],
 };
 
 // Returns sorted type count data for the trait display panel.
@@ -138,13 +138,13 @@ function rollRegion(stageNum, regionNum) {
     return { archetype: arch, level, moveTier, teamSize, speciesIds: ids };
   });
 
-  // Region 3 big boss IS the stage final boss — use elite_alltype at +5 levels
+  // Region 3 big boss IS the stage final boss — use elite_alltype
   const isFinalRegion = regionNum === 3;
   const bigBossArch = isFinalRegion
     ? ENDLESS_ARCHETYPES.find(a => a.id === 'elite_alltype')
     : (shuffled[2] || ENDLESS_ARCHETYPES.find(a => a.id !== 'elite_alltype'));
   const [, bigMaxL] = getEndlessLevelRange(stageNum, regionNum, 2);
-  const bigBossLevel = isFinalRegion ? bigMaxL + 5 : bigMaxL;
+  const bigBossLevel = bigMaxL;
   const bigBossTeamSize = ENDLESS_TEAM_SIZES[slotBase + 2] ?? 6;
   // Non-final big bosses also exclude legendaries; final boss (elite_alltype) keeps them
   const bigBossFilter = id => minLevelForSpecies(id) <= bigBossLevel && (isFinalRegion || noLegend(id));
@@ -348,22 +348,27 @@ function buildTraitsConfig(playerTiers, enemyTiers = {}) {
         }
       }
 
-      // Rock: +1 DEF and +1 Sp.DEF to attacker after each attack
+      // Rock: 33/66/100% chance of +1 DEF and +1 Sp.DEF to attacker after each attack
       if (activeFor('Rock', aSide) && attacker.currentHp > 0) {
-        triggers.push({ type: 'trait_trigger', traitType: 'Rock', side: aSide, idx: aIdx,
-          name: attacker.nickname || attacker.name, description: `Rock Trait: +DEF, +Sp.DEF!` });
-        applyStageChange(attacker, 'def',   1, aSide, aIdx, efx);
-        applyStageChange(attacker, 'spdef', 1, aSide, aIdx, efx);
+        const rockTier = tierFor('Rock', aSide);
+        if (Math.random() < rockTier / 3) {
+          triggers.push({ type: 'trait_trigger', traitType: 'Rock', side: aSide, idx: aIdx,
+            name: attacker.nickname || attacker.name, description: `Rock Trait: +DEF, +Sp.DEF!` });
+          applyStageChange(attacker, 'def',   1, aSide, aIdx, efx);
+          applyStageChange(attacker, 'spdef', 1, aSide, aIdx, efx);
+        }
       }
 
-      // Water: -tier Speed, ATK, Sp.ATK to target
+      // Water: 33/66/100% chance to apply -tier Speed, ATK, Sp.ATK to target
       if (activeFor('Water', aSide) && tSide !== aSide && target.currentHp > 0) {
         const tier = tierFor('Water', aSide);
-        triggers.push({ type: 'trait_trigger', traitType: 'Water', side: aSide, idx: aIdx,
-          name: attacker.nickname || attacker.name, description: `Water Trait T${tier}: debuffed enemy!` });
-        applyStageChange(target, 'speed',   -tier, tSide, tIdx, efx);
-        applyStageChange(target, 'atk',     -tier, tSide, tIdx, efx);
-        applyStageChange(target, 'special', -tier, tSide, tIdx, efx);
+        if (Math.random() < tier / 3) {
+          triggers.push({ type: 'trait_trigger', traitType: 'Water', side: aSide, idx: aIdx,
+            name: attacker.nickname || attacker.name, description: `Water Trait T${tier}: debuffed enemy!` });
+          applyStageChange(target, 'speed',   -tier, tSide, tIdx, efx);
+          applyStageChange(target, 'atk',     -tier, tSide, tIdx, efx);
+          applyStageChange(target, 'special', -tier, tSide, tIdx, efx);
+        }
       }
 
       // Psychic: 10/20/30% splash to all other members of target's team

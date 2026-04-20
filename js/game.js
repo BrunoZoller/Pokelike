@@ -155,32 +155,84 @@ async function showStarterSelect() {
   }
 
   let starters;
-  if (state.isEndlessMode) {
-    // Pick 3 random base-form pokemon from the low BST pool
-    starters = await getCatchChoices(0);
-  } else {
-    starters = await Promise.all(STARTER_IDS.map(id => fetchPokemonById(id)));
+  let hofMode = false;
+
+  // Build HoF starter pool from all completed runs (both endless and normal)
+  const allHofEntries = getHallOfFame();
+  if (allHofEntries.length > 0) {
+    const seen = new Set();
+    const ids = [];
+    for (const entry of allHofEntries) {
+      for (const p of entry.team) {
+        const id = getEvoLineRoot(p.speciesId);
+        if (!seen.has(id) && !LEGENDARY_ID_SET.has(id)) {
+          seen.add(id);
+          ids.push(id);
+        }
+      }
+    }
+    const fetched = await Promise.all(ids.map(id => fetchPokemonById(id)));
+    starters = fetched.filter(Boolean);
+    hofMode = starters.length > 0;
+  }
+
+  if (!hofMode) {
+    if (state.isEndlessMode) {
+      starters = await getCatchChoices(0);
+    } else {
+      starters = await Promise.all(STARTER_IDS.map(id => fetchPokemonById(id)));
+    }
   }
   const startLevel = 5;
 
   container.innerHTML = '';
-  for (const species of starters) {
-    if (!species) continue;
-    const isShiny = rng() < (hasShinyCharm() ? 0.02 : 0.01);
-    const inst = createInstance(species, startLevel, isShiny, 0);
-    const wrapper = document.createElement('div');
-    wrapper.innerHTML = renderPokemonCard(inst, true, false);
-    const card = wrapper.querySelector('.poke-card');
-    card.style.cursor = 'pointer';
-    card.setAttribute('role', 'button');
-    card.setAttribute('tabindex', '0');
-    card.addEventListener('click', () => selectStarter(inst));
-    card.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' ') selectStarter(inst); });
-    const wrap = document.createElement('div');
-    wrap.className = 'poke-choice-wrap';
-    wrap.appendChild(card);
-    wrap.insertAdjacentHTML('beforeend', renderTraitPreview(inst, state.team));
-    container.appendChild(wrap);
+  if (hofMode) {
+    const label = document.createElement('div');
+    label.style.cssText = 'font-family:"Press Start 2P",monospace;font-size:8px;color:gold;text-align:center;margin-bottom:6px;';
+    label.textContent = 'Choose a Hall of Fame starter';
+    container.parentElement.insertBefore(label, container);
+    container.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px;width:100%;max-width:520px;';
+    for (const species of starters) {
+      if (!species) continue;
+      const isShiny = rng() < (hasShinyCharm() ? 0.02 : 0.01);
+      const inst = createInstance(species, startLevel, isShiny, 0);
+      const typeBadges = (inst.types || []).map(t =>
+        `<span class="type-badge type-${t.toLowerCase()}" style="font-size:6px;padding:1px 3px;">${t}</span>`).join('');
+      const card = document.createElement('div');
+      card.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:8px 4px;cursor:pointer;';
+      card.setAttribute('role', 'button');
+      card.setAttribute('tabindex', '0');
+      card.innerHTML = `
+        <img src="${inst.spriteUrl}" style="width:56px;height:56px;image-rendering:pixelated;" alt="${inst.name}">
+        <div style="font-family:'Press Start 2P',monospace;font-size:6px;color:var(--text-main);text-align:center;">${inst.name}</div>
+        <div style="font-size:7px;color:var(--text-dim);">Lv.${startLevel}</div>
+        <div style="display:flex;gap:2px;flex-wrap:wrap;justify-content:center;">${typeBadges}</div>`;
+      card.addEventListener('click', () => selectStarter(inst));
+      card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') selectStarter(inst); });
+      card.addEventListener('mouseenter', () => card.style.borderColor = 'var(--accent)');
+      card.addEventListener('mouseleave', () => card.style.borderColor = 'var(--border)');
+      container.appendChild(card);
+    }
+  } else {
+    container.style.cssText = '';
+    for (const species of starters) {
+      if (!species) continue;
+      const isShiny = rng() < (hasShinyCharm() ? 0.02 : 0.01);
+      const inst = createInstance(species, startLevel, isShiny, 0);
+      const wrapper = document.createElement('div');
+      wrapper.innerHTML = renderPokemonCard(inst, true, false);
+      const card = wrapper.querySelector('.poke-card');
+      card.style.cursor = 'pointer';
+      card.setAttribute('role', 'button');
+      card.setAttribute('tabindex', '0');
+      card.addEventListener('click', () => selectStarter(inst));
+      card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') selectStarter(inst); });
+      const wrap = document.createElement('div');
+      wrap.className = 'poke-choice-wrap';
+      wrap.appendChild(card);
+      wrap.insertAdjacentHTML('beforeend', renderTraitPreview(inst, state.team));
+      container.appendChild(wrap);
+    }
   }
 }
 
@@ -526,7 +578,7 @@ async function doCatchNode(node) {
   const choicesEl = document.getElementById('catch-choices');
   choicesEl.innerHTML = '<div class="loading">Finding Pokemon...</div>';
 
-  let choices = await getCatchChoices(getEncounterMapIndex());
+  let choices = await getCatchChoices(getEncounterMapIndex(), 9);
   const isFirstMap = state.currentMap === 0 || (state.isEndlessMode && endlessState.regionNumber === 1 && endlessState.mapIndexInRegion === 0);
   const level = isFirstMap ? Math.max(4, getLevelForNode(node)) : getLevelForNode(node);
   const lvlFiltered = choices.filter(sp => minLevelForSpecies(sp.id ?? sp.speciesId) <= level);
@@ -573,6 +625,8 @@ async function doCatchNode(node) {
     const filtered = choices.filter(sp => !teamIds.has(sp.id ?? sp.speciesId));
     if (filtered.length > 0) choices = filtered;
   }
+  const rerollPool = choices.slice(3);
+  choices = choices.slice(0, 3);
   const instances = choices.map(sp => createInstance(sp, level, rng() < (hasShinyCharm() ? 0.02 : 0.01), getMoveТierForMap(state.currentMap)));
   const rerolled = new Set();
 
@@ -597,10 +651,16 @@ async function doCatchNode(node) {
       btn.addEventListener('click', async () => {
         rerolled.add(slotIdx);
         btn.disabled = true;
-        const fresh = await getCatchChoices(getEncounterMapIndex());
         const usedIds = new Set(instances.map(i => i.speciesId));
-        const pool = fresh.filter(sp => !usedIds.has(sp.id ?? sp.speciesId));
-        const pick = (pool.length > 0 ? pool : fresh)[Math.floor(rng() * (pool.length > 0 ? pool.length : fresh.length))];
+        let src = rerollPool.filter(sp => !usedIds.has(sp.id ?? sp.speciesId));
+        if (src.length === 0) src = rerollPool;
+        if (src.length === 0) {
+          const fresh = await getCatchChoices(getEncounterMapIndex(), 6);
+          src = fresh.filter(sp => !usedIds.has(sp.id ?? sp.speciesId));
+          if (src.length === 0) src = fresh;
+        }
+        if (src.length === 0) return;
+        const pick = src[Math.floor(rng() * src.length)];
         const newInst = createInstance(pick, level, rng() < (hasShinyCharm() ? 0.02 : 0.01), getMoveТierForMap(state.currentMap));
         instances[slotIdx] = newInst;
         choicesEl.replaceChild(renderCatchSlot(newInst, slotIdx), choicesEl.children[slotIdx]);
@@ -1842,6 +1902,7 @@ function advanceEndless() {
     if (endlessState.regionNumber > 3) {
       // All 3 regions cleared — the stage final boss was the last big boss, so go to next stage
       const completedStage = endlessState.stageNumber;
+      saveHallOfFameEntry(state.team, completedStage, false, true, completedStage);
       unlockNextStage(completedStage);
       clearEndlessState();
       clearSavedRun();
