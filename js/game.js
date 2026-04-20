@@ -157,31 +157,28 @@ async function showStarterSelect() {
   let starters;
   let hofMode = false;
 
-  // Build HoF starter pool from all completed runs (both endless and normal)
-  const allHofEntries = getHallOfFame();
-  if (allHofEntries.length > 0) {
-    const seen = new Set();
-    const ids = [];
-    for (const entry of allHofEntries) {
-      for (const p of entry.team) {
-        const id = getEvoLineRoot(p.speciesId);
-        if (!seen.has(id) && !LEGENDARY_ID_SET.has(id)) {
-          seen.add(id);
-          ids.push(id);
+  if (state.isEndlessMode) {
+    // Build HoF starter pool from all completed runs
+    const allHofEntries = getHallOfFame();
+    if (allHofEntries.length > 0) {
+      const seen = new Set();
+      const ids = [];
+      for (const entry of allHofEntries) {
+        for (const p of entry.team) {
+          const id = getEvoLineRoot(p.speciesId);
+          if (!seen.has(id) && !LEGENDARY_ID_SET.has(id)) {
+            seen.add(id);
+            ids.push(id);
+          }
         }
       }
+      const fetched = await Promise.all(ids.map(id => fetchPokemonById(id)));
+      starters = fetched.filter(Boolean);
+      hofMode = starters.length > 0;
     }
-    const fetched = await Promise.all(ids.map(id => fetchPokemonById(id)));
-    starters = fetched.filter(Boolean);
-    hofMode = starters.length > 0;
-  }
-
-  if (!hofMode) {
-    if (state.isEndlessMode) {
-      starters = await getCatchChoices(0);
-    } else {
-      starters = await Promise.all(STARTER_IDS.map(id => fetchPokemonById(id)));
-    }
+    if (!hofMode) starters = await getCatchChoices(0);
+  } else {
+    starters = await Promise.all(STARTER_IDS.map(id => fetchPokemonById(id)));
   }
   const startLevel = 5;
 
@@ -615,6 +612,9 @@ async function doCatchNode(node) {
     }
   }
 
+  // Save all level-filtered candidates before team-dup filters (for reroll pool variety)
+  const allCandidates = [...choices];
+
   if (state.nuzlockeMode) {
     const teamIds = new Set(state.team.map(p => p.speciesId));
     const filtered = choices.filter(sp => !teamIds.has(sp.id));
@@ -625,7 +625,8 @@ async function doCatchNode(node) {
     const filtered = choices.filter(sp => !teamIds.has(sp.id ?? sp.speciesId));
     if (filtered.length > 0) choices = filtered;
   }
-  const rerollPool = choices.slice(3);
+  const displayedIds = new Set(choices.slice(0, 3).map(sp => sp.id ?? sp.speciesId));
+  const rerollPool = allCandidates.filter(sp => !displayedIds.has(sp.id ?? sp.speciesId));
   choices = choices.slice(0, 3);
   const instances = choices.map(sp => createInstance(sp, level, rng() < (hasShinyCharm() ? 0.02 : 0.01), getMoveТierForMap(state.currentMap)));
   const rerolled = new Set();
@@ -651,16 +652,26 @@ async function doCatchNode(node) {
       btn.addEventListener('click', async () => {
         rerolled.add(slotIdx);
         btn.disabled = true;
-        const usedIds = new Set(instances.map(i => i.speciesId));
-        let src = rerollPool.filter(sp => !usedIds.has(sp.id ?? sp.speciesId));
-        if (src.length === 0) src = rerollPool;
+        // Exclude other displayed slots AND current team members
+        const otherIds = new Set([
+          ...instances.filter((_, i) => i !== slotIdx).map(i => i.speciesId),
+          ...state.team.map(p => p.speciesId),
+        ]);
+        let src = rerollPool.filter(sp => !otherIds.has(sp.id ?? sp.speciesId));
         if (src.length === 0) {
           const fresh = await getCatchChoices(getEncounterMapIndex(), 6);
-          src = fresh.filter(sp => !usedIds.has(sp.id ?? sp.speciesId));
+          const otherIdsPost = new Set([
+            ...instances.filter((_, i) => i !== slotIdx).map(i => i.speciesId),
+            ...state.team.map(p => p.speciesId),
+          ]);
+          src = fresh.filter(sp => !otherIdsPost.has(sp.id ?? sp.speciesId));
           if (src.length === 0) src = fresh;
         }
         if (src.length === 0) return;
-        const pick = src[Math.floor(rng() * src.length)];
+        const pick = src[Math.floor(Math.random() * src.length)];
+        // Remove picked from pool so subsequent rerolls can't get the same pokemon
+        const pickIdx = rerollPool.indexOf(pick);
+        if (pickIdx !== -1) rerollPool.splice(pickIdx, 1);
         const newInst = createInstance(pick, level, rng() < (hasShinyCharm() ? 0.02 : 0.01), getMoveТierForMap(state.currentMap));
         instances[slotIdx] = newInst;
         choicesEl.replaceChild(renderCatchSlot(newInst, slotIdx), choicesEl.children[slotIdx]);
@@ -1622,13 +1633,23 @@ async function startEndlessRun(stageNum = 1) {
 }
 
 async function continueEndlessRun() {
-  if (!loadRun()) return;
-  if (!loadEndlessState()) return;
-  if (!endlessState.active) { initGame(); return; }
-  if (endlessState.currentRegion) {
-    showEndlessMapScreen();
-  } else {
-    startEndlessRegion();
+  try {
+    if (!loadRun()) return;
+    if (!loadEndlessState()) return;
+    if (!endlessState.active) { initGame(); return; }
+    if (!state.map) {
+      const isFirstMap = endlessState.regionNumber === 1 && endlessState.mapIndexInRegion === 0;
+      const fakeMapIndex = isFirstMap ? 2 : Math.min(7, endlessState.stageNumber + endlessState.regionNumber);
+      state.map = generateMap(fakeMapIndex, false);
+    }
+    if (endlessState.currentRegion) {
+      showEndlessMapScreen();
+    } else {
+      startEndlessRegion();
+    }
+  } catch (e) {
+    console.error('continueEndlessRun failed:', e);
+    initGame();
   }
 }
 

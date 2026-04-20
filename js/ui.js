@@ -2797,6 +2797,15 @@ function renderEndlessRegionPanel(region, currentMapIndex) {
 function renderBattleTraitBars(playerTiers, enemyTiers) {
   _fillTraitBarEl('player-battle-traits', playerTiers || {});
   _fillTraitBarEl('enemy-battle-traits',  enemyTiers  || {});
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const p = document.getElementById('player-battle-traits');
+    const e = document.getElementById('enemy-battle-traits');
+    if (!p || !e) return;
+    p.style.minHeight = '';
+    e.style.minHeight = '';
+    const maxH = Math.max(p.offsetHeight, e.offsetHeight);
+    if (maxH > 0) { p.style.minHeight = maxH + 'px'; e.style.minHeight = maxH + 'px'; }
+  }));
 }
 
 function _fillTraitBarEl(elId, tiers) {
