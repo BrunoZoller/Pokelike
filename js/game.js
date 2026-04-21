@@ -176,6 +176,7 @@ async function showStarterSelect() {
   let starters;
   let hofMode = false;
 
+  let hofX = 0, hofY = 0;
   if (state.isEndlessMode) {
     // Build HoF starter pool from all completed runs
     const allHofEntries = getHallOfFame();
@@ -191,9 +192,14 @@ async function showStarterSelect() {
           }
         }
       }
+      ids.sort((a, b) => a - b);
       const fetched = await Promise.all(ids.map(id => fetchPokemonById(id)));
       starters = fetched.filter(Boolean);
       hofMode = starters.length > 0;
+      if (hofMode) {
+        hofX = ids.length;
+        hofY = new Set([...ALL_CATCHABLE_IDS].map(id => getEvoLineRoot(id))).size;
+      }
     }
     if (!hofMode) starters = await getCatchChoices(0, 3, true);
   } else {
@@ -202,64 +208,47 @@ async function showStarterSelect() {
   const startLevel = 5;
 
   container.innerHTML = '';
+  container.style.cssText = '';
   container.parentElement.querySelectorAll('.hof-starter-label').forEach(el => el.remove());
-  if (hofMode) {
-    const label = document.createElement('div');
-    label.className = 'hof-starter-label';
-    label.style.cssText = 'font-family:"Press Start 2P",monospace;font-size:8px;color:gold;text-align:center;margin-bottom:6px;';
-    label.textContent = 'Choose a Hall of Fame starter';
-    container.parentElement.insertBefore(label, container);
-    container.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px;width:100%;max-width:520px;';
-    for (const species of starters) {
-      if (!species) continue;
-      const isShiny = rng() < (hasShinyCharm() ? 0.02 : 0.01);
-      const inst = createInstance(species, startLevel, isShiny, 0);
-      loadBuffsIntoPokemon(inst);
-      const typeBadges = (inst.types || []).map(t =>
-        `<span class="type-badge type-${t.toLowerCase()}" style="font-size:6px;padding:1px 3px;">${t}</span>`).join('');
-      const card = document.createElement('div');
-      card.style.cssText = 'position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:8px 4px;cursor:pointer;';
-      card.setAttribute('role', 'button');
-      card.setAttribute('tabindex', '0');
-      card.innerHTML = `
-        <img src="${inst.spriteUrl}" style="width:56px;height:56px;image-rendering:pixelated;" alt="${inst.name}">
-        <div style="font-family:'Press Start 2P',monospace;font-size:6px;color:var(--text-main);text-align:center;">${inst.name}</div>
-        <div style="font-size:7px;color:var(--text-dim);">Lv.${startLevel}</div>
-        <div style="display:flex;gap:2px;flex-wrap:wrap;justify-content:center;">${typeBadges}</div>`;
-      const stars = makeMaxedStarsEl(species.id ?? species.speciesId);
-      if (stars) card.appendChild(stars);
-      card.addEventListener('click', () => selectStarter(inst));
-      card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') selectStarter(inst); });
-      card.addEventListener('mouseenter', () => { card.style.borderColor = 'var(--accent)'; showTeamHoverCard(inst, card); });
-      card.addEventListener('mouseleave', () => { card.style.borderColor = 'var(--border)'; hideTeamHoverCard(); });
-      container.appendChild(card);
-    }
-  } else {
-    container.style.cssText = '';
-    for (const species of starters) {
-      if (!species) continue;
-      const isShiny = rng() < (hasShinyCharm() ? 0.02 : 0.01);
-      const inst = createInstance(species, startLevel, isShiny, 0);
-      loadBuffsIntoPokemon(inst);
-      const wrapper = document.createElement('div');
-      wrapper.innerHTML = renderPokemonCard(inst, true, false);
-      const card = wrapper.querySelector('.poke-card');
-      card.style.cursor = 'pointer';
-      card.setAttribute('role', 'button');
-      card.setAttribute('tabindex', '0');
-      card.addEventListener('click', () => selectStarter(inst));
-      card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') selectStarter(inst); });
-      card.addEventListener('mouseenter', () => showTeamHoverCard(inst, card));
-      card.addEventListener('mouseleave', () => hideTeamHoverCard());
-      const stars = makeMaxedStarsEl(species.id ?? species.speciesId);
-      if (stars) card.appendChild(stars);
-      const wrap = document.createElement('div');
-      wrap.className = 'poke-choice-wrap';
-      wrap.appendChild(card);
-      wrap.insertAdjacentHTML('beforeend', renderTraitPreview(inst, state.team));
-      container.appendChild(wrap);
-    }
+
+  const cols = hofMode ? Math.min(6, Math.max(3, Math.ceil(Math.sqrt(starters.length)))) : 3;
+  const title = hofMode ? `HALL OF FAME PC (${hofX}/${hofY})` : "PROF. OAK'S PC";
+
+  const box = document.createElement('div');
+  box.className = 'pc-box';
+  box.innerHTML = `<div class="pc-box-titlebar"><span>${title}</span></div><div class="pc-box-body"><div class="pc-box-grid" style="grid-template-columns:repeat(${cols},1fr);"></div></div>`;
+  const grid = box.querySelector('.pc-box-grid');
+
+  for (const species of starters) {
+    if (!species) continue;
+    const isShiny = rng() < (hasShinyCharm() ? 0.02 : 0.01);
+    const inst = createInstance(species, startLevel, isShiny, 0);
+    loadBuffsIntoPokemon(inst);
+    const typeBadges = (inst.types || []).map(t =>
+      `<span class="type-badge type-${t.toLowerCase()}" style="font-size:5px;padding:1px 2px;">${t}</span>`).join('');
+
+    const slot = document.createElement('div');
+    slot.className = 'pc-slot';
+    slot.setAttribute('role', 'button');
+    slot.setAttribute('tabindex', '0');
+    slot.innerHTML = `
+      <img src="${inst.spriteUrl}" alt="${inst.name}">
+      <div class="pc-slot-name">${inst.name}</div>
+      <div class="pc-slot-lv">Lv.${startLevel}</div>
+      <div style="display:flex;gap:2px;flex-wrap:wrap;justify-content:center;">${typeBadges}</div>`;
+
+    const stars = makeMaxedStarsEl(species.id ?? species.speciesId);
+    if (stars) slot.appendChild(stars);
+
+    slot.addEventListener('click', () => selectStarter(inst));
+    slot.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') selectStarter(inst); });
+    slot.addEventListener('mouseenter', () => showTeamHoverCard(inst, slot));
+    slot.addEventListener('mouseleave', () => hideTeamHoverCard());
+
+    grid.appendChild(slot);
   }
+
+  container.appendChild(box);
 }
 
 function selectStarter(pokemon) {
