@@ -2783,8 +2783,9 @@ function renderEndlessRegionPanel(region, currentMapIndex) {
       : isCurrent ? 'region-stage-row current'
       : isBigBoss ? 'region-stage-row boss'
       : 'region-stage-row';
+    const speciesAttr = (trainer.speciesIds || []).join(',');
 
-    return `<div class="${rowClass}">
+    return `<div class="${rowClass}" data-species="${speciesAttr}" style="cursor:default;">
       <span class="type-badge type-${typeClass}" style="font-size:6px;padding:1px 3px;">${type}</span>
       <span class="region-stage-name">${statusIcon}${isBigBoss ? '★ ' : ''}${name}</span>
       <span class="region-stage-level">Lv${trainer.level}</span>
@@ -2792,6 +2793,33 @@ function renderEndlessRegionPanel(region, currentMapIndex) {
   }).join('');
 
   panel.innerHTML = header + `<div class="region-stage-list">${rows}</div>`;
+  attachBossTeamTooltips(panel);
+}
+
+function attachBossTeamTooltips(container) {
+  const BASE = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/';
+  let tip = document.getElementById('boss-team-tip');
+  if (!tip) {
+    tip = document.createElement('div');
+    tip.id = 'boss-team-tip';
+    tip.style.cssText = 'position:fixed;z-index:9999;pointer-events:none;display:none;gap:2px;align-items:center;padding:4px 6px;border:2px solid #4a4438;background:#181410;';
+    document.body.appendChild(tip);
+  }
+
+  container.querySelectorAll('[data-species]').forEach(row => {
+    const ids = (row.dataset.species || '').split(',').filter(Boolean);
+    if (!ids.length) return;
+    row.addEventListener('mouseenter', () => {
+      tip.innerHTML = ids.map(id =>
+        `<img src="${BASE}${id}.png" style="width:32px;height:32px;image-rendering:pixelated;" onerror="this.style.display='none'">`
+      ).join('');
+      tip.style.display = 'flex';
+      const r = row.getBoundingClientRect();
+      tip.style.left = (r.right + 6) + 'px';
+      tip.style.top = r.top + 'px';
+    });
+    row.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+  });
 }
 
 

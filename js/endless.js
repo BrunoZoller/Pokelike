@@ -116,12 +116,24 @@ const ENDLESS_ARCHETYPES = [
 
 // ── Region rolling ────────────────────────────────────────────────────────────
 
+// Simple seeded RNG (mulberry32) — deterministic per stage+region so layouts never change.
+function seededRng(seed) {
+  let s = (seed ^ 0x9e3779b9) >>> 0;
+  return () => {
+    s += 0x6d2b79f5;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t ^= t + Math.imul(t ^ (t >>> 7), 61 | t);
+    return ((t ^ (t >>> 14)) >>> 0) / 0x100000000;
+  };
+}
+
 function rollRegion(stageNum, regionNum) {
   const moveTier = stageNum <= 1 ? 1 : 2;
+  const srng = seededRng(stageNum * 1000 + regionNum);
 
-  // Shuffle all non-elite archetypes
+  // Shuffle all non-elite archetypes deterministically
   const pool = ENDLESS_ARCHETYPES.filter(a => a.id !== 'elite_alltype');
-  const shuffled = [...pool].sort(() => rng() - 0.5);
+  const shuffled = [...pool].sort(() => srng() - 0.5);
 
   const slotBase = (regionNum - 1) * 3;
 
@@ -133,7 +145,7 @@ function rollRegion(stageNum, regionNum) {
     const teamSize = ENDLESS_TEAM_SIZES[slotBase + i] ?? 4;
     const eligible = arch.pool.filter(id => noLegend(id) && minLevelForSpecies(id) <= level);
     const srcPool = eligible.length ? eligible : arch.pool.filter(noLegend);
-    const ids = [...srcPool].sort(() => rng() - 0.5).slice(0, teamSize);
+    const ids = [...srcPool].sort(() => srng() - 0.5).slice(0, teamSize);
     return { archetype: arch, level, moveTier, teamSize, speciesIds: ids };
   });
 
@@ -149,7 +161,7 @@ function rollRegion(stageNum, regionNum) {
   const bigBossFilter = id => minLevelForSpecies(id) <= bigBossLevel && (isFinalRegion || noLegend(id));
   const bigBossEligible = bigBossArch.pool.filter(bigBossFilter);
   const bigBossSrcPool = bigBossEligible.length ? bigBossEligible : bigBossArch.pool.filter(isFinalRegion ? () => true : noLegend);
-  const bigBossIds = [...bigBossSrcPool].sort(() => rng() - 0.5).slice(0, bigBossTeamSize);
+  const bigBossIds = [...bigBossSrcPool].sort(() => srng() - 0.5).slice(0, bigBossTeamSize);
   const bigBoss = {
     archetype: bigBossArch,
     level: bigBossLevel,
