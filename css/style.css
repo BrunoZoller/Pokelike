@@ -336,7 +336,7 @@ h1, h2, .pixel-font {
   height: 8px;
   background: #111;
   border-radius: 0;
-  overflow: visible;
+  overflow: hidden;
   image-rendering: pixelated;
   position: relative;
   box-sizing: border-box;

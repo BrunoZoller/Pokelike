@@ -67,7 +67,7 @@ function generateMap(mapIndex, nuzlockeMode = false) {
   // Pick a weighted-random node type; ci = content layer index (0–5)
   const pickType = (ci) => {
     const w = { ...NODE_WEIGHTS[Math.min(ci, NODE_WEIGHTS.length - 1)] };
-    if (mapIndex >= 5 && ci >= 2) w.legendary = 6;
+    if (mapIndex >= 5 && ci >= 2 && !(typeof state !== 'undefined' && state.isEndlessMode)) w.legendary = 2;
     if (nuzlockeMode) { w.catch = 0; w.trade = 0; }
     if (typeof state !== 'undefined' && state.isEndlessMode) { w.trade = 0; w.catch = Math.floor(w.catch / 2); }
     return weightedRandom(w);

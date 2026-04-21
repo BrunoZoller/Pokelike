@@ -625,19 +625,26 @@ async function doCatchNode(node) {
   if (state.isEndlessMode) {
     const teamIds = new Set(state.team.map(p => p.speciesId));
     const filtered = choices.filter(sp => !teamIds.has(sp.id ?? sp.speciesId));
-    if (filtered.length > 0) choices = filtered;
+    if (filtered.length >= 3) {
+      choices = filtered;
+    } else if (filtered.length > 0) {
+      const dups = choices.filter(sp => teamIds.has(sp.id ?? sp.speciesId));
+      choices = [...filtered, ...dups].slice(0, 3);
+    }
   }
   const displayedIds = new Set(choices.slice(0, 3).map(sp => sp.id ?? sp.speciesId));
   const rerollPool = allCandidates.filter(sp => !displayedIds.has(sp.id ?? sp.speciesId));
   choices = choices.slice(0, 3);
 
-  // Each display slot has a 1/6 chance to be swapped for a legendary (+5 levels)
-  // Skip if that legendary is already on the team
-  const teamIds = new Set(state.team.map(p => p.speciesId));
-  for (let i = 0; i < choices.length; i++) {
-    if (rng() < 1 / 6) {
-      const leg = await getRandomLegendary(getEncounterMapIndex(), state.isEndlessMode);
-      if (leg && !teamIds.has(leg.id ?? leg.speciesId)) choices[i] = { ...leg, _legendary: true };
+  // Each display slot has a 1/18 chance to be swapped for a legendary (+5 levels)
+  // Only in normal mode — endless mode uses dedicated legendary nodes instead
+  if (!state.isEndlessMode) {
+    const teamIds = new Set(state.team.map(p => p.speciesId));
+    for (let i = 0; i < choices.length; i++) {
+      if (rng() < 1 / 18) {
+        const leg = await getRandomLegendary(getEncounterMapIndex(), false);
+        if (leg && !teamIds.has(leg.id ?? leg.speciesId)) choices[i] = { ...leg, _legendary: true };
+      }
     }
   }
 
@@ -1151,7 +1158,7 @@ async function doLegendaryNode(node) {
   const species = await fetchPokemonById(legendId);
   if (!species) { advanceFromNode(state.map, node.id); showMapScreen(); return; }
 
-  const level = MAP_LEVEL_RANGES[state.currentMap][1]; // top of map range
+  const level = state.isEndlessMode ? getLevelForNode(node) + 5 : MAP_LEVEL_RANGES[state.currentMap][1];
   const legendary = createInstance(species, level, rng() < (hasShinyCharm() ? 0.02 : 0.01), 2);
 
   const titleEl = document.getElementById('battle-title');

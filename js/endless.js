@@ -12,10 +12,10 @@ let endlessState = {
 // ── Trait descriptions (per tier) ─────────────────────────────────────────────
 
 const TRAIT_DESCRIPTIONS = {
-  Bug:     ['10% chance: +1 Level after fight',           '20% chance: +1 Level after fight',           '40% chance: +1 Level after fight'],
+  Bug:     ['20% chance: +1 Level after fight',           '40% chance: +1 Level after fight',           '80% chance: +1 Level after fight'],
   Dark:    ['30% chance to steal enemy held item',        '60% chance to steal enemy held item',        '100% chance to steal enemy held item'],
   Dragon:  ['+1 Spd/ATK/SpATK on KO',      '+1 Spd/ATK/SpATK on KO',      '+1 Spd/ATK/SpATK on KO'],
-  Electric:['10% chance to attack again',                 '20% chance to attack again',                 '30% chance to attack again'],
+  Electric:['15% chance to attack again',                 '30% chance to attack again',                 '45% chance to attack again'],
   Fairy:   ['Enemy: -1 ATK & Sp.ATK at fight start',     'Enemy: -2 ATK & Sp.ATK at fight start',     'Enemy: -3 ATK & Sp.ATK at fight start'],
   Fighting:['When a pokemon faints, survivors get +1 ATK & Sp.ATK', 'When a pokemon faints, survivors get +2 ATK & Sp.ATK', 'When a pokemon faints, survivors get +3 ATK & Sp.ATK'],
   Fire:    ['+1 ATK & Sp.ATK stages at fight start',     '+2 ATK & Sp.ATK stages at fight start',     '+3 ATK & Sp.ATK stages at fight start'],
@@ -23,12 +23,12 @@ const TRAIT_DESCRIPTIONS = {
   Ghost:   ['Execute enemies below 15% HP',               'Execute enemies below 30% HP',               'Execute enemies below 50% HP'],
   Grass:   ['Heal 7% of damage dealt',                    'Heal 14% of damage dealt',                   'Heal 21% of damage dealt'],
   Ground:  ['+2 DEF stages at fight start',               '+4 DEF stages at fight start',               '+6 DEF stages at fight start'],
-  Ice:     ['10% chance to freeze on hit',                '20% chance to freeze on hit',                '30% chance to freeze on hit'],
+  Ice:     ['15% chance to freeze on hit',                '30% chance to freeze on hit',                '45% chance to freeze on hit'],
   Normal:  ['+25% max HP at fight start',                 '+50% max HP at fight start',                 '+100% max HP at fight start'],
   Poison:  ['33% chance to poison on hit',                '66% chance to poison on hit',                '100% chance to poison on hit'],
   Psychic: ['10% of damage splashes to all enemies',      '20% of damage splashes to all enemies',      '30% of damage splashes to all enemies'],
-  Rock:    ['33% chance: +1 DEF & Sp.DEF after attack',   '66% chance: +1 DEF & Sp.DEF after attack',   '100% chance: +1 DEF & Sp.DEF after attack'],
-  Steel:   ['Reduce incoming damage by 10%',              'Reduce incoming damage by 20%',              'Reduce incoming damage by 30%'],
+  Rock:    ['33% chance: +1 DEF & Sp.DEF after attack',   '66% chance: +2 DEF & Sp.DEF after attack',   '100% chance: +3 DEF & Sp.DEF after attack'],
+  Steel:   ['Reduce incoming damage by 15%',              'Reduce incoming damage by 30%',              'Reduce incoming damage by 45%'],
   Water:   ['33% chance: Enemy -1 Spd/ATK/SpATK on hit', '66% chance: Enemy -2 Spd/ATK/SpATK on hit', '100% chance: Enemy -3 Spd/ATK/SpATK on hit'],
 };
 
@@ -270,10 +270,10 @@ function buildTraitsConfig(playerTiers, enemyTiers = {}) {
       const triggers = [];
       const efx = [];
 
-      // Electric: 10/20/30% chance to deal the same damage again
+      // Electric: 15/30/45% chance to deal the same damage again
       if (activeFor('Electric', aSide) && !attacker._electricBonusFired) {
         const tier = tierFor('Electric', aSide);
-        const chance = [0, 0.10, 0.20, 0.30][tier];
+        const chance = [0, 0.15, 0.30, 0.45][tier];
         if (rng() < chance) {
           attacker._electricBonusFired = true;
           target.currentHp = Math.max(0, target.currentHp - damage);
@@ -317,7 +317,7 @@ function buildTraitsConfig(playerTiers, enemyTiers = {}) {
       // Ice: chance to freeze target
       if (activeFor('Ice', aSide) && tSide !== aSide && target.currentHp > 0 && !target.status) {
         const tier = tierFor('Ice', aSide);
-        const chance = [0, 0.10, 0.20, 0.30][tier];
+        const chance = [0, 0.15, 0.30, 0.45][tier];
         if (rng() < chance) {
           applyStatus(target, 'freeze', tSide, tIdx, efx);
           triggers.push({ type: 'trait_trigger', traitType: 'Ice', side: aSide, idx: aIdx,
@@ -348,14 +348,14 @@ function buildTraitsConfig(playerTiers, enemyTiers = {}) {
         }
       }
 
-      // Rock: 33/66/100% chance of +1 DEF and +1 Sp.DEF to attacker after each attack
+      // Rock: 33/66/100% chance of +1/+2/+3 DEF and Sp.DEF to attacker after each attack
       if (activeFor('Rock', aSide) && attacker.currentHp > 0) {
         const rockTier = tierFor('Rock', aSide);
         if (Math.random() < rockTier / 3) {
           triggers.push({ type: 'trait_trigger', traitType: 'Rock', side: aSide, idx: aIdx,
-            name: attacker.nickname || attacker.name, description: `Rock Trait: +DEF, +Sp.DEF!` });
-          applyStageChange(attacker, 'def',   1, aSide, aIdx, efx);
-          applyStageChange(attacker, 'spdef', 1, aSide, aIdx, efx);
+            name: attacker.nickname || attacker.name, description: `Rock Trait: +${rockTier} DEF, +${rockTier} Sp.DEF!` });
+          applyStageChange(attacker, 'def',   rockTier, aSide, aIdx, efx);
+          applyStageChange(attacker, 'spdef', rockTier, aSide, aIdx, efx);
         }
       }
 
@@ -396,7 +396,7 @@ function buildTraitsConfig(playerTiers, enemyTiers = {}) {
       // Steel: reduce incoming damage (retroactively heal back)
       if (activeFor('Steel', dSide) && defender.currentHp > 0) {
         const tier = tierFor('Steel', dSide);
-        const reduction = Math.floor(damage * [0, 0.10, 0.20, 0.30][tier]);
+        const reduction = Math.floor(damage * [0, 0.15, 0.30, 0.45][tier]);
         if (reduction > 0) {
           defender.currentHp = Math.min(defender.maxHp, defender.currentHp + reduction);
           log.push({ type: 'trait_trigger', traitType: 'Steel', side: dSide, idx: dIdx,
@@ -458,7 +458,7 @@ function buildTraitsConfig(playerTiers, enemyTiers = {}) {
 function getBugLevelBonus(tiers) {
   const tier = tiers['Bug'] || 0;
   if (tier === 0) return 0;
-  const chance = [0, 0.10, 0.20, 0.40][tier];
+  const chance = [0, 0.20, 0.40, 0.80][tier];
   return rng() < chance ? 1 : 0;
 }
 

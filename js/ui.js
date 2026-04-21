@@ -33,7 +33,7 @@ function hpBarColor(pct) {
 }
 
 function renderHpBar(current, max) {
-  const pct = Math.max(0, current / max);
+  const pct = Math.min(1, Math.max(0, current / max));
   const color = hpBarColor(pct);
   return `<div class="hp-bar-bg"><div class="hp-bar-fill" style="width:${Math.floor(pct*100)}%;background:${color}"><div class="hp-bar-shadow"></div></div></div>
           <span class="hp-text">${Math.max(0,current)}/${max}</span>`;
@@ -358,8 +358,8 @@ function animateHpBar(containerEl, fromHp, toHp, maxHp, duration = 250) {
     const textEl = containerEl.querySelector('.hp-text');
     if (!fillEl) { resolve(); return; }
 
-    const fromPct = Math.max(0, fromHp / maxHp);
-    const toPct = Math.max(0, toHp / maxHp);
+    const fromPct = Math.min(1, Math.max(0, fromHp / maxHp));
+    const toPct = Math.min(1, Math.max(0, toHp / maxHp));
     const scaledDuration = duration / battleSpeedMultiplier;
     const start = performance.now();
 
