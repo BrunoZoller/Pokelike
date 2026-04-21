@@ -111,7 +111,7 @@ h1, h2, .pixel-font {
 #starter-screen {
   justify-content: center;
   align-items: center;
-  gap: 20px;
+  gap: 16px;
 }
 #starter-screen h2 {
   font-size: clamp(10px, 2.5vw, 16px);
@@ -128,22 +128,104 @@ h1, h2, .pixel-font {
 }
 #starter-choices {
   display: flex;
-  gap: 16px;
   justify-content: center;
   flex-wrap: wrap;
 }
+
+/* PC Box */
+.pc-box {
+  background: #111e3a;
+  border: 3px solid #7090d0;
+  border-radius: 10px;
+  box-shadow: 4px 4px 0 #000;
+  overflow: hidden;
+  width: 100%;
+  max-width: 560px;
+}
+.pc-box-titlebar {
+  background: linear-gradient(180deg, #3a5ccc 0%, #1e3a99 100%);
+  border-bottom: 2px solid #5577dd;
+  padding: 5px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pc-box-titlebar span {
+  font-family: "Press Start 2P", monospace;
+  font-size: 8px;
+  color: #ccdeff;
+  letter-spacing: 2px;
+}
+.pc-box-body {
+  padding: 8px;
+}
+.pc-box-grid {
+  display: grid;
+  gap: 5px;
+}
+.pc-slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: rgba(70, 100, 190, 0.18);
+  border: 1px solid rgba(100, 140, 230, 0.3);
+  border-radius: 4px;
+  padding: 6px 4px 5px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, box-shadow 0.12s;
+  outline: none;
+}
+.pc-slot:hover, .pc-slot:focus {
+  background: rgba(130, 170, 255, 0.3);
+  border-color: rgba(180, 210, 255, 0.75);
+  box-shadow: 0 0 8px rgba(120, 170, 255, 0.45);
+}
+.pc-slot img {
+  image-rendering: pixelated;
+  width: 56px;
+  height: 56px;
+}
+.pc-slot-name {
+  font-family: "Press Start 2P", monospace;
+  font-size: 5px;
+  color: #aaccff;
+  text-align: center;
+  line-height: 1.4;
+  word-break: break-word;
+  max-width: 68px;
+}
+.pc-slot-lv {
+  font-family: "Press Start 2P", monospace;
+  font-size: 5px;
+  color: rgba(150, 185, 255, 0.55);
+}
+
 #starter-region-panel {
+  position: fixed;
+  top: 50%;
+  right: 18px;
+  transform: translateY(-50%);
   background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 10px 10px 8px;
-  min-width: 160px;
-  max-width: 200px;
+  min-width: 150px;
+  max-width: 190px;
   box-shadow: 2px 2px 0 0 #000;
-  align-self: flex-start;
+  z-index: 20;
 }
 @media (max-width: 600px) {
-  #starter-region-panel { max-width: 100%; width: 100%; }
+  #starter-region-panel {
+    position: fixed;
+    top: auto;
+    bottom: 8px;
+    right: 8px;
+    transform: none;
+    max-width: 140px;
+  }
+  .pc-slot img { width: 44px; height: 44px; }
 }
 
 /* ---- Pokemon Cards ---- */

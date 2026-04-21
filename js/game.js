@@ -211,7 +211,7 @@ async function showStarterSelect() {
   container.style.cssText = '';
   container.parentElement.querySelectorAll('.hof-starter-label').forEach(el => el.remove());
 
-  const cols = hofMode ? Math.min(6, Math.max(3, Math.ceil(Math.sqrt(starters.length)))) : 3;
+  const cols = hofMode ? 6 : 3;
   const title = hofMode ? `HALL OF FAME PC (${hofX}/${hofY})` : "PROF. OAK'S PC";
 
   const box = document.createElement('div');

@@ -356,11 +356,11 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog, traitsCon
       }
     }
 
-    // Leftovers: heal active player pokemon 1/16 maxHP each round (if they hold it)
+    // Leftovers: heal active player pokemon 10% maxHP each round (if they hold it)
     const active = pTeam.map((p, i) => ({ p, i })).find(x => x.p.currentHp > 0);
     if (active?.p.heldItem?.id === 'leftovers') {
       {
-        const heal = Math.max(1, Math.floor(active.p.maxHp / 16));
+        const heal = Math.max(1, Math.floor(active.p.maxHp * 0.10));
         const actual = Math.min(heal, active.p.maxHp - active.p.currentHp);
         if (actual > 0) {
           active.p.currentHp += actual;
