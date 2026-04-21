@@ -2040,7 +2040,16 @@ async function showStatBuffScreen() {
 }
 
 function loadPersistentBuffs() {
-  try { return JSON.parse(localStorage.getItem('poke_stat_buffs') || '{}'); } catch { return {}; }
+  try {
+    const store = JSON.parse(localStorage.getItem('poke_stat_buffs') || '{}');
+    // Migrate: Snorlax buffs were stored under 143; now evo-line root is 446 (Munchlax).
+    if (store[143] && !store[446]) {
+      store[446] = store[143];
+      delete store[143];
+      savePersistentBuffs(store);
+    }
+    return store;
+  } catch { return {}; }
 }
 function savePersistentBuffs(store) {
   try { localStorage.setItem('poke_stat_buffs', JSON.stringify(store)); } catch {}
