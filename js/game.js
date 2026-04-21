@@ -127,12 +127,20 @@ async function showTrainerSelect() {
 
 function makeMaxedStarsEl(speciesId) {
   const buffs = loadPersistentBuffs()[getEvoLineRoot(speciesId)] || {};
-  const maxed = ['hp','atk','def','speed','special'].filter(k => (buffs[k] ?? 0) >= 10);
-  if (!maxed.length) return null;
+  const stats = ['hp','atk','def','speed','special'];
+  const maxed  = stats.filter(k => (buffs[k] ?? 0) >= 10);
+  const partial = stats.filter(k => { const v = buffs[k] ?? 0; return v > 0 && v < 10; });
+  if (!maxed.length && !partial.length) return null;
   const el = document.createElement('div');
   el.style.cssText = 'position:absolute;top:3px;right:3px;display:flex;gap:1px;flex-wrap:wrap;justify-content:flex-end;max-width:40px;';
-  el.innerHTML = maxed.map(() => `<span style="font-size:7px;color:gold;line-height:1;">★</span>`).join('');
-  el.title = `Maxed: ${maxed.map(k => k.toUpperCase()).join(', ')}`;
+  el.innerHTML = [
+    ...maxed.map(()   => `<span style="font-size:7px;color:gold;line-height:1;">★</span>`),
+    ...partial.map(() => `<span style="position:relative;display:inline-block;font-size:7px;line-height:1;"><span style="color:#555;">★</span><span style="position:absolute;left:0;top:0;color:gold;width:50%;overflow:hidden;display:inline-block;">★</span></span>`),
+  ].join('');
+  const parts = [];
+  if (maxed.length)   parts.push(`Maxed: ${maxed.map(k => k.toUpperCase()).join(', ')}`);
+  if (partial.length) parts.push(`Upgraded: ${partial.map(k => k.toUpperCase()).join(', ')}`);
+  el.title = parts.join(' | ');
   return el;
 }
 
