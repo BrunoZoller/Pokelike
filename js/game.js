@@ -168,7 +168,11 @@ async function showStarterSelect() {
           <span class="region-stage-level">Lv${trainer.level}</span>
         </div>`;
       }).join('');
-      panel.innerHTML = header + `<div class="region-stage-list">${rows}</div>`;
+      const _startMod = getStageModifier(endlessState.stageNumber);
+      const _startModLine = _startMod
+        ? `<div style="font-size:9px;opacity:0.85;margin-top:5px;padding-top:4px;border-top:1px solid rgba(255,255,255,0.12);text-align:center;line-height:1.6;word-break:break-word;"><strong>${_startMod.label}</strong><br>${_startMod.desc}</div>`
+        : '';
+      panel.innerHTML = header + `<div class="region-stage-list">${rows}</div>` + _startModLine;
       panel.style.display = '';
     }
   }
@@ -211,44 +215,114 @@ async function showStarterSelect() {
   container.style.cssText = '';
   container.parentElement.querySelectorAll('.hof-starter-label').forEach(el => el.remove());
 
-  const cols = hofMode ? 6 : 3;
-  const title = hofMode ? `HALL OF FAME PC (${hofX}/${hofY})` : "PROF. OAK'S PC";
+  if (state.isEndlessMode) {
+    const cols = hofMode ? 6 : 3;
+    const title = hofMode ? `HALL OF FAME PC (${hofX}/${hofY})` : "PROF. OAK'S PC";
 
-  const box = document.createElement('div');
-  box.className = 'pc-box';
-  box.innerHTML = `<div class="pc-box-titlebar"><span>${title}</span></div><div class="pc-box-body"><div class="pc-box-grid" style="grid-template-columns:repeat(${cols},1fr);"></div></div>`;
-  const grid = box.querySelector('.pc-box-grid');
+    const box = document.createElement('div');
+    box.className = 'pc-box';
+    const sortBtnsHtml = hofMode
+      ? `<div class="hof-sort-btns"><button class="hof-sort-btn active" data-sort="stars">★ Stars</button><button class="hof-sort-btn" data-sort="type">Type</button><button class="hof-sort-btn" data-sort="id">#</button></div>`
+      : '';
+    box.innerHTML = `<div class="pc-box-titlebar${hofMode ? ' with-sort' : ''}"><span>${title}</span>${sortBtnsHtml}</div><div class="pc-box-body"><div class="pc-box-grid" style="grid-template-columns:repeat(${cols},1fr);"></div></div>`;
+    const grid = box.querySelector('.pc-box-grid');
 
-  for (const species of starters) {
-    if (!species) continue;
-    const isShiny = rng() < (hasShinyCharm() ? 0.02 : 0.01);
-    const inst = createInstance(species, startLevel, isShiny, 0);
-    loadBuffsIntoPokemon(inst);
-    const typeBadges = (inst.types || []).map(t =>
-      `<span class="type-badge type-${t.toLowerCase()}" style="font-size:5px;padding:1px 2px;">${t}</span>`).join('');
+    const persistBuffs = loadPersistentBuffs();
+    const _hofStats = ['hp','atk','def','speed','special'];
+    function hofStarScore(speciesId) {
+      const b = persistBuffs[getEvoLineRoot(speciesId)] || {};
+      const maxed = _hofStats.filter(k => (b[k] ?? 0) >= 10).length;
+      const partial = _hofStats.filter(k => { const v = b[k] ?? 0; return v > 0 && v < 10; }).length;
+      return maxed + partial * 0.5;
+    }
 
-    const slot = document.createElement('div');
-    slot.className = 'pc-slot';
-    slot.setAttribute('role', 'button');
-    slot.setAttribute('tabindex', '0');
-    slot.innerHTML = `
-      <img src="${inst.spriteUrl}" alt="${inst.name}">
-      <div class="pc-slot-name">${inst.name}</div>
-      <div class="pc-slot-lv">Lv.${startLevel}</div>
-      <div style="display:flex;gap:2px;flex-wrap:wrap;justify-content:center;">${typeBadges}</div>`;
+    const hofInstances = starters.map(species => {
+      if (!species) return null;
+      const isShiny = rng() < (hasShinyCharm() ? 0.02 : 0.01);
+      const inst = createInstance(species, startLevel, isShiny, 0);
+      loadBuffsIntoPokemon(inst);
+      return inst;
+    }).filter(Boolean);
 
-    const stars = makeMaxedStarsEl(species.id ?? species.speciesId);
-    if (stars) slot.appendChild(stars);
+    function buildHofGrid(instances) {
+      grid.innerHTML = '';
+      for (const inst of instances) {
+        const typeBadges = (inst.types || []).map(t =>
+          `<span class="type-badge type-${t.toLowerCase()}" style="font-size:5px;padding:1px 2px;">${t}</span>`).join('');
+        const slot = document.createElement('div');
+        slot.className = 'pc-slot';
+        slot.setAttribute('role', 'button');
+        slot.setAttribute('tabindex', '0');
+        slot.innerHTML = `
+          <img src="${inst.spriteUrl}" alt="${inst.name}">
+          <div class="pc-slot-name">${inst.name}</div>
+          <div class="pc-slot-lv">Lv.${startLevel}</div>
+          <div style="display:flex;gap:2px;flex-wrap:wrap;justify-content:center;">${typeBadges}</div>`;
+        const stars = makeMaxedStarsEl(inst.speciesId);
+        if (stars) slot.appendChild(stars);
+        slot.addEventListener('click', () => selectStarter(inst));
+        slot.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') selectStarter(inst); });
+        slot.addEventListener('mouseenter', () => showTeamHoverCard(inst, slot));
+        slot.addEventListener('mouseleave', () => hideTeamHoverCard());
+        grid.appendChild(slot);
+      }
+    }
 
-    slot.addEventListener('click', () => selectStarter(inst));
-    slot.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') selectStarter(inst); });
-    slot.addEventListener('mouseenter', () => showTeamHoverCard(inst, slot));
-    slot.addEventListener('mouseleave', () => hideTeamHoverCard());
+    function sortHof(mode) {
+      const sorted = [...hofInstances];
+      if (mode === 'stars') {
+        sorted.sort((a, b) => {
+          const diff = hofStarScore(b.speciesId) - hofStarScore(a.speciesId);
+          return diff !== 0 ? diff : a.speciesId - b.speciesId;
+        });
+      } else if (mode === 'type') {
+        sorted.sort((a, b) => {
+          const ta = (a.types?.[0] || '').toLowerCase();
+          const tb = (b.types?.[0] || '').toLowerCase();
+          if (ta !== tb) return ta < tb ? -1 : 1;
+          return a.speciesId - b.speciesId;
+        });
+      } else {
+        sorted.sort((a, b) => a.speciesId - b.speciesId);
+      }
+      buildHofGrid(sorted);
+    }
 
-    grid.appendChild(slot);
+    sortHof('stars');
+
+    if (hofMode) {
+      box.querySelectorAll('.hof-sort-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          box.querySelectorAll('.hof-sort-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          sortHof(btn.dataset.sort);
+        });
+      });
+    }
+
+    container.appendChild(box);
+  } else {
+    container.style.display = 'flex';
+    container.style.justifyContent = 'center';
+    container.style.flexWrap = 'wrap';
+    container.style.gap = '16px';
+
+    for (const species of starters) {
+      if (!species) continue;
+      const isShiny = rng() < (hasShinyCharm() ? 0.02 : 0.01);
+      const inst = createInstance(species, startLevel, isShiny, 0);
+      const wrapper = document.createElement('div');
+      wrapper.innerHTML = renderPokemonCard(inst, true, false);
+      const card = wrapper.querySelector('.poke-card');
+      card.setAttribute('role', 'button');
+      card.setAttribute('tabindex', '0');
+      card.addEventListener('click', () => selectStarter(inst));
+      card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') selectStarter(inst); });
+      card.addEventListener('mouseenter', () => showTeamHoverCard(inst, card));
+      card.addEventListener('mouseleave', () => hideTeamHoverCard());
+      container.appendChild(card);
+    }
   }
-
-  container.appendChild(box);
 }
 
 function selectStarter(pokemon) {
@@ -292,6 +366,7 @@ function showMapScreen() {
   if (typeof hideEndlessTraitPanel === 'function') hideEndlessTraitPanel();
   const regionPanel = document.getElementById('endless-region-panel');
   if (regionPanel) regionPanel.style.display = 'none';
+  document.querySelectorAll('.map-badges-label').forEach(el => el.style.display = '');
   showScreen('map-screen');
   const mapInfo = document.getElementById('map-info');
   if (mapInfo) {
@@ -587,6 +662,13 @@ function showEliteTransition(defeatedName, nextIndex) {
 }
 
 
+function filterByPartyType(choices, team) {
+  if (!team || team.length === 0) return choices;
+  const partyTypes = new Set(team.flatMap(p => (p.types || []).map(t => t.toLowerCase())));
+  const matching = choices.filter(sp => (sp.types || []).some(t => partyTypes.has(t.toLowerCase())));
+  return matching.length > 0 ? matching : choices;
+}
+
 async function doCatchNode(node) {
   showScreen('catch-screen');
   renderTeamBar(state.team, document.getElementById('catch-team-bar'), true);
@@ -648,6 +730,8 @@ async function doCatchNode(node) {
       choices = [...filtered, ...dups].slice(0, 3);
     }
   }
+  if (state.isEndlessMode && getStageModifier(endlessState.stageNumber)?.typeSyncCatch)
+    choices = filterByPartyType(choices, state.team);
   const displayedIds = new Set(choices.slice(0, 3).map(sp => sp.id ?? sp.speciesId));
   const rerollPool = allCandidates.filter(sp => !displayedIds.has(sp.id ?? sp.speciesId));
   choices = choices.slice(0, 3);
@@ -693,7 +777,9 @@ async function doCatchNode(node) {
           ...instances.filter((_, i) => i !== slotIdx).map(i => i.speciesId),
           ...state.team.map(p => p.speciesId),
         ]);
+        const typeSync = state.isEndlessMode && getStageModifier(endlessState.stageNumber)?.typeSyncCatch;
         let src = rerollPool.filter(sp => !otherIds.has(sp.id ?? sp.speciesId));
+        if (typeSync) src = filterByPartyType(src, state.team);
         if (src.length === 0) {
           const fresh = await getCatchChoices(getEncounterMapIndex(), 6, state.isEndlessMode);
           const otherIdsPost = new Set([
@@ -701,6 +787,7 @@ async function doCatchNode(node) {
             ...state.team.map(p => p.speciesId),
           ]);
           src = fresh.filter(sp => !otherIdsPost.has(sp.id ?? sp.speciesId));
+          if (typeSync) src = filterByPartyType(src, state.team);
           if (src.length === 0) src = fresh;
         }
         if (src.length === 0) return;
@@ -801,8 +888,9 @@ function showSwapScreen(newPoke, node) {
     if (traitOverlay) {
       card.addEventListener('mouseenter', () => {
         const hypothetical = state.team.map((m, j) => j === idx ? newPoke : m);
-        const cur  = getTraitDisplayData(state.team);
-        const next = getTraitDisplayData(hypothetical);
+        const _hovMult = getStageModifier(endlessState.stageNumber)?.traitMult ?? 1;
+        const cur  = getTraitDisplayData(state.team, _hovMult);
+        const next = getTraitDisplayData(hypothetical, _hovMult);
         const curMap  = Object.fromEntries(cur.map(e  => [e.type, e]));
         const nextMap = Object.fromEntries(next.map(e => [e.type, e]));
         const allTypes = [...new Set([...cur.map(e => e.type), ...next.map(e => e.type)])];
@@ -1350,7 +1438,9 @@ async function doTradeNode(node) {
 
     const idx = i;
     const doTrade = async () => {
-      const pool = await getCatchChoices(getEncounterMapIndex(), 3, state.isEndlessMode);
+      let pool = await getCatchChoices(getEncounterMapIndex(), 3, state.isEndlessMode);
+      if (state.isEndlessMode && getStageModifier(endlessState.stageNumber)?.typeSyncCatch)
+        pool = filterByPartyType(pool, state.team);
       const species = pool[Math.floor(rng() * pool.length)];
       if (!species) { advanceFromNode(state.map, node.id); showMapScreen(); return; }
       const offerLevel = Math.min(100, mine.level + 3);
@@ -1388,7 +1478,9 @@ async function doTradeNode(node) {
 }
 
 async function doShinyNode(node) {
-  const choices = await getCatchChoices(getEncounterMapIndex(), 3, state.isEndlessMode);
+  let choices = await getCatchChoices(getEncounterMapIndex(), 3, state.isEndlessMode);
+  if (state.isEndlessMode && getStageModifier(endlessState.stageNumber)?.typeSyncCatch)
+    choices = filterByPartyType(choices, state.team);
   const level = getLevelForNode(node);
   const species = choices[0];
   if (!species) { advanceFromNode(state.map, node.id); showMapScreen(); return; }
@@ -1430,11 +1522,12 @@ async function doShinyNode(node) {
 
 // ---- Battle Screen ----
 
-function runBattleScreen(enemyTeam, isBoss, onWin, onLose, enemyName = null, enemyItems = [], baseGainOverride = null, showPlayerPortrait = null, traitsConfig = null) {
+function runBattleScreen(enemyTeam, isBoss, onWin, onLose, enemyName = null, enemyItems = [], baseGainOverride = null, showPlayerPortrait = null, traitsConfig = null, stageModifier = null) {
   // In endless mode, always apply traits — compute them if not pre-computed by the caller
   if (state.isEndlessMode && traitsConfig === null) {
     const tiers = computeTraitTiers(state.team);
-    traitsConfig = buildTraitsConfig(tiers);
+    const _traitMult = stageModifier?.traitMult ?? 1;
+    traitsConfig = buildTraitsConfig(tiers, {}, _traitMult);
     renderBattleTraitBars(tiers, null);
   }
 
@@ -1458,7 +1551,7 @@ function runBattleScreen(enemyTeam, isBoss, onWin, onLose, enemyName = null, ene
 
     // Pre-compute the full battle result
     const { playerWon, detailedLog, pTeam: resultP, eTeam: resultE, playerParticipants } = runBattle(
-      pTeamCopy, enemyTeam, state.items, enemyItems, null, traitsConfig
+      pTeamCopy, enemyTeam, state.items, enemyItems, null, traitsConfig, stageModifier
     );
 
     // Read auto-skip settings
@@ -1690,8 +1783,13 @@ function showEndlessStageSelect() {
     const isLocked = s > unlocked;
     const btn = document.createElement('button');
     btn.className = isLocked ? 'btn-secondary' : 'btn-primary';
-    btn.style.cssText = `width:200px;${isLocked ? 'opacity:0.45;cursor:not-allowed;' : 'background:linear-gradient(135deg,#1a0a3e,#3a0a6e);'}`;
-    btn.textContent = isLocked ? `🔒 Stage ${s}` : `▶ Stage ${s}`;
+    const mod = getStageModifier(s);
+    const bg = (!isLocked && mod?.color) ? mod.color : isLocked ? '' : 'linear-gradient(135deg,#1a0a3e,#3a0a6e)';
+    btn.style.cssText = `width:200px;${isLocked ? 'opacity:0.45;cursor:not-allowed;' : `background:${bg};`}`;
+    if (!isLocked && mod) btn.title = mod.desc;
+    btn.innerHTML = isLocked
+      ? `🔒 Stage ${s}`
+      : `<span>▶ Stage ${s}</span>${mod ? `<span style="display:block;font-size:5px;opacity:0.75;margin-top:2px;">${mod.label}</span>` : ''}`;
     if (!isLocked) btn.addEventListener('click', () => startEndlessRun(s));
     list.appendChild(btn);
   }
@@ -1786,6 +1884,12 @@ function showEndlessMapScreen() {
     mapInfo.innerHTML = `<span style="font-size:9px">S${endlessState.stageNumber} R${endlessState.regionNumber} — ${label}: <b>${trainerName}</b></span>`;
   }
 
+  const badgeCountEl = document.getElementById('badge-count');
+  if (badgeCountEl) badgeCountEl.innerHTML = '';
+  const badgePanelEndless = document.getElementById('badge-count-panel');
+  if (badgePanelEndless) badgePanelEndless.innerHTML = '';
+  document.querySelectorAll('.map-badges-label').forEach(el => el.style.display = 'none');
+
   renderTeamBar(state.team);
   renderItemBadges(state.items);
   renderEndlessTraitPanel(state.team);
@@ -1827,7 +1931,9 @@ async function doEndlessBossNode() {
   // Compute traits right before the fight (enemy bosses also get type trait benefits)
   endlessState.traitTiers = computeTraitTiers(state.team);
   const enemyTiers = computeTraitTiers(enemyTeam);
-  const traitsConfig = buildTraitsConfig(endlessState.traitTiers, enemyTiers);
+  const stageModifier = getStageModifier(endlessState.stageNumber);
+  const traitMult = stageModifier?.traitMult ?? 1;
+  const traitsConfig = buildTraitsConfig(endlessState.traitTiers, enemyTiers, traitMult);
   renderBattleTraitBars(endlessState.traitTiers, enemyTiers);
 
   const isStageFinal = isBigBoss && endlessState.regionNumber === 3;
@@ -1836,7 +1942,9 @@ async function doEndlessBossNode() {
     : isBigBoss ? `Big Boss: ${trainerData.archetype.name}!`
     : `Trainer: ${trainerData.archetype.name}!`;
   const battleInfoEl = document.getElementById('battle-title');
-  if (battleInfoEl) battleInfoEl.textContent = title;
+  if (battleInfoEl) battleInfoEl.textContent = stageModifier ? `${title} — ${stageModifier.label}` : title;
+  const battleSubEl = document.getElementById('battle-subtitle');
+  if (battleSubEl && stageModifier) battleSubEl.textContent = stageModifier.desc;
 
   const won = await runBattleScreen(
     enemyTeam, true, null, null,
@@ -1844,7 +1952,8 @@ async function doEndlessBossNode() {
     [],
     null, // baseGainOverride — use default level gain
     true, // showPlayerPortrait
-    traitsConfig
+    traitsConfig,
+    stageModifier
   );
   // clearTraitBar() is handled automatically by runBattleScreen in endless mode
 
@@ -2015,6 +2124,12 @@ function advanceEndless() {
       const completedStage = endlessState.stageNumber;
       saveHallOfFameEntry(state.team, completedStage, false, true, completedStage);
       unlockNextStage(completedStage);
+      [1, 5, 10, 20].forEach(threshold => {
+        if (completedStage === threshold) {
+          const ach = unlockAchievement(`endless_stage_${threshold}`);
+          if (ach) showAchievementToast(ach);
+        }
+      });
       clearEndlessState();
       clearSavedRun();
       renderStageComplete(completedStage, state.team, () => {

@@ -890,6 +890,10 @@ const ACHIEVEMENTS = [
   { id: 'type_quartet',      name: 'Type Supremacy', desc: 'Beat the game with at least 4 of your 6 Pokémon sharing the same type', icon: '🔣' },
   { id: 'all_shiny_win',     name: 'Shiny Squad',    desc: 'Beat the game with every Pokémon on your team being shiny (minimum 3)',             icon: '💫' },
   { id: 'back_to_back',      name: 'On a Roll',      desc: 'Beat the game twice in a row without losing a run in between',  icon: '🔁' },
+  { id: 'endless_stage_1',  name: 'Endless Beginning', desc: 'Clear Stage 1 of Endless Mode',                                 icon: '🌀' },
+  { id: 'endless_stage_5',  name: 'Endless Veteran',   desc: 'Clear Stage 5 of Endless Mode',                                 icon: '🌊' },
+  { id: 'endless_stage_10', name: 'Endless Expert',    desc: 'Clear Stage 10 of Endless Mode',                                icon: '⚔️' },
+  { id: 'endless_stage_20', name: 'Endless Legend',    desc: 'Clear Stage 20 of Endless Mode',                                icon: '🏅' },
 ];
 
 function getUnlockedAchievements() {

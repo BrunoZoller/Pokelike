@@ -119,7 +119,9 @@ function renderTraitPreview(pokemon, currentTeam) {
     const isNew    = prevTier === 0 && newTier > 0;
     const next     = nextOf(count);
 
-    const traitEntry = getTraitDisplayData([...currentTeam, pokemon]).find(e => e.type === type);
+    const _tMod = (typeof getStageModifier === 'function' && typeof endlessState !== 'undefined')
+      ? getStageModifier(endlessState.stageNumber) : null;
+    const traitEntry = getTraitDisplayData([...currentTeam, pokemon], _tMod?.traitMult ?? 1).find(e => e.type === type);
     const desc = traitEntry?.description ?? null;
 
     let tierLabel = newTier > 0 ? ` T${newTier}` : '';
@@ -2735,7 +2737,9 @@ function renderEndlessTraitPanel(team) {
   const panel = document.getElementById('endless-trait-panel');
   if (!panel) return;
 
-  const data = getTraitDisplayData(team);
+  const _traitMod = (typeof getStageModifier === 'function' && typeof endlessState !== 'undefined')
+    ? getStageModifier(endlessState.stageNumber) : null;
+  const data = getTraitDisplayData(team, _traitMod?.traitMult ?? 1);
   if (data.length === 0) {
     panel.style.display = 'none';
     return;
@@ -2791,7 +2795,12 @@ function renderEndlessRegionPanel(region, currentMapIndex) {
     </div>`;
   }).join('');
 
-  panel.innerHTML = header + `<div class="region-stage-list">${rows}</div>`;
+  const stageMod = typeof getStageModifier === 'function' && typeof endlessState !== 'undefined'
+    ? getStageModifier(endlessState.stageNumber) : null;
+  const modLine = stageMod
+    ? `<div style="font-size:9px;opacity:0.85;margin-top:5px;padding-top:4px;border-top:1px solid rgba(255,255,255,0.12);text-align:center;line-height:1.6;word-break:break-word;"><strong>${stageMod.label}</strong><br>${stageMod.desc}</div>`
+    : '';
+  panel.innerHTML = header + `<div class="region-stage-list">${rows}</div>` + modLine;
 }
 
 

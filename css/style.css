@@ -150,6 +150,33 @@ h1, h2, .pixel-font {
   align-items: center;
   justify-content: center;
 }
+.pc-box-titlebar.with-sort {
+  justify-content: space-between;
+}
+.hof-sort-btns {
+  display: flex;
+  gap: 3px;
+}
+.hof-sort-btn {
+  font-family: "Press Start 2P", monospace;
+  font-size: 5px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(180,210,255,0.35);
+  border-radius: 3px;
+  color: #aaccff;
+  padding: 2px 5px;
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s;
+}
+.hof-sort-btn:hover {
+  background: rgba(255,255,255,0.18);
+  border-color: rgba(180,210,255,0.65);
+}
+.hof-sort-btn.active {
+  background: rgba(100,150,255,0.3);
+  border-color: #7090d0;
+  color: #fff;
+}
 .pc-box-titlebar span {
   font-family: "Press Start 2P", monospace;
   font-size: 8px;
@@ -2271,6 +2298,7 @@ body.dark-mode #btn-hard-run:hover { box-shadow: 4px 4px 0 0 #cc2222; }
 .map-panel-region {
   flex: 0 0 auto;
   min-width: 130px;
+  align-self: start;
 }
 .region-stage-list {
   display: flex;

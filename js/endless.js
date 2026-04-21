@@ -32,9 +32,38 @@ const TRAIT_DESCRIPTIONS = {
   Water:   ['33% chance: Enemy -1 Spd/ATK/SpATK on hit', '66% chance: Enemy -2 Spd/ATK/SpATK on hit', '100% chance: Enemy -3 Spd/ATK/SpATK on hit'],
 };
 
+// Returns a scaled trait description string for the given type, tier (1-indexed), and effectMult.
+function scaleTraitDescription(type, tier, effectMult) {
+  if (effectMult === 1 || tier === 0) return TRAIT_DESCRIPTIONS[type]?.[Math.max(0, tier - 1)] || '';
+  const sc = v => Math.round(v * effectMult);
+  const sp = v => Math.min(100, Math.round(v * effectMult * 100));
+  const sf = v => Math.round(v * effectMult * 100);
+  switch (type) {
+    case 'Bug':      return `${sp([0, 0.20, 0.40, 0.80][tier])}% chance: +1 Level after fight`;
+    case 'Dark':     return `${sp([0, 0.30, 0.60, 1.00][tier])}% chance to steal enemy held item`;
+    case 'Dragon':   return `+${sc(1)} Spd/ATK/SpATK on KO`;
+    case 'Electric': return `${sp([0, 0.15, 0.30, 0.45][tier])}% chance to attack again`;
+    case 'Fairy':    return `Enemy: -${sc(tier)} ATK & Sp.ATK at fight start`;
+    case 'Fighting': return `When a pokemon faints, survivors get +${sc(tier)} ATK & Sp.ATK`;
+    case 'Fire':     return `+${sc(tier)} ATK & Sp.ATK stages at fight start`;
+    case 'Flying':   return `${sp([0, 0.15, 0.30, 0.50][tier])}% chance to dodge incoming attacks`;
+    case 'Ghost':    return `Execute enemies below ${sp([0, 0.15, 0.30, 0.50][tier])}% HP`;
+    case 'Grass':    return `Heal ${sf([0, 0.05, 0.10, 0.15][tier])}% of damage dealt`;
+    case 'Ground':   return `+${sc(tier * 2)} DEF stages at fight start`;
+    case 'Ice':      return `${sp([0, 0.15, 0.30, 0.45][tier])}% chance to freeze on hit`;
+    case 'Normal':   return `+${sf([0, 0.25, 0.50, 1.00][tier])}% max HP at fight start`;
+    case 'Poison':   return `${sp([0, 0.33, 0.66, 1.00][tier])}% chance to poison on hit`;
+    case 'Psychic':  return `${sf([0, 0.10, 0.20, 0.30][tier])}% of damage splashes to all enemies`;
+    case 'Rock':     return `${sp([0, 1/3, 2/3, 1.0][tier])}% chance: +${sc(tier)} DEF & Sp.DEF after attack`;
+    case 'Steel':    return `Reduce incoming damage by ${sf([0, 0.15, 0.30, 0.45][tier])}%`;
+    case 'Water':    return `${sp([0, 1/3, 2/3, 1.0][tier])}% chance: Enemy -${sc(tier)} Spd/ATK/SpATK on hit`;
+    default:         return TRAIT_DESCRIPTIONS[type]?.[Math.max(0, tier - 1)] || '';
+  }
+}
+
 // Returns sorted type count data for the trait display panel.
 // Each entry: { type, count, tier, nextThreshold, description, active }
-function getTraitDisplayData(team) {
+function getTraitDisplayData(team, effectMult = 1) {
   const counts = {};
   for (const p of team) {
     const mult = p.isShiny ? 2 : 1;
@@ -49,8 +78,9 @@ function getTraitDisplayData(team) {
       const count = counts[type] || 0;
       const tier = count >= 6 ? 3 : count >= 4 ? 2 : count >= 2 ? 1 : 0;
       const nextThreshold = count < 2 ? 2 : count < 4 ? 4 : 6;
-      const descTier = Math.max(0, tier - 1); // 0-indexed for TRAIT_DESCRIPTIONS
-      const description = TRAIT_DESCRIPTIONS[type]?.[tier > 0 ? tier - 1 : 0] || '';
+      const description = effectMult !== 1
+        ? scaleTraitDescription(type, tier > 0 ? tier : 1, effectMult)
+        : (TRAIT_DESCRIPTIONS[type]?.[tier > 0 ? tier - 1 : 0] || '');
       return { type, count, tier, nextThreshold, description, active: tier > 0 };
     })
     .filter(e => e.count > 0) // only show types the player actually has
@@ -186,17 +216,49 @@ function computeTraitTiers(team) {
   return tiers;
 }
 
+// ── Stage modifiers ───────────────────────────────────────────────────────────
+
+const STAGE_MODIFIERS = {
+  2:  { label: 'Empowered Traits', desc: 'Traits are twice as effective',                              traitMult: 2,        color: 'linear-gradient(135deg,#3a2000,#c8841a)' },
+  3:  { label: 'Psychic Surge',    desc: 'Psychic Pokémon deal 50% more damage',                       typeBoost: 'Psychic', color: 'linear-gradient(135deg,#4a0028,#f85888)' },
+  4:  { label: 'Synergy',          desc: 'All catch options and rerolls share a type with your party', typeSyncCatch: true,  color: 'linear-gradient(135deg,#003a10,#78c850)' },
+  5:  { label: 'Bug Swarm',        desc: 'Bug Pokémon deal 50% more damage',                           typeBoost: 'Bug',     color: 'linear-gradient(135deg,#282e00,#a8b820)' },
+  6:  { label: 'Sandstorm',        desc: 'All Pokémon except Steel, Ground & Rock take damage each turn', sandstorm: true,  color: 'linear-gradient(135deg,#3a2800,#e0c068)' },
+  7:  { label: 'Inferno',          desc: 'Fire Pokémon deal 50% more damage',                          typeBoost: 'Fire',    color: 'linear-gradient(135deg,#4a1000,#f08030)' },
+  8:  { label: 'Toxic Stage',      desc: 'Poison status deals 4× damage',                              poisonMult: 4,        color: 'linear-gradient(135deg,#1e0028,#a040a0)' },
+  9:  { label: 'Overgrowth',       desc: 'Grass Pokémon deal 50% more damage',                         typeBoost: 'Grass',   color: 'linear-gradient(135deg,#003800,#78c850)' },
+  10: { label: 'Trick Room',       desc: 'Slower Pokémon move first',                                  trickRoom: true,      color: 'linear-gradient(135deg,#0a003a,#3a0a8a)' },
+  11: { label: 'Deluge',           desc: 'Water Pokémon deal 50% more damage',                         typeBoost: 'Water',   color: 'linear-gradient(135deg,#00104a,#6890f0)' },
+  12: { label: 'Critical Stage',   desc: 'Every move is a critical hit',                               alwaysCrit: true,     color: 'linear-gradient(135deg,#3a0000,#aa2010)' },
+  13: { label: 'Normal Force',     desc: 'Normal Pokémon deal 50% more damage',                        typeBoost: 'Normal',  color: 'linear-gradient(135deg,#282818,#a8a878)' },
+  14: { label: 'Supreme Traits',   desc: 'Traits are three times as effective',                        traitMult: 3,         color: 'linear-gradient(135deg,#3a2800,#e09820)' },
+  15: { label: 'Midnight',         desc: 'Dark Pokémon deal 50% more damage',                          typeBoost: 'Dark',    color: 'linear-gradient(135deg,#080808,#705848)' },
+  16: { label: 'Last Stand',       desc: 'The last Pokémon in each party has +50% to all stats',       lastPokemonBoost: true, color: 'linear-gradient(135deg,#2a2000,#c8a800)' },
+  17: { label: 'Amplified',        desc: 'Super-effective moves deal 3× instead of 2×',               superEffX3: true,     color: 'linear-gradient(135deg,#1a003a,#8a008a)' },
+  18: { label: 'Haunting',         desc: 'Ghost Pokémon deal 50% more damage',                         typeBoost: 'Ghost',   color: 'linear-gradient(135deg,#14082a,#705898)' },
+  19: { label: 'Godlike Traits',   desc: 'Traits are four times as effective',                         traitMult: 4,         color: 'linear-gradient(135deg,#3a2c00,#f8c830)' },
+  20: { label: "Dragon's Domain",  desc: 'Dragon Pokémon deal 50% more damage',                        typeBoost: 'Dragon',  color: 'linear-gradient(135deg,#0a003a,#7038f8)' },
+};
+
+function getStageModifier(stageNum) {
+  return STAGE_MODIFIERS[stageNum] || null;
+}
+
 // ── Trait config builder ──────────────────────────────────────────────────────
 
 // Returns a traitsConfig object to pass to runBattle, or null if no active traits.
 // enemyTiers is optional — pass it for boss fights so the enemy also benefits from type traits.
-function buildTraitsConfig(playerTiers, enemyTiers = {}) {
+// effectMult scales all trait effect magnitudes (used for Stages 2/14/19).
+function buildTraitsConfig(playerTiers, enemyTiers = {}, effectMult = 1) {
   playerTiers = playerTiers || {};
   enemyTiers  = enemyTiers  || {};
   if (!Object.keys(playerTiers).length && !Object.keys(enemyTiers).length) return null;
 
   const tierFor   = (type, side) => ((side === 'player' ? playerTiers : enemyTiers)[type] || 0);
   const activeFor = (type, side) => tierFor(type, side) >= 1;
+  const sc = v => Math.round(v * effectMult);         // scale a stat-stage integer
+  const sp = v => Math.min(1.0, v * effectMult);      // scale a probability, capped at 1
+  const sf = v => v * effectMult;                      // scale a float/pct (no cap)
 
   return {
 
@@ -207,20 +269,21 @@ function buildTraitsConfig(playerTiers, enemyTiers = {}) {
         // Fire: +tier ATK and Sp.ATK to whole team
         if (activeFor('Fire', side)) {
           const tier = tierFor('Fire', side);
+          const boost = sc(tier);
           const alive = myTeam.map((p, i) => ({ p, i })).filter(x => x.p.currentHp > 0);
           for (const { p, i } of alive)
             log.push({ type: 'trait_trigger', traitType: 'Fire', side, idx: i,
               name: p.nickname || p.name, description: `Fire Trait T${tier}: +ATK & Sp.ATK!` });
           for (const { p, i } of alive) {
-            applyStageChange(p, 'atk',     tier, side, i, log);
-            applyStageChange(p, 'special', tier, side, i, log);
+            applyStageChange(p, 'atk',     boost, side, i, log);
+            applyStageChange(p, 'special', boost, side, i, log);
           }
         }
 
         // Ground: +tier*2 DEF to whole team
         if (activeFor('Ground', side)) {
           const tier = tierFor('Ground', side);
-          const boost = tier * 2;
+          const boost = sc(tier * 2);
           const alive = myTeam.map((p, i) => ({ p, i })).filter(x => x.p.currentHp > 0);
           for (const { p, i } of alive)
             log.push({ type: 'trait_trigger', traitType: 'Ground', side, idx: i,
@@ -232,21 +295,22 @@ function buildTraitsConfig(playerTiers, enemyTiers = {}) {
         // Fairy: opposing team gets -tier ATK and Sp.ATK
         if (activeFor('Fairy', side)) {
           const tier = tierFor('Fairy', side);
-          const myAlive   = myTeam.map((p, i) => ({ p, i })).filter(x => x.p.currentHp > 0);
+          const boost = sc(tier);
+          const myAlive    = myTeam.map((p, i) => ({ p, i })).filter(x => x.p.currentHp > 0);
           const theirAlive = theirTeam.map((p, i) => ({ p, i })).filter(x => x.p.currentHp > 0);
           for (const { p, i } of myAlive)
             log.push({ type: 'trait_trigger', traitType: 'Fairy', side, idx: i,
               name: p.nickname || p.name, description: `Fairy Trait T${tier}: Charmed enemies!` });
           for (const { p, i } of theirAlive) {
-            applyStageChange(p, 'atk',     -tier, oppSide, i, log);
-            applyStageChange(p, 'special', -tier, oppSide, i, log);
+            applyStageChange(p, 'atk',     -boost, oppSide, i, log);
+            applyStageChange(p, 'special', -boost, oppSide, i, log);
           }
         }
 
         // Normal: +25/50/100% max HP bonus to whole team
         if (activeFor('Normal', side)) {
           const tier = tierFor('Normal', side);
-          const pct = [0, 0.25, 0.50, 1.00][tier];
+          const pct = sf([0, 0.25, 0.50, 1.00][tier]);
           const alive = myTeam.map((p, i) => ({ p, i })).filter(x => x.p.currentHp > 0);
           for (const { p, i } of alive)
             log.push({ type: 'trait_trigger', traitType: 'Normal', side, idx: i,
@@ -273,7 +337,7 @@ function buildTraitsConfig(playerTiers, enemyTiers = {}) {
       // Electric: 15/30/45% chance to deal the same damage again
       if (activeFor('Electric', aSide) && !attacker._electricBonusFired) {
         const tier = tierFor('Electric', aSide);
-        const chance = [0, 0.15, 0.30, 0.45][tier];
+        const chance = sp([0, 0.15, 0.30, 0.45][tier]);
         if (rng() < chance) {
           attacker._electricBonusFired = true;
           target.currentHp = Math.max(0, target.currentHp - damage);
@@ -288,7 +352,7 @@ function buildTraitsConfig(playerTiers, enemyTiers = {}) {
       // Ghost: execute target below HP threshold
       if (activeFor('Ghost', aSide) && tSide !== aSide && target.currentHp > 0) {
         const tier = tierFor('Ghost', aSide);
-        const threshold = [0, 0.15, 0.30, 0.50][tier];
+        const threshold = sp([0, 0.15, 0.30, 0.50][tier]);
         if (target.currentHp / target.maxHp < threshold) {
           const execDmg = target.currentHp;
           target.currentHp = 0;
@@ -302,7 +366,7 @@ function buildTraitsConfig(playerTiers, enemyTiers = {}) {
       // Grass: heal % of dealt damage
       if (activeFor('Grass', aSide) && attacker.currentHp > 0) {
         const tier = tierFor('Grass', aSide);
-        const pct = [0, 0.05, 0.10, 0.15][tier];
+        const pct = sf([0, 0.05, 0.10, 0.15][tier]);
         const heal = Math.max(1, Math.floor(damage * pct));
         const actual = Math.min(heal, attacker.maxHp - attacker.currentHp);
         if (actual > 0) {
@@ -317,7 +381,7 @@ function buildTraitsConfig(playerTiers, enemyTiers = {}) {
       // Ice: chance to freeze target
       if (activeFor('Ice', aSide) && tSide !== aSide && target.currentHp > 0 && !target.status) {
         const tier = tierFor('Ice', aSide);
-        const chance = [0, 0.15, 0.30, 0.45][tier];
+        const chance = sp([0, 0.15, 0.30, 0.45][tier]);
         if (rng() < chance) {
           applyStatus(target, 'freeze', tSide, tIdx, efx);
           triggers.push({ type: 'trait_trigger', traitType: 'Ice', side: aSide, idx: aIdx,
@@ -328,7 +392,7 @@ function buildTraitsConfig(playerTiers, enemyTiers = {}) {
       // Poison: chance to poison target
       if (activeFor('Poison', aSide) && tSide !== aSide && target.currentHp > 0 && !target.status) {
         const tier = tierFor('Poison', aSide);
-        const chance = [0, 0.33, 0.66, 1.00][tier];
+        const chance = sp([0, 0.33, 0.66, 1.00][tier]);
         if (rng() < chance) {
           applyStatus(target, 'poison', tSide, tIdx, efx);
           triggers.push({ type: 'trait_trigger', traitType: 'Poison', side: aSide, idx: aIdx,
@@ -339,7 +403,7 @@ function buildTraitsConfig(playerTiers, enemyTiers = {}) {
       // Dark: chance to steal target's held item
       if (activeFor('Dark', aSide) && tSide !== aSide && target.currentHp > 0 && target.heldItem && !attacker.heldItem) {
         const tier = tierFor('Dark', aSide);
-        const chance = [0, 0.30, 0.60, 1.00][tier];
+        const chance = sp([0, 0.30, 0.60, 1.00][tier]);
         if (rng() < chance) {
           attacker.heldItem = target.heldItem;
           target.heldItem = null;
@@ -351,23 +415,25 @@ function buildTraitsConfig(playerTiers, enemyTiers = {}) {
       // Rock: 33/66/100% chance of +1/+2/+3 DEF and Sp.DEF to attacker after each attack
       if (activeFor('Rock', aSide) && attacker.currentHp > 0) {
         const rockTier = tierFor('Rock', aSide);
-        if (Math.random() < rockTier / 3) {
+        if (Math.random() < sp(rockTier / 3)) {
+          const boost = sc(rockTier);
           triggers.push({ type: 'trait_trigger', traitType: 'Rock', side: aSide, idx: aIdx,
-            name: attacker.nickname || attacker.name, description: `Rock Trait: +${rockTier} DEF, +${rockTier} Sp.DEF!` });
-          applyStageChange(attacker, 'def',   rockTier, aSide, aIdx, efx);
-          applyStageChange(attacker, 'spdef', rockTier, aSide, aIdx, efx);
+            name: attacker.nickname || attacker.name, description: `Rock Trait: +${boost} DEF, +${boost} Sp.DEF!` });
+          applyStageChange(attacker, 'def',   boost, aSide, aIdx, efx);
+          applyStageChange(attacker, 'spdef', boost, aSide, aIdx, efx);
         }
       }
 
       // Water: 33/66/100% chance to apply -tier Speed, ATK, Sp.ATK to target
       if (activeFor('Water', aSide) && tSide !== aSide && target.currentHp > 0) {
         const tier = tierFor('Water', aSide);
-        if (Math.random() < tier / 3) {
+        if (Math.random() < sp(tier / 3)) {
+          const boost = sc(tier);
           triggers.push({ type: 'trait_trigger', traitType: 'Water', side: aSide, idx: aIdx,
             name: attacker.nickname || attacker.name, description: `Water Trait T${tier}: debuffed enemy!` });
-          applyStageChange(target, 'speed',   -tier, tSide, tIdx, efx);
-          applyStageChange(target, 'atk',     -tier, tSide, tIdx, efx);
-          applyStageChange(target, 'special', -tier, tSide, tIdx, efx);
+          applyStageChange(target, 'speed',   -boost, tSide, tIdx, efx);
+          applyStageChange(target, 'atk',     -boost, tSide, tIdx, efx);
+          applyStageChange(target, 'special', -boost, tSide, tIdx, efx);
         }
       }
 
@@ -375,7 +441,7 @@ function buildTraitsConfig(playerTiers, enemyTiers = {}) {
       if (activeFor('Psychic', aSide) && tSide !== aSide) {
         const tier = tierFor('Psychic', aSide);
         const targetTeam = tSide === 'enemy' ? eTeam : pTeam;
-        const splash = Math.max(1, Math.floor(damage * [0, 0.10, 0.20, 0.30][tier]));
+        const splash = Math.max(1, Math.floor(damage * sf([0, 0.10, 0.20, 0.30][tier])));
         for (let i = 0; i < targetTeam.length; i++) {
           if (i === tIdx || targetTeam[i].currentHp <= 0) continue;
           targetTeam[i].currentHp = Math.max(0, targetTeam[i].currentHp - splash);
@@ -388,7 +454,7 @@ function buildTraitsConfig(playerTiers, enemyTiers = {}) {
           // Grass trait heals off splash damage dealt
           if (activeFor('Grass', aSide) && attacker.currentHp > 0) {
             const grassTier = tierFor('Grass', aSide);
-            const heal = Math.max(1, Math.floor(splash * [0, 0.05, 0.10, 0.15][grassTier]));
+            const heal = Math.max(1, Math.floor(splash * sf([0, 0.05, 0.10, 0.15][grassTier])));
             const actual = Math.min(heal, attacker.maxHp - attacker.currentHp);
             if (actual > 0) {
               attacker.currentHp += actual;
@@ -407,7 +473,7 @@ function buildTraitsConfig(playerTiers, enemyTiers = {}) {
       // Steel: reduce incoming damage (retroactively heal back)
       if (activeFor('Steel', dSide) && defender.currentHp > 0) {
         const tier = tierFor('Steel', dSide);
-        const reduction = Math.floor(damage * [0, 0.15, 0.30, 0.45][tier]);
+        const reduction = Math.floor(damage * sf([0, 0.15, 0.30, 0.45][tier]));
         if (reduction > 0) {
           defender.currentHp = Math.min(defender.maxHp, defender.currentHp + reduction);
           log.push({ type: 'trait_trigger', traitType: 'Steel', side: dSide, idx: dIdx,
@@ -420,7 +486,7 @@ function buildTraitsConfig(playerTiers, enemyTiers = {}) {
       // Flying: chance to dodge (retroactively heal back)
       if (activeFor('Flying', dSide) && defender.currentHp > 0) {
         const tier = tierFor('Flying', dSide);
-        const chance = [0, 0.15, 0.30, 0.50][tier];
+        const chance = sp([0, 0.15, 0.30, 0.50][tier]);
         if (rng() < chance) {
           const recovered = Math.min(damage, defender.maxHp - defender.currentHp);
           if (recovered > 0) {
@@ -438,6 +504,7 @@ function buildTraitsConfig(playerTiers, enemyTiers = {}) {
       // Fighting: when a pokemon faints, surviving teammates on the same side get ATK boost
       if (activeFor('Fighting', fSide)) {
         const tier = tierFor('Fighting', fSide);
+        const boost = sc(tier);
         const fTeam = fSide === 'player' ? pTeam : eTeam;
         const survivors = fTeam.map((p, i) => ({ p, i })).filter(x => x.p.currentHp > 0);
         const triggers = [];
@@ -445,20 +512,21 @@ function buildTraitsConfig(playerTiers, enemyTiers = {}) {
         for (const { p, i } of survivors) {
           triggers.push({ type: 'trait_trigger', traitType: 'Fighting', side: fSide, idx: i,
             name: p.nickname || p.name, description: `Fighting Trait T${tier}: Rally!` });
-          applyStageChange(p, 'atk', tier, fSide, i, efx);
-          applyStageChange(p, 'spatk', tier, fSide, i, efx);
+          applyStageChange(p, 'atk', boost, fSide, i, efx);
+          applyStageChange(p, 'spatk', boost, fSide, i, efx);
         }
         for (const e of triggers) log.push(e);
         for (const e of efx) log.push(e);
       }
 
-      // Dragon: killer gets +1 Speed, ATK, Sp.ATK on KO
+      // Dragon: killer gets +sc(1) Speed, ATK, Sp.ATK on KO
       if (activeFor('Dragon', kSide) && killer.currentHp > 0) {
+        const boost = sc(1);
         log.push({ type: 'trait_trigger', traitType: 'Dragon', side: kSide, idx: kIdx,
           name: killer.nickname || killer.name, description: `Dragon Trait: Powered up on KO!` });
-        applyStageChange(killer, 'speed',   1, kSide, kIdx, log);
-        applyStageChange(killer, 'atk',     1, kSide, kIdx, log);
-        applyStageChange(killer, 'special', 1, kSide, kIdx, log);
+        applyStageChange(killer, 'speed',   boost, kSide, kIdx, log);
+        applyStageChange(killer, 'atk',     boost, kSide, kIdx, log);
+        applyStageChange(killer, 'special', boost, kSide, kIdx, log);
       }
     },
   };

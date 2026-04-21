@@ -30,7 +30,7 @@ function applyStatus(pokemon, status, side, idx, log) {
   log.push({ type: 'status_apply', side, idx, name: pokemon.nickname || pokemon.name, status });
 }
 
-function calcDamage(attacker, defender, move, items, defItems = []) {
+function calcDamage(attacker, defender, move, items, defItems = [], stageModifier = null) {
   const lvl = attacker.level;
   const isSpecial = (attacker.baseStats?.special || 0) >= (attacker.baseStats?.atk || 0);
   const atk = getEffectiveStat(attacker, isSpecial ? 'special' : 'atk', items, attacker.stages);
@@ -79,7 +79,7 @@ function calcDamage(attacker, defender, move, items, defItems = []) {
   // Crit chance: 6.25% base, +20% with scope_lens or razor_claw
   let critChance = 0.0625;
   if (hasItem(items, 'scope_lens')) critChance = 0.20;
-  const crit = rng() < critChance;
+  const crit = stageModifier?.alwaysCrit || rng() < critChance;
   if (crit) damage = Math.floor(damage * 1.5);
 
   const dmgVariance = 0.85 + rng() * 0.15;
@@ -96,6 +96,8 @@ function getEffectiveStat(pokemon, stat, items, stages = null) {
   const buffCount = pokemon.statBuffs?.[stat] ?? 0;
   let val = Math.floor((rawStat || 50) * (1 + 0.1 * buffCount));
   val = Math.floor(val * pokemon.level / 50) + 5;
+
+  if (pokemon._battleBoostMult) val = Math.floor(val * pokemon._battleBoostMult);
 
   const team = typeof state !== 'undefined' ? state.team : [];
   const physicalCount = team.filter(p => (p.baseStats?.atk || 0) > (p.baseStats?.special || 0)).length;
@@ -144,7 +146,7 @@ function getTypeBoostItem(moveType, items) {
   return items.some(it => it.id === needed);
 }
 
-function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog, traitsConfig = null) {
+function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog, traitsConfig = null, stageModifier = null) {
   const items = bagItems; // bag — only used for Lucky Egg check in level gain
   const pTeam = playerTeam.map(p => initBattleState({ ...p }));
   const eTeam = enemyTeam.map(p => initBattleState({
@@ -164,6 +166,12 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog, traitsCon
   if (firstP.currentHp > 0) playerParticipants.add(0);
   detailedLog.push({ type: 'send_out', side: 'player', idx: 0, name: firstP.nickname || firstP.name });
   detailedLog.push({ type: 'send_out', side: 'enemy',  idx: 0, name: firstE.name });
+
+  // Last Pokémon in each party gets +50% to all stats (Stage 16)
+  if (stageModifier?.lastPokemonBoost) {
+    pTeam[pTeam.length - 1]._battleBoostMult = 1.5;
+    eTeam[eTeam.length - 1]._battleBoostMult = 1.5;
+  }
 
   // Start-of-fight trait hooks (Fire, Ground, Normal)
   if (traitsConfig?.onStartFight) {
@@ -210,7 +218,8 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog, traitsCon
     const eMove = getBestMove(eActive.types || ['Normal'], eActive.baseStats, eActive.speciesId, eActive.moveTier ?? 1);
     const bothUseless = pMove.noDamage && eMove.noDamage;
 
-    const turns = pSpeed >= eSpeed
+    const playerFirst = stageModifier?.trickRoom ? pSpeed <= eSpeed : pSpeed >= eSpeed;
+    const turns = playerFirst
       ? [{ attacker: pActive, aIdx: pIdx, side: 'player', target: eActive, tIdx: eIdx, tSide: 'enemy' },
          { attacker: eActive, aIdx: eIdx, side: 'enemy',  target: pActive, tIdx: pIdx, tSide: 'player' }]
       : [{ attacker: eActive, aIdx: eIdx, side: 'enemy',  target: pActive, tIdx: pIdx, tSide: 'player' },
@@ -252,7 +261,17 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog, traitsCon
         continue;
       }
 
-      const { damage, typeEff, moveType, crit } = calcDamage(attacker, target, move, attackerItems, defenderItems);
+      let { damage, typeEff, moveType, crit } = calcDamage(attacker, target, move, attackerItems, defenderItems, stageModifier);
+
+      // typeBoost: attacker's type deals 50% more damage (Stages 3,5,7,9,11,13,15,18,20)
+      if (stageModifier?.typeBoost && damage > 0) {
+        const bt = stageModifier.typeBoost.toLowerCase();
+        if ((attacker.types || []).some(t => t.toLowerCase() === bt))
+          damage = Math.floor(damage * 1.5);
+      }
+      // superEffX3: super-effective moves deal ×3 instead of ×2 (Stage 17)
+      if (stageModifier?.superEffX3 && typeEff >= 2)
+        damage = Math.floor(damage * 1.5);
 
       const targetPreHp = target.currentHp;
       target.currentHp = Math.max(0, target.currentHp - damage);
@@ -356,6 +375,24 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog, traitsCon
       }
     }
 
+    // Sandstorm: deal 1/16 HP each round to non-Steel/Ground/Rock Pokémon (Stage 6)
+    if (stageModifier?.sandstorm) {
+      const immuneTypes = ['Steel', 'Ground', 'Rock'];
+      for (const [team, teamSide] of [[pTeam, 'player'], [eTeam, 'enemy']]) {
+        for (let i = 0; i < team.length; i++) {
+          const p = team[i];
+          if (p.currentHp <= 0) continue;
+          if (immuneTypes.some(t => (p.types || []).some(pt => pt.toLowerCase() === t.toLowerCase()))) continue;
+          const tick = Math.max(1, Math.floor(p.maxHp / 16));
+          p.currentHp = Math.max(0, p.currentHp - tick);
+          detailedLog.push({ type: 'status_tick', side: teamSide, idx: i,
+            name: p.nickname || p.name, status: 'sandstorm', hpChange: -tick, hpAfter: p.currentHp });
+          if (p.currentHp === 0)
+            detailedLog.push({ type: 'faint', side: teamSide, idx: i, name: p.nickname || p.name });
+        }
+      }
+    }
+
     // Leftovers: heal active player pokemon 10% maxHP each round (if they hold it)
     const active = pTeam.map((p, i) => ({ p, i })).find(x => x.p.currentHp > 0);
     if (active?.p.heldItem?.id === 'leftovers') {
@@ -379,7 +416,8 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog, traitsCon
         if (p.currentHp <= 0 || !p.status) continue;
 
         if (p.status === 'poison') {
-          const tick = Math.max(1, Math.floor(p.maxHp / 8));
+          const poisonMult = stageModifier?.poisonMult ?? 1;
+          const tick = Math.max(1, Math.floor(p.maxHp / 8 * poisonMult));
           p.currentHp = Math.max(0, p.currentHp - tick);
           detailedLog.push({ type: 'status_tick', side: teamSide, idx: i,
             name: p.nickname || p.name, status: 'poison', hpChange: -tick, hpAfter: p.currentHp });
