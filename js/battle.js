@@ -315,7 +315,7 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog, traitsCon
 
       // Shell Bell
       if (side === 'player' && attacker.heldItem?.id === 'shell_bell') {
-        const heal   = Math.max(1, Math.floor(damage * 0.25));
+        const heal   = Math.max(1, Math.floor(damage * 0.15));
         const actual = Math.min(heal, attacker.maxHp - attacker.currentHp);
         if (actual > 0) {
           attacker.currentHp += actual;

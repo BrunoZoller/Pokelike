@@ -312,7 +312,7 @@ const ITEM_POOL = [
   { id: 'metronome',          name: 'Metronome',          desc: '+50% damage if 4+ Pokémon on your team share a type with the attacker', icon: '🎵' },
   { id: 'scope_lens',         name: 'Scope Lens',         desc: '20% crit chance (+50% damage on crit)',                              icon: '🔭' },
   { id: 'rocky_helmet',       name: 'Rocky Helmet',       desc: 'Attacker takes 12% of their max HP on each hit',                     icon: '⛑️' },
-  { id: 'shell_bell',         name: 'Shell Bell',         desc: 'Heal 25% of damage dealt',                                           icon: '🐚' },
+  { id: 'shell_bell',         name: 'Shell Bell',         desc: 'Heal 15% of damage dealt',                                           icon: '🐚' },
   { id: 'eviolite',           name: 'Eviolite',           desc: '+50% DEF & Sp.Def if holder is not fully evolved',                   icon: '💎' },
   { id: 'sharp_beak',         name: 'Sharp Beak',         desc: '+50% Flying move damage',                                            icon: '🦅' },
   { id: 'charcoal',           name: 'Charcoal',           desc: '+50% Fire move damage',                                              icon: '🔥' },

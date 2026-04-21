@@ -21,7 +21,7 @@ const TRAIT_DESCRIPTIONS = {
   Fire:    ['+1 ATK & Sp.ATK stages at fight start',     '+2 ATK & Sp.ATK stages at fight start',     '+3 ATK & Sp.ATK stages at fight start'],
   Flying:  ['15% chance to dodge incoming attacks',       '30% chance to dodge incoming attacks',       '50% chance to dodge incoming attacks'],
   Ghost:   ['Execute enemies below 15% HP',               'Execute enemies below 30% HP',               'Execute enemies below 50% HP'],
-  Grass:   ['Heal 7% of damage dealt',                    'Heal 14% of damage dealt',                   'Heal 21% of damage dealt'],
+  Grass:   ['Heal 5% of damage dealt',                    'Heal 10% of damage dealt',                   'Heal 15% of damage dealt'],
   Ground:  ['+2 DEF stages at fight start',               '+4 DEF stages at fight start',               '+6 DEF stages at fight start'],
   Ice:     ['15% chance to freeze on hit',                '30% chance to freeze on hit',                '45% chance to freeze on hit'],
   Normal:  ['+25% max HP at fight start',                 '+50% max HP at fight start',                 '+100% max HP at fight start'],
@@ -302,7 +302,7 @@ function buildTraitsConfig(playerTiers, enemyTiers = {}) {
       // Grass: heal % of dealt damage
       if (activeFor('Grass', aSide) && attacker.currentHp > 0) {
         const tier = tierFor('Grass', aSide);
-        const pct = [0, 0.07, 0.14, 0.21][tier];
+        const pct = [0, 0.05, 0.10, 0.15][tier];
         const heal = Math.max(1, Math.floor(damage * pct));
         const actual = Math.min(heal, attacker.maxHp - attacker.currentHp);
         if (actual > 0) {
@@ -385,6 +385,17 @@ function buildTraitsConfig(playerTiers, enemyTiers = {}) {
             hpChange: -splash, hpAfter: targetTeam[i].currentHp, reason: `Psychic Trait: −${splash} HP` });
           if (targetTeam[i].currentHp === 0)
             efx.push({ type: 'faint', side: tSide, idx: i, name: targetTeam[i].nickname || targetTeam[i].name });
+          // Grass trait heals off splash damage dealt
+          if (activeFor('Grass', aSide) && attacker.currentHp > 0) {
+            const grassTier = tierFor('Grass', aSide);
+            const heal = Math.max(1, Math.floor(splash * [0, 0.05, 0.10, 0.15][grassTier]));
+            const actual = Math.min(heal, attacker.maxHp - attacker.currentHp);
+            if (actual > 0) {
+              attacker.currentHp += actual;
+              efx.push({ type: 'effect', side: aSide, idx: aIdx, name: attacker.nickname || attacker.name,
+                hpChange: actual, hpAfter: attacker.currentHp, reason: `Grass Trait: +${actual} HP (splash)` });
+            }
+          }
         }
       }
 

@@ -175,7 +175,7 @@ function getMoveForPokemon(pokemon) {
 let _dragIdx = null;
 let _teamHoverCardDismissListener = null;
 
-function renderTeamBar(team, el) {
+function renderTeamBar(team, el, showTypes = false) {
   const isMain = !el;
   if (!el) el = document.getElementById('team-bar');
   if (!el) return;
@@ -206,6 +206,7 @@ function renderTeamBar(team, el) {
       <img src="${p.spriteUrl||''}" alt="${p.name}" class="team-sprite" onerror="this.src='';this.style.display='none'">
       <div class="team-slot-name">${p.nickname||p.name}</div>
       <div class="team-slot-lv">Lv${p.level}</div>
+      ${showTypes ? `<div style="display:flex;gap:2px;flex-wrap:wrap;justify-content:center;margin:1px 0;">${(p.types||[]).map(t=>`<span class="type-badge type-${t.toLowerCase()}" style="font-size:5px;padding:1px 2px;">${t}</span>`).join('')}</div>` : ''}
       <div class="hp-bar-bg sm"><div class="hp-bar-fill" style="width:${Math.floor(pct*100)}%;background:${color}"></div></div>
       ${p.heldItem ? `<div class="team-slot-item">${itemIconHtml(p.heldItem, 16)}</div>` : ''}`;
     slot.addEventListener('mouseenter', () => { if (_hoverEnabled) showTeamHoverCard(p, slot); });

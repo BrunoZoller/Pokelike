@@ -125,6 +125,17 @@ async function showTrainerSelect() {
   await showStarterSelect();
 }
 
+function makeMaxedStarsEl(speciesId) {
+  const buffs = loadPersistentBuffs()[getEvoLineRoot(speciesId)] || {};
+  const maxed = ['hp','atk','def','speed','special'].filter(k => (buffs[k] ?? 0) >= 10);
+  if (!maxed.length) return null;
+  const el = document.createElement('div');
+  el.style.cssText = 'position:absolute;top:3px;right:3px;display:flex;gap:1px;flex-wrap:wrap;justify-content:flex-end;max-width:40px;';
+  el.innerHTML = maxed.map(() => `<span style="font-size:7px;color:gold;line-height:1;">★</span>`).join('');
+  el.title = `Maxed: ${maxed.map(k => k.toUpperCase()).join(', ')}`;
+  return el;
+}
+
 async function showStarterSelect() {
   showScreen('starter-screen');
   const container = document.getElementById('starter-choices');
@@ -195,10 +206,11 @@ async function showStarterSelect() {
       if (!species) continue;
       const isShiny = rng() < (hasShinyCharm() ? 0.02 : 0.01);
       const inst = createInstance(species, startLevel, isShiny, 0);
+      loadBuffsIntoPokemon(inst);
       const typeBadges = (inst.types || []).map(t =>
         `<span class="type-badge type-${t.toLowerCase()}" style="font-size:6px;padding:1px 3px;">${t}</span>`).join('');
       const card = document.createElement('div');
-      card.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:8px 4px;cursor:pointer;';
+      card.style.cssText = 'position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:8px 4px;cursor:pointer;';
       card.setAttribute('role', 'button');
       card.setAttribute('tabindex', '0');
       card.innerHTML = `
@@ -206,10 +218,12 @@ async function showStarterSelect() {
         <div style="font-family:'Press Start 2P',monospace;font-size:6px;color:var(--text-main);text-align:center;">${inst.name}</div>
         <div style="font-size:7px;color:var(--text-dim);">Lv.${startLevel}</div>
         <div style="display:flex;gap:2px;flex-wrap:wrap;justify-content:center;">${typeBadges}</div>`;
+      const stars = makeMaxedStarsEl(species.id ?? species.speciesId);
+      if (stars) card.appendChild(stars);
       card.addEventListener('click', () => selectStarter(inst));
       card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') selectStarter(inst); });
-      card.addEventListener('mouseenter', () => card.style.borderColor = 'var(--accent)');
-      card.addEventListener('mouseleave', () => card.style.borderColor = 'var(--border)');
+      card.addEventListener('mouseenter', () => { card.style.borderColor = 'var(--accent)'; showTeamHoverCard(inst, card); });
+      card.addEventListener('mouseleave', () => { card.style.borderColor = 'var(--border)'; hideTeamHoverCard(); });
       container.appendChild(card);
     }
   } else {
@@ -218,6 +232,7 @@ async function showStarterSelect() {
       if (!species) continue;
       const isShiny = rng() < (hasShinyCharm() ? 0.02 : 0.01);
       const inst = createInstance(species, startLevel, isShiny, 0);
+      loadBuffsIntoPokemon(inst);
       const wrapper = document.createElement('div');
       wrapper.innerHTML = renderPokemonCard(inst, true, false);
       const card = wrapper.querySelector('.poke-card');
@@ -226,6 +241,10 @@ async function showStarterSelect() {
       card.setAttribute('tabindex', '0');
       card.addEventListener('click', () => selectStarter(inst));
       card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') selectStarter(inst); });
+      card.addEventListener('mouseenter', () => showTeamHoverCard(inst, card));
+      card.addEventListener('mouseleave', () => hideTeamHoverCard());
+      const stars = makeMaxedStarsEl(species.id ?? species.speciesId);
+      if (stars) card.appendChild(stars);
       const wrap = document.createElement('div');
       wrap.className = 'poke-choice-wrap';
       wrap.appendChild(card);
@@ -573,7 +592,7 @@ function showEliteTransition(defeatedName, nextIndex) {
 
 async function doCatchNode(node) {
   showScreen('catch-screen');
-  renderTeamBar(state.team, document.getElementById('catch-team-bar'));
+  renderTeamBar(state.team, document.getElementById('catch-team-bar'), true);
   const choicesEl = document.getElementById('catch-choices');
   choicesEl.innerHTML = '<div class="loading">Finding Pokemon...</div>';
 
@@ -745,6 +764,24 @@ function showSwapScreen(newPoke, node) {
   const el = document.getElementById('swap-choices');
   el.innerHTML = '';
   document.getElementById('swap-prompt').textContent = 'Choose a Pokémon to release:';
+
+  // Trait overlay (endless mode only)
+  let traitOverlay = document.getElementById('swap-trait-overlay');
+  if (traitOverlay) traitOverlay.remove();
+  if (state.isEndlessMode) {
+    traitOverlay = document.createElement('div');
+    traitOverlay.id = 'swap-trait-overlay';
+    traitOverlay.style.cssText = [
+      'position:fixed', 'right:16px', 'top:50%', 'transform:translateY(-50%)',
+      'background:var(--bg-card)', 'border:2px solid var(--border)', 'border-radius:8px',
+      'padding:10px 12px', 'min-width:150px', 'display:none', 'z-index:200',
+      'font-family:"Press Start 2P",monospace', 'box-shadow:2px 2px 0 #000',
+    ].join(';');
+    document.body.appendChild(traitOverlay);
+  }
+
+  const cleanup = () => { if (traitOverlay) traitOverlay.remove(); };
+
   for (let i = 0; i < state.team.length; i++) {
     const p = state.team[i];
     const wrapper = document.createElement('div');
@@ -755,6 +792,7 @@ function showSwapScreen(newPoke, node) {
     card.setAttribute('tabindex', '0');
     const idx = i;
     card.addEventListener('click', () => {
+      cleanup();
       if (newPoke.isShiny) markShinyDexCaught(newPoke.speciesId, newPoke.name, newPoke.types, newPoke.spriteUrl);
       const released = state.team[idx];
       if (released.heldItem) state.items.push(released.heldItem);
@@ -763,9 +801,42 @@ function showSwapScreen(newPoke, node) {
       advanceFromNode(state.map, node.id);
       showMapScreen();
     });
+    if (traitOverlay) {
+      card.addEventListener('mouseenter', () => {
+        const hypothetical = state.team.map((m, j) => j === idx ? newPoke : m);
+        const cur  = getTraitDisplayData(state.team);
+        const next = getTraitDisplayData(hypothetical);
+        const curMap  = Object.fromEntries(cur.map(e  => [e.type, e]));
+        const nextMap = Object.fromEntries(next.map(e => [e.type, e]));
+        const allTypes = [...new Set([...cur.map(e => e.type), ...next.map(e => e.type)])];
+        const rows = allTypes.map(type => {
+          const c = curMap[type]  || { tier: 0, count: 0 };
+          const n = nextMap[type] || { tier: 0, count: 0 };
+          const diff = n.tier - c.tier;
+          const diffHtml = diff > 0
+            ? `<span style="color:#4f4;font-size:7px;">+${diff}</span>`
+            : diff < 0
+              ? `<span style="color:#f44;font-size:7px;">${diff}</span>`
+              : '';
+          const tierDots = (t) => '●'.repeat(t) + '○'.repeat(3 - t);
+          return `<div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;">
+            <span class="type-badge type-${type.toLowerCase()}" style="font-size:5px;padding:1px 3px;min-width:36px;text-align:center;">${type}</span>
+            <span style="font-size:7px;color:var(--text-dim);">${tierDots(n.tier)}</span>
+            ${diffHtml}
+          </div>`;
+        }).join('');
+        traitOverlay.innerHTML = `
+          <div style="font-size:6px;color:var(--text-dim);margin-bottom:6px;letter-spacing:1px;">TRAITS AFTER</div>
+          ${rows || '<div style="font-size:6px;color:var(--text-dim);">No active traits</div>'}`;
+        traitOverlay.style.display = 'block';
+      });
+      card.addEventListener('mouseleave', () => { traitOverlay.style.display = 'none'; });
+    }
     el.appendChild(card);
   }
+
   document.getElementById('btn-cancel-swap').onclick = () => {
+    cleanup();
     advanceFromNode(state.map, node.id);
     showMapScreen();
   };
