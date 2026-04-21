@@ -630,7 +630,16 @@ async function doCatchNode(node) {
   const displayedIds = new Set(choices.slice(0, 3).map(sp => sp.id ?? sp.speciesId));
   const rerollPool = allCandidates.filter(sp => !displayedIds.has(sp.id ?? sp.speciesId));
   choices = choices.slice(0, 3);
-  const instances = choices.map(sp => createInstance(sp, level, rng() < (hasShinyCharm() ? 0.02 : 0.01), getMoveТierForMap(state.currentMap)));
+
+  // Each display slot has a 1/6 chance to be swapped for a legendary (+5 levels)
+  for (let i = 0; i < choices.length; i++) {
+    if (rng() < 1 / 6) {
+      const leg = await getRandomLegendary(getEncounterMapIndex());
+      if (leg) choices[i] = { ...leg, _legendary: true };
+    }
+  }
+
+  const instances = choices.map(sp => createInstance(sp, sp._legendary ? level + 5 : level, rng() < (hasShinyCharm() ? 0.02 : 0.01), getMoveТierForMap(state.currentMap)));
   const rerolled = new Set();
 
   function renderCatchSlot(inst, slotIdx) {

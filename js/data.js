@@ -552,6 +552,19 @@ function isPokedexComplete() {
 
 function hasShinyCharm() { return isPokedexComplete(); }
 
+// Legendaries grouped by BST tier (used for catch node legendary rolls)
+const LEGENDARY_POOL_HIGH     = [144, 145, 146]; // Birds ~485-490
+const LEGENDARY_POOL_VERYHIGH = [150,151,243,244,245,249,250,251,377,378,379,380,381,382,383,384,385,386];
+
+async function getRandomLegendary(mapIndex) {
+  const range = MAP_BST_RANGES[Math.min(mapIndex, MAP_BST_RANGES.length - 1)];
+  let pool;
+  if (range.min >= 530) pool = LEGENDARY_POOL_VERYHIGH;
+  else if (range.min >= 460) pool = [...LEGENDARY_POOL_HIGH, ...LEGENDARY_POOL_VERYHIGH];
+  else return null; // too early for legendaries
+  const id = pool[Math.floor((typeof rng === 'function' ? rng() : Math.random()) * pool.length)];
+  return fetchPokemonById(id);
+}
 
 // Get 3 random pokemon ids from the right BST bucket for a given mapIndex
 async function getCatchChoices(mapIndex, count = 3) {

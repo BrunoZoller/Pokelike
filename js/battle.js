@@ -427,7 +427,7 @@ function applyLevelGain(team, bagItems, participantIdxs, maxEnemyLevel = 0, hard
     const luckyBonus = isWild && p.heldItem?.id === 'lucky_egg' ? 1 : 0;
     const gain = baseGain + luckyBonus;
     const oldLevel = p.level;
-    const newLevel = Math.min(100, oldLevel + gain);
+    const newLevel = oldLevel + gain;
     if (newLevel === oldLevel) continue; // already at cap
 
     const preHp = p.currentHp;
