@@ -168,11 +168,7 @@ async function showStarterSelect() {
           <span class="region-stage-level">Lv${trainer.level}</span>
         </div>`;
       }).join('');
-      const _startMod = getStageModifier(endlessState.stageNumber);
-      const _startModLine = _startMod
-        ? `<div style="font-size:9px;opacity:0.85;margin-top:5px;padding-top:4px;border-top:1px solid rgba(255,255,255,0.12);text-align:center;line-height:1.6;word-break:break-word;"><strong>${_startMod.label}</strong><br>${_startMod.desc}</div>`
-        : '';
-      panel.innerHTML = header + `<div class="region-stage-list">${rows}</div>` + _startModLine;
+      panel.innerHTML = header + `<div class="region-stage-list">${rows}</div>`;
       panel.style.display = '';
     }
   }
@@ -662,12 +658,7 @@ function showEliteTransition(defeatedName, nextIndex) {
 }
 
 
-function filterByPartyType(choices, team) {
-  if (!team || team.length === 0) return choices;
-  const partyTypes = new Set(team.flatMap(p => (p.types || []).map(t => t.toLowerCase())));
-  const matching = choices.filter(sp => (sp.types || []).some(t => partyTypes.has(t.toLowerCase())));
-  return matching.length > 0 ? matching : choices;
-}
+
 
 async function doCatchNode(node) {
   showScreen('catch-screen');
@@ -730,8 +721,6 @@ async function doCatchNode(node) {
       choices = [...filtered, ...dups].slice(0, 3);
     }
   }
-  if (state.isEndlessMode && getStageModifier(endlessState.stageNumber)?.typeSyncCatch)
-    choices = filterByPartyType(choices, state.team);
   const displayedIds = new Set(choices.slice(0, 3).map(sp => sp.id ?? sp.speciesId));
   const rerollPool = allCandidates.filter(sp => !displayedIds.has(sp.id ?? sp.speciesId));
   choices = choices.slice(0, 3);
@@ -777,9 +766,7 @@ async function doCatchNode(node) {
           ...instances.filter((_, i) => i !== slotIdx).map(i => i.speciesId),
           ...state.team.map(p => p.speciesId),
         ]);
-        const typeSync = state.isEndlessMode && getStageModifier(endlessState.stageNumber)?.typeSyncCatch;
         let src = rerollPool.filter(sp => !otherIds.has(sp.id ?? sp.speciesId));
-        if (typeSync) src = filterByPartyType(src, state.team);
         if (src.length === 0) {
           const fresh = await getCatchChoices(getEncounterMapIndex(), 6, state.isEndlessMode);
           const otherIdsPost = new Set([
@@ -787,7 +774,6 @@ async function doCatchNode(node) {
             ...state.team.map(p => p.speciesId),
           ]);
           src = fresh.filter(sp => !otherIdsPost.has(sp.id ?? sp.speciesId));
-          if (typeSync) src = filterByPartyType(src, state.team);
           if (src.length === 0) src = fresh;
         }
         if (src.length === 0) return;
@@ -888,9 +874,8 @@ function showSwapScreen(newPoke, node) {
     if (traitOverlay) {
       card.addEventListener('mouseenter', () => {
         const hypothetical = state.team.map((m, j) => j === idx ? newPoke : m);
-        const _hovMult = getStageModifier(endlessState.stageNumber)?.traitMult ?? 1;
-        const cur  = getTraitDisplayData(state.team, _hovMult);
-        const next = getTraitDisplayData(hypothetical, _hovMult);
+        const cur  = getTraitDisplayData(state.team);
+        const next = getTraitDisplayData(hypothetical);
         const curMap  = Object.fromEntries(cur.map(e  => [e.type, e]));
         const nextMap = Object.fromEntries(next.map(e => [e.type, e]));
         const allTypes = [...new Set([...cur.map(e => e.type), ...next.map(e => e.type)])];
@@ -1439,8 +1424,6 @@ async function doTradeNode(node) {
     const idx = i;
     const doTrade = async () => {
       let pool = await getCatchChoices(getEncounterMapIndex(), 3, state.isEndlessMode);
-      if (state.isEndlessMode && getStageModifier(endlessState.stageNumber)?.typeSyncCatch)
-        pool = filterByPartyType(pool, state.team);
       const species = pool[Math.floor(rng() * pool.length)];
       if (!species) { advanceFromNode(state.map, node.id); showMapScreen(); return; }
       const offerLevel = Math.min(100, mine.level + 3);
@@ -1479,8 +1462,6 @@ async function doTradeNode(node) {
 
 async function doShinyNode(node) {
   let choices = await getCatchChoices(getEncounterMapIndex(), 3, state.isEndlessMode);
-  if (state.isEndlessMode && getStageModifier(endlessState.stageNumber)?.typeSyncCatch)
-    choices = filterByPartyType(choices, state.team);
   const level = getLevelForNode(node);
   const species = choices[0];
   if (!species) { advanceFromNode(state.map, node.id); showMapScreen(); return; }
@@ -1522,12 +1503,11 @@ async function doShinyNode(node) {
 
 // ---- Battle Screen ----
 
-function runBattleScreen(enemyTeam, isBoss, onWin, onLose, enemyName = null, enemyItems = [], baseGainOverride = null, showPlayerPortrait = null, traitsConfig = null, stageModifier = null) {
+function runBattleScreen(enemyTeam, isBoss, onWin, onLose, enemyName = null, enemyItems = [], baseGainOverride = null, showPlayerPortrait = null, traitsConfig = null) {
   // In endless mode, always apply traits — compute them if not pre-computed by the caller
   if (state.isEndlessMode && traitsConfig === null) {
     const tiers = computeTraitTiers(state.team);
-    const _traitMult = stageModifier?.traitMult ?? 1;
-    traitsConfig = buildTraitsConfig(tiers, {}, _traitMult);
+    traitsConfig = buildTraitsConfig(tiers, {});
     renderBattleTraitBars(tiers, null);
   }
 
@@ -1551,7 +1531,7 @@ function runBattleScreen(enemyTeam, isBoss, onWin, onLose, enemyName = null, ene
 
     // Pre-compute the full battle result
     const { playerWon, detailedLog, pTeam: resultP, eTeam: resultE, playerParticipants } = runBattle(
-      pTeamCopy, enemyTeam, state.items, enemyItems, null, traitsConfig, stageModifier
+      pTeamCopy, enemyTeam, state.items, enemyItems, null, traitsConfig
     );
 
     // Read auto-skip settings
@@ -1783,13 +1763,8 @@ function showEndlessStageSelect() {
     const isLocked = s > unlocked;
     const btn = document.createElement('button');
     btn.className = isLocked ? 'btn-secondary' : 'btn-primary';
-    const mod = getStageModifier(s);
-    const bg = (!isLocked && mod?.color) ? mod.color : isLocked ? '' : 'linear-gradient(135deg,#1a0a3e,#3a0a6e)';
-    btn.style.cssText = `width:200px;${isLocked ? 'opacity:0.45;cursor:not-allowed;' : `background:${bg};`}`;
-    if (!isLocked && mod) btn.title = mod.desc;
-    btn.innerHTML = isLocked
-      ? `🔒 Stage ${s}`
-      : `<span>▶ Stage ${s}</span>${mod ? `<span style="display:block;font-size:5px;opacity:0.75;margin-top:2px;">${mod.label}</span>` : ''}`;
+    btn.style.cssText = `width:200px;${isLocked ? 'opacity:0.45;cursor:not-allowed;' : 'background:linear-gradient(135deg,#1a0a3e,#3a0a6e);'}`;
+    btn.innerHTML = isLocked ? `🔒 Stage ${s}` : `▶ Stage ${s}`;
     if (!isLocked) btn.addEventListener('click', () => startEndlessRun(s));
     list.appendChild(btn);
   }
@@ -1931,9 +1906,7 @@ async function doEndlessBossNode() {
   // Compute traits right before the fight (enemy bosses also get type trait benefits)
   endlessState.traitTiers = computeTraitTiers(state.team);
   const enemyTiers = computeTraitTiers(enemyTeam);
-  const stageModifier = getStageModifier(endlessState.stageNumber);
-  const traitMult = stageModifier?.traitMult ?? 1;
-  const traitsConfig = buildTraitsConfig(endlessState.traitTiers, enemyTiers, traitMult);
+  const traitsConfig = buildTraitsConfig(endlessState.traitTiers, enemyTiers);
   renderBattleTraitBars(endlessState.traitTiers, enemyTiers);
 
   const isStageFinal = isBigBoss && endlessState.regionNumber === 3;
@@ -1942,9 +1915,9 @@ async function doEndlessBossNode() {
     : isBigBoss ? `Big Boss: ${trainerData.archetype.name}!`
     : `Trainer: ${trainerData.archetype.name}!`;
   const battleInfoEl = document.getElementById('battle-title');
-  if (battleInfoEl) battleInfoEl.textContent = stageModifier ? `${title} — ${stageModifier.label}` : title;
+  if (battleInfoEl) battleInfoEl.textContent = title;
   const battleSubEl = document.getElementById('battle-subtitle');
-  if (battleSubEl && stageModifier) battleSubEl.textContent = stageModifier.desc;
+  if (battleSubEl) battleSubEl.textContent = '';
 
   const won = await runBattleScreen(
     enemyTeam, true, null, null,
@@ -1952,8 +1925,7 @@ async function doEndlessBossNode() {
     [],
     null, // baseGainOverride — use default level gain
     true, // showPlayerPortrait
-    traitsConfig,
-    stageModifier
+    traitsConfig
   );
   // clearTraitBar() is handled automatically by runBattleScreen in endless mode
 

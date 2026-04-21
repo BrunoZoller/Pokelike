@@ -32,38 +32,9 @@ const TRAIT_DESCRIPTIONS = {
   Water:   ['33% chance: Enemy -1 Spd/ATK/SpATK on hit', '66% chance: Enemy -2 Spd/ATK/SpATK on hit', '100% chance: Enemy -3 Spd/ATK/SpATK on hit'],
 };
 
-// Returns a scaled trait description string for the given type, tier (1-indexed), and effectMult.
-function scaleTraitDescription(type, tier, effectMult) {
-  if (effectMult === 1 || tier === 0) return TRAIT_DESCRIPTIONS[type]?.[Math.max(0, tier - 1)] || '';
-  const sc = v => Math.round(v * effectMult);
-  const sp = v => Math.min(100, Math.round(v * effectMult * 100));
-  const sf = v => Math.round(v * effectMult * 100);
-  switch (type) {
-    case 'Bug':      return `${sp([0, 0.20, 0.40, 0.80][tier])}% chance: +1 Level after fight`;
-    case 'Dark':     return `${sp([0, 0.30, 0.60, 1.00][tier])}% chance to steal enemy held item`;
-    case 'Dragon':   return `+${sc(1)} Spd/ATK/SpATK on KO`;
-    case 'Electric': return `${sp([0, 0.15, 0.30, 0.45][tier])}% chance to attack again`;
-    case 'Fairy':    return `Enemy: -${sc(tier)} ATK & Sp.ATK at fight start`;
-    case 'Fighting': return `When a pokemon faints, survivors get +${sc(tier)} ATK & Sp.ATK`;
-    case 'Fire':     return `+${sc(tier)} ATK & Sp.ATK stages at fight start`;
-    case 'Flying':   return `${sp([0, 0.15, 0.30, 0.50][tier])}% chance to dodge incoming attacks`;
-    case 'Ghost':    return `Execute enemies below ${sp([0, 0.15, 0.30, 0.50][tier])}% HP`;
-    case 'Grass':    return `Heal ${sf([0, 0.05, 0.10, 0.15][tier])}% of damage dealt`;
-    case 'Ground':   return `+${sc(tier * 2)} DEF stages at fight start`;
-    case 'Ice':      return `${sp([0, 0.15, 0.30, 0.45][tier])}% chance to freeze on hit`;
-    case 'Normal':   return `+${sf([0, 0.25, 0.50, 1.00][tier])}% max HP at fight start`;
-    case 'Poison':   return `${sp([0, 0.33, 0.66, 1.00][tier])}% chance to poison on hit`;
-    case 'Psychic':  return `${sf([0, 0.10, 0.20, 0.30][tier])}% of damage splashes to all enemies`;
-    case 'Rock':     return `${sp([0, 1/3, 2/3, 1.0][tier])}% chance: +${sc(tier)} DEF & Sp.DEF after attack`;
-    case 'Steel':    return `Reduce incoming damage by ${sf([0, 0.15, 0.30, 0.45][tier])}%`;
-    case 'Water':    return `${sp([0, 1/3, 2/3, 1.0][tier])}% chance: Enemy -${sc(tier)} Spd/ATK/SpATK on hit`;
-    default:         return TRAIT_DESCRIPTIONS[type]?.[Math.max(0, tier - 1)] || '';
-  }
-}
-
 // Returns sorted type count data for the trait display panel.
 // Each entry: { type, count, tier, nextThreshold, description, active }
-function getTraitDisplayData(team, effectMult = 1) {
+function getTraitDisplayData(team) {
   const counts = {};
   for (const p of team) {
     const mult = p.isShiny ? 2 : 1;
@@ -78,9 +49,7 @@ function getTraitDisplayData(team, effectMult = 1) {
       const count = counts[type] || 0;
       const tier = count >= 6 ? 3 : count >= 4 ? 2 : count >= 2 ? 1 : 0;
       const nextThreshold = count < 2 ? 2 : count < 4 ? 4 : 6;
-      const description = effectMult !== 1
-        ? scaleTraitDescription(type, tier > 0 ? tier : 1, effectMult)
-        : (TRAIT_DESCRIPTIONS[type]?.[tier > 0 ? tier - 1 : 0] || '');
+      const description = TRAIT_DESCRIPTIONS[type]?.[tier > 0 ? tier - 1 : 0] || '';
       return { type, count, tier, nextThreshold, description, active: tier > 0 };
     })
     .filter(e => e.count > 0) // only show types the player actually has
@@ -216,49 +185,20 @@ function computeTraitTiers(team) {
   return tiers;
 }
 
-// ── Stage modifiers ───────────────────────────────────────────────────────────
-
-const STAGE_MODIFIERS = {
-  2:  { label: 'Empowered Traits', desc: 'Traits are twice as effective',                              traitMult: 2,        color: 'linear-gradient(135deg,#3a2000,#c8841a)' },
-  3:  { label: 'Psychic Surge',    desc: 'Psychic Pokémon deal 50% more damage',                       typeBoost: 'Psychic', color: 'linear-gradient(135deg,#4a0028,#f85888)' },
-  4:  { label: 'Synergy',          desc: 'All catch options and rerolls share a type with your party', typeSyncCatch: true,  color: 'linear-gradient(135deg,#003a10,#78c850)' },
-  5:  { label: 'Bug Swarm',        desc: 'Bug Pokémon deal 50% more damage',                           typeBoost: 'Bug',     color: 'linear-gradient(135deg,#282e00,#a8b820)' },
-  6:  { label: 'Sandstorm',        desc: 'All Pokémon except Steel, Ground & Rock take damage each turn', sandstorm: true,  color: 'linear-gradient(135deg,#3a2800,#e0c068)' },
-  7:  { label: 'Inferno',          desc: 'Fire Pokémon deal 50% more damage',                          typeBoost: 'Fire',    color: 'linear-gradient(135deg,#4a1000,#f08030)' },
-  8:  { label: 'Toxic Stage',      desc: 'Poison status deals 4× damage',                              poisonMult: 4,        color: 'linear-gradient(135deg,#1e0028,#a040a0)' },
-  9:  { label: 'Overgrowth',       desc: 'Grass Pokémon deal 50% more damage',                         typeBoost: 'Grass',   color: 'linear-gradient(135deg,#003800,#78c850)' },
-  10: { label: 'Trick Room',       desc: 'Slower Pokémon move first',                                  trickRoom: true,      color: 'linear-gradient(135deg,#0a003a,#3a0a8a)' },
-  11: { label: 'Deluge',           desc: 'Water Pokémon deal 50% more damage',                         typeBoost: 'Water',   color: 'linear-gradient(135deg,#00104a,#6890f0)' },
-  12: { label: 'Critical Stage',   desc: 'Every move is a critical hit',                               alwaysCrit: true,     color: 'linear-gradient(135deg,#3a0000,#aa2010)' },
-  13: { label: 'Normal Force',     desc: 'Normal Pokémon deal 50% more damage',                        typeBoost: 'Normal',  color: 'linear-gradient(135deg,#282818,#a8a878)' },
-  14: { label: 'Supreme Traits',   desc: 'Traits are three times as effective',                        traitMult: 3,         color: 'linear-gradient(135deg,#3a2800,#e09820)' },
-  15: { label: 'Midnight',         desc: 'Dark Pokémon deal 50% more damage',                          typeBoost: 'Dark',    color: 'linear-gradient(135deg,#080808,#705848)' },
-  16: { label: 'Last Stand',       desc: 'The last Pokémon in each party has +50% to all stats',       lastPokemonBoost: true, color: 'linear-gradient(135deg,#2a2000,#c8a800)' },
-  17: { label: 'Amplified',        desc: 'Super-effective moves deal 3× instead of 2×',               superEffX3: true,     color: 'linear-gradient(135deg,#1a003a,#8a008a)' },
-  18: { label: 'Haunting',         desc: 'Ghost Pokémon deal 50% more damage',                         typeBoost: 'Ghost',   color: 'linear-gradient(135deg,#14082a,#705898)' },
-  19: { label: 'Godlike Traits',   desc: 'Traits are four times as effective',                         traitMult: 4,         color: 'linear-gradient(135deg,#3a2c00,#f8c830)' },
-  20: { label: "Dragon's Domain",  desc: 'Dragon Pokémon deal 50% more damage',                        typeBoost: 'Dragon',  color: 'linear-gradient(135deg,#0a003a,#7038f8)' },
-};
-
-function getStageModifier(stageNum) {
-  return STAGE_MODIFIERS[stageNum] || null;
-}
-
 // ── Trait config builder ──────────────────────────────────────────────────────
 
 // Returns a traitsConfig object to pass to runBattle, or null if no active traits.
 // enemyTiers is optional — pass it for boss fights so the enemy also benefits from type traits.
-// effectMult scales all trait effect magnitudes (used for Stages 2/14/19).
-function buildTraitsConfig(playerTiers, enemyTiers = {}, effectMult = 1) {
+function buildTraitsConfig(playerTiers, enemyTiers = {}) {
   playerTiers = playerTiers || {};
   enemyTiers  = enemyTiers  || {};
   if (!Object.keys(playerTiers).length && !Object.keys(enemyTiers).length) return null;
 
   const tierFor   = (type, side) => ((side === 'player' ? playerTiers : enemyTiers)[type] || 0);
   const activeFor = (type, side) => tierFor(type, side) >= 1;
-  const sc = v => Math.round(v * effectMult);         // scale a stat-stage integer
-  const sp = v => Math.min(1.0, v * effectMult);      // scale a probability, capped at 1
-  const sf = v => v * effectMult;                      // scale a float/pct (no cap)
+  const sc = v => v;
+  const sp = v => v;
+  const sf = v => v;
 
   return {
 

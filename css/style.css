@@ -2298,7 +2298,6 @@ body.dark-mode #btn-hard-run:hover { box-shadow: 4px 4px 0 0 #cc2222; }
 .map-panel-region {
   flex: 0 0 auto;
   min-width: 130px;
-  align-self: start;
 }
 .region-stage-list {
   display: flex;
