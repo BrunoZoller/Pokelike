@@ -506,6 +506,8 @@ const GEN1_BST_APPROX = {
     // Gen 3
     253,256,259,262,264,277,279,284,288,301,305,308,311,312,313,314,
     315,320,337,338,351,352,358,364,372,
+    // Gen 4
+    446, // Munchlax
   ],
   midHigh: [
     // Gen 1
@@ -537,9 +539,10 @@ const GEN1_BST_APPROX = {
 };
 
 const LEGENDARY_ID_SET = new Set(LEGENDARY_IDS);
-const ALL_CATCHABLE_IDS = new Set(
-  Array.from({ length: 386 }, (_, i) => i + 1).filter(id => !LEGENDARY_ID_SET.has(id))
-);
+const ALL_CATCHABLE_IDS = new Set([
+  ...Array.from({ length: 386 }, (_, i) => i + 1).filter(id => !LEGENDARY_ID_SET.has(id)),
+  446, // Munchlax
+]);
 
 function isPokedexComplete() {
   const dex = getPokedex();
@@ -838,6 +841,8 @@ const GEN1_EVOLUTIONS = {
   372:{ into: 373, level: 50, name: 'Salamence' },
   374:{ into: 375, level: 20, name: 'Metang' },
   375:{ into: 376, level: 45, name: 'Metagross' },
+  // Gen 4 baby Pokémon
+  446:{ into: 143, level: 32, name: 'Snorlax' },
 };
 
 // Returns the minimum realistic level for a species based on its evolution chain.

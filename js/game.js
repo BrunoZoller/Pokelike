@@ -2052,6 +2052,10 @@ function getEvoLineRoot(speciesId) {
   for (const [from, evo] of Object.entries(GEN1_EVOLUTIONS)) {
     parentOf[evo.into] = Number(from);
   }
+  // Eeveelutions branch from Eevee (133) — not in GEN1_EVOLUTIONS, add manually
+  for (const evo of (typeof EEVEE_EVOLUTIONS !== 'undefined' ? EEVEE_EVOLUTIONS : [])) {
+    parentOf[evo.into] = 133;
+  }
   let id = speciesId;
   while (parentOf[id] !== undefined) id = parentOf[id];
   return id;

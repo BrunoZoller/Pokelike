@@ -104,7 +104,7 @@ const ENDLESS_ARCHETYPES = [
   { id: 'poison_witch',     name: 'Poison Witch',     type: 'Poison',   sprite: 'teamrocket',
     pool: [23,24,29,30,31,32,33,34,41,42,43,44,45,88,89,109,110,169] },
   { id: 'normal_champion',  name: 'Normal Champion',  type: 'Normal',   sprite: 'aceTrainer',
-    pool: [19,20,52,53,55,83,84,85,128,133,143,163,164,241,235] },
+    pool: [19,20,52,53,55,83,84,85,128,133,143,163,164,241,235,446] },
   { id: 'flying_master',    name: 'Flying Master',    type: 'Flying',   sprite: 'aceTrainer',
     pool: [16,17,18,21,22,83,84,85,123,142,149,469,227] },
   { id: 'grass_druid',      name: 'Grass Druid',      type: 'Grass',    sprite: 'aceTrainer',
