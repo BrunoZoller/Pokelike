@@ -176,7 +176,7 @@ async function showStarterSelect() {
       starters = fetched.filter(Boolean);
       hofMode = starters.length > 0;
     }
-    if (!hofMode) starters = await getCatchChoices(0);
+    if (!hofMode) starters = await getCatchChoices(0, 3, true);
   } else {
     starters = await Promise.all(STARTER_IDS.map(id => fetchPokemonById(id)));
   }
@@ -470,7 +470,7 @@ function getLevelForNode(node) {
 
 async function doBattleNode(node) {
   const level = (!state.isEndlessMode && state.currentMap >= 1) ? getLevelForNode(node) - 1 : getLevelForNode(node);
-  let choices = await getCatchChoices(getEncounterMapIndex());
+  let choices = await getCatchChoices(getEncounterMapIndex(), 3, state.isEndlessMode);
   const lvlFiltered = choices.filter(sp => minLevelForSpecies(sp.id ?? sp.speciesId) <= level);
   if (lvlFiltered.length > 0) choices = lvlFiltered;
 
@@ -577,7 +577,7 @@ async function doCatchNode(node) {
   const choicesEl = document.getElementById('catch-choices');
   choicesEl.innerHTML = '<div class="loading">Finding Pokemon...</div>';
 
-  let choices = await getCatchChoices(getEncounterMapIndex(), 9);
+  let choices = await getCatchChoices(getEncounterMapIndex(), 9, state.isEndlessMode);
   const isFirstMap = state.currentMap === 0 || (state.isEndlessMode && endlessState.regionNumber === 1 && endlessState.mapIndexInRegion === 0);
   const level = isFirstMap ? Math.max(4, getLevelForNode(node)) : getLevelForNode(node);
   const lvlFiltered = choices.filter(sp => minLevelForSpecies(sp.id ?? sp.speciesId) <= level);
@@ -636,7 +636,7 @@ async function doCatchNode(node) {
   const teamIds = new Set(state.team.map(p => p.speciesId));
   for (let i = 0; i < choices.length; i++) {
     if (rng() < 1 / 6) {
-      const leg = await getRandomLegendary(getEncounterMapIndex());
+      const leg = await getRandomLegendary(getEncounterMapIndex(), state.isEndlessMode);
       if (leg && !teamIds.has(leg.id ?? leg.speciesId)) choices[i] = { ...leg, _legendary: true };
     }
   }
@@ -672,7 +672,7 @@ async function doCatchNode(node) {
         ]);
         let src = rerollPool.filter(sp => !otherIds.has(sp.id ?? sp.speciesId));
         if (src.length === 0) {
-          const fresh = await getCatchChoices(getEncounterMapIndex(), 6);
+          const fresh = await getCatchChoices(getEncounterMapIndex(), 6, state.isEndlessMode);
           const otherIdsPost = new Set([
             ...instances.filter((_, i) => i !== slotIdx).map(i => i.speciesId),
             ...state.team.map(p => p.speciesId),
@@ -1105,7 +1105,7 @@ async function doTrainerNode(node) {
     const fetched = await Promise.all(ids.map(id => fetchPokemonById(id)));
     speciesList = fetched.filter(Boolean);
   } else {
-    const choices = await getCatchChoices(getEncounterMapIndex());
+    const choices = await getCatchChoices(getEncounterMapIndex(), 3, state.isEndlessMode);
     speciesList = choices.slice(0, teamSize);
   }
 
@@ -1275,7 +1275,7 @@ async function doTradeNode(node) {
 
     const idx = i;
     const doTrade = async () => {
-      const pool = await getCatchChoices(getEncounterMapIndex());
+      const pool = await getCatchChoices(getEncounterMapIndex(), 3, state.isEndlessMode);
       const species = pool[Math.floor(rng() * pool.length)];
       if (!species) { advanceFromNode(state.map, node.id); showMapScreen(); return; }
       const offerLevel = Math.min(100, mine.level + 3);
@@ -1313,7 +1313,7 @@ async function doTradeNode(node) {
 }
 
 async function doShinyNode(node) {
-  const choices = await getCatchChoices(getEncounterMapIndex());
+  const choices = await getCatchChoices(getEncounterMapIndex(), 3, state.isEndlessMode);
   const level = getLevelForNode(node);
   const species = choices[0];
   if (!species) { advanceFromNode(state.map, node.id); showMapScreen(); return; }
@@ -1787,8 +1787,10 @@ async function doEndlessBossNode() {
       if (p.currentHp > 0 && p.level < 100) {
         const oldLevel = p.level;
         p.level = Math.min(100, p.level + bugBonus);
-        p.maxHp = calcHp(p.baseStats.hp, p.level);
-        p.currentHp = Math.min(p.currentHp + (p.maxHp - calcHp(p.baseStats.hp, oldLevel)), p.maxHp);
+        const hpBuff = p.statBuffs?.hp ?? 0;
+        const buffMult = 1 + 0.1 * hpBuff;
+        p.maxHp = Math.floor(calcHp(p.baseStats.hp, p.level) * buffMult);
+        p.currentHp = Math.min(p.currentHp + (p.maxHp - Math.floor(calcHp(p.baseStats.hp, oldLevel) * buffMult)), p.maxHp);
       }
     }
     showMapNotification('Bug Trait: team gained a level!');

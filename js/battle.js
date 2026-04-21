@@ -432,7 +432,8 @@ function applyLevelGain(team, bagItems, participantIdxs, maxEnemyLevel = 0, hard
 
     const preHp = p.currentHp;
     p.level = newLevel;
-    const newMaxHp = calcHp(p.baseStats.hp, newLevel);
+    const hpBuff = p.statBuffs?.hp ?? 0;
+    const newMaxHp = Math.floor(calcHp(p.baseStats.hp, newLevel) * (1 + 0.1 * hpBuff));
     if (p.currentHp > 0) {
       p.currentHp = Math.min(p.currentHp + (newMaxHp - p.maxHp), newMaxHp);
     }

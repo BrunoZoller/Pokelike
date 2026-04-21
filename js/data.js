@@ -556,18 +556,20 @@ function hasShinyCharm() { return isPokedexComplete(); }
 const LEGENDARY_POOL_HIGH     = [144, 145, 146]; // Birds ~485-490
 const LEGENDARY_POOL_VERYHIGH = [150,151,243,244,245,249,250,251,377,378,379,380,381,382,383,384,385,386];
 
-async function getRandomLegendary(mapIndex) {
+async function getRandomLegendary(mapIndex, allowAllGens = false) {
   const range = MAP_BST_RANGES[Math.min(mapIndex, MAP_BST_RANGES.length - 1)];
+  const veryHighPool = allowAllGens ? LEGENDARY_POOL_VERYHIGH : [150, 151];
   let pool;
-  if (range.min >= 530) pool = LEGENDARY_POOL_VERYHIGH;
-  else if (range.min >= 460) pool = [...LEGENDARY_POOL_HIGH, ...LEGENDARY_POOL_VERYHIGH];
+  if (range.min >= 530) pool = veryHighPool;
+  else if (range.min >= 460) pool = [...LEGENDARY_POOL_HIGH, ...veryHighPool];
   else return null; // too early for legendaries
   const id = pool[Math.floor((typeof rng === 'function' ? rng() : Math.random()) * pool.length)];
   return fetchPokemonById(id);
 }
 
-// Get 3 random pokemon ids from the right BST bucket for a given mapIndex
-async function getCatchChoices(mapIndex, count = 3) {
+// Get 3 random pokemon ids from the right BST bucket for a given mapIndex.
+// allowAllGens=false restricts to Gen 1 only (IDs 1-151); pass true in endless mode.
+async function getCatchChoices(mapIndex, count = 3, allowAllGens = false) {
   const range = MAP_BST_RANGES[Math.min(mapIndex, MAP_BST_RANGES.length - 1)];
   const pool = await getSpeciesPool();
 
@@ -579,7 +581,7 @@ async function getCatchChoices(mapIndex, count = 3) {
   else if (range.min >= 280) bucket = GEN1_BST_APPROX.midLow;
   else bucket = GEN1_BST_APPROX.low;
 
-  const filtered = bucket.filter(id => !LEGENDARY_IDS.includes(id));
+  const filtered = bucket.filter(id => !LEGENDARY_IDS.includes(id) && (allowAllGens || id <= 151));
   const shuffled = [...filtered].sort(() => (typeof rng === 'function' ? rng() : Math.random()) - 0.5);
   const ids = shuffled.slice(0, Math.max(9, count * 3));
 
