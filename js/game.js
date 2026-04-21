@@ -632,10 +632,12 @@ async function doCatchNode(node) {
   choices = choices.slice(0, 3);
 
   // Each display slot has a 1/6 chance to be swapped for a legendary (+5 levels)
+  // Skip if that legendary is already on the team
+  const teamIds = new Set(state.team.map(p => p.speciesId));
   for (let i = 0; i < choices.length; i++) {
     if (rng() < 1 / 6) {
       const leg = await getRandomLegendary(getEncounterMapIndex());
-      if (leg) choices[i] = { ...leg, _legendary: true };
+      if (leg && !teamIds.has(leg.id ?? leg.speciesId)) choices[i] = { ...leg, _legendary: true };
     }
   }
 
