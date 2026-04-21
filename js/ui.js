@@ -3085,6 +3085,42 @@ async function animateLevelUp(levelUps) {
 let _toastQueue = [];
 let _toastRunning = false;
 
+// Bug trait level-up banner — shows each leveled Pokémon's sprite + new level
+function showBugLevelUpBanner(leveled) {
+  // leveled: array of { name, spriteUrl, level }
+  const banner = document.createElement('div');
+  banner.style.cssText = [
+    'position:fixed', 'top:56px', 'left:50%', 'transform:translateX(-50%)',
+    'z-index:200', 'display:flex', 'flex-direction:column', 'align-items:center',
+    'gap:4px', 'pointer-events:none', 'opacity:0', 'transition:opacity 0.25s',
+  ].join(';');
+
+  const label = document.createElement('div');
+  label.style.cssText = 'font-family:"Press Start 2P",monospace;font-size:7px;color:#a8d848;text-shadow:1px 1px 0 #000,0 0 8px #78b820;letter-spacing:1px;margin-bottom:2px;';
+  label.textContent = '🐛 Bug Trait — Level Up!';
+  banner.appendChild(label);
+
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex;gap:6px;align-items:flex-end;';
+  for (const p of leveled) {
+    const card = document.createElement('div');
+    card.style.cssText = 'display:flex;flex-direction:column;align-items:center;background:rgba(0,0,0,0.75);border:2px solid #a8d848;padding:4px 6px;';
+    card.innerHTML = `
+      <img src="${p.spriteUrl}" style="width:40px;height:40px;image-rendering:pixelated;" onerror="this.style.display='none'">
+      <span style="font-family:'Press Start 2P',monospace;font-size:6px;color:#fff;margin-top:2px;">${p.name}</span>
+      <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:#a8d848;">Lv ${p.level}</span>`;
+    row.appendChild(card);
+  }
+  banner.appendChild(row);
+  document.body.appendChild(banner);
+
+  requestAnimationFrame(() => { banner.style.opacity = '1'; });
+  setTimeout(() => {
+    banner.style.opacity = '0';
+    setTimeout(() => banner.remove(), 300);
+  }, 2200);
+}
+
 function showAchievementToast(ach) {
   _toastQueue.push(ach);
   if (!_toastRunning) _runToastQueue();

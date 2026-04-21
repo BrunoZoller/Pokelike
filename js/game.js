@@ -1941,6 +1941,7 @@ async function doEndlessBossNode() {
   // Bug trait: chance for +1 level on alive pokemon after fight
   const bugBonus = getBugLevelBonus(endlessState.traitTiers);
   if (bugBonus > 0) {
+    const leveled = [];
     for (const p of state.team) {
       if (p.currentHp > 0 && p.level < 100) {
         const oldLevel = p.level;
@@ -1949,10 +1950,11 @@ async function doEndlessBossNode() {
         const buffMult = 1 + 0.1 * hpBuff;
         p.maxHp = Math.floor(calcHp(p.baseStats.hp, p.level) * buffMult);
         p.currentHp = Math.min(p.currentHp + (p.maxHp - Math.floor(calcHp(p.baseStats.hp, oldLevel) * buffMult)), p.maxHp);
+        leveled.push({ name: p.nickname || p.name, spriteUrl: p.spriteUrl, level: p.level });
       }
     }
-    showMapNotification('Bug Trait: team gained a level!');
-    await new Promise(r => setTimeout(r, 1200));
+    if (leveled.length) showBugLevelUpBanner(leveled);
+    await new Promise(r => setTimeout(r, 2400));
   }
 
   if (isBigBoss) await showStatBuffScreen();
