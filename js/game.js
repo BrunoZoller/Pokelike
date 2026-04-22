@@ -182,26 +182,33 @@ async function showStarterSelect() {
   if (state.isEndlessMode) {
     // Build HoF starter pool from all completed runs
     const allHofEntries = getHallOfFame();
-    if (allHofEntries.length > 0) {
-      const seen = new Set();
-      const ids = [];
-      for (const entry of allHofEntries) {
-        for (const p of entry.team) {
-          const id = getEvoLineRoot(p.speciesId);
-          if (!seen.has(id) && !LEGENDARY_ID_SET.has(id)) {
-            seen.add(id);
-            ids.push(id);
-          }
+    const seen = new Set();
+    const ids = [];
+    for (const entry of allHofEntries) {
+      for (const p of entry.team) {
+        const id = getEvoLineRoot(p.speciesId);
+        if (!seen.has(id) && !LEGENDARY_ID_SET.has(id)) {
+          seen.add(id);
+          ids.push(id);
         }
       }
-      ids.sort((a, b) => a - b);
+    }
+    ids.sort((a, b) => a - b);
+    hofX = ids.length;
+    hofY = new Set([...ALL_CATCHABLE_IDS].map(id => getEvoLineRoot(id))).size;
+
+    // Append regional starters for all unlocked stages (deduped)
+    const unlockedCount = getUnlockedStageCount();
+    for (let s = 1; s <= Math.min(unlockedCount, REGION_STARTERS.length - 1); s++) {
+      for (const sid of (REGION_STARTERS[s] || [])) {
+        if (!seen.has(sid)) { seen.add(sid); ids.push(sid); }
+      }
+    }
+
+    if (ids.length > 0) {
       const fetched = await Promise.all(ids.map(id => fetchPokemonById(id)));
       starters = fetched.filter(Boolean);
       hofMode = starters.length > 0;
-      if (hofMode) {
-        hofX = ids.length;
-        hofY = new Set([...ALL_CATCHABLE_IDS].map(id => getEvoLineRoot(id))).size;
-      }
     }
     if (!hofMode) starters = await getCatchChoices(0, 3, 649);
   } else {
@@ -299,53 +306,6 @@ async function showStarterSelect() {
     }
 
     container.appendChild(box);
-
-    // Regional starters section — one row per unlocked stage
-    const unlockedCount = getUnlockedStageCount();
-    const regionStarterIds = [];
-    for (let s = 1; s <= Math.min(unlockedCount, REGION_STARTERS.length - 1); s++) {
-      for (const id of (REGION_STARTERS[s] || [])) regionStarterIds.push({ id, stage: s });
-    }
-    if (regionStarterIds.length > 0) {
-      const fetched = await Promise.all(regionStarterIds.map(({ id }) => fetchPokemonById(id)));
-      const regionInstances = fetched.map((species, i) => {
-        if (!species) return null;
-        const isShiny = rng() < (hasShinyCharm() ? 0.02 : 0.01);
-        const inst = createInstance(species, startLevel, isShiny, 0);
-        loadBuffsIntoPokemon(inst);
-        inst._regionStage = regionStarterIds[i].stage;
-        return inst;
-      }).filter(Boolean);
-
-      const regionBox = document.createElement('div');
-      regionBox.className = 'pc-box';
-      regionBox.innerHTML = `<div class="pc-box-titlebar"><span>REGIONAL STARTERS</span></div><div class="pc-box-body"><div class="pc-box-grid" style="grid-template-columns:repeat(${Math.min(regionInstances.length, 9)},1fr);"></div></div>`;
-      const regionGrid = regionBox.querySelector('.pc-box-grid');
-
-      for (const inst of regionInstances) {
-        const typeBadges = (inst.types || []).map(t =>
-          `<span class="type-badge type-${t.toLowerCase()}" style="font-size:5px;padding:1px 2px;">${t}</span>`).join('');
-        const meta = STAGE_META[inst._regionStage];
-        const slot = document.createElement('div');
-        slot.className = 'pc-slot';
-        slot.setAttribute('role', 'button');
-        slot.setAttribute('tabindex', '0');
-        slot.innerHTML = `
-          <div style="font-size:7px;color:${meta?.color||'#aaa'};margin-bottom:1px;">${meta?.label||''}</div>
-          <img src="${inst.spriteUrl}" alt="${inst.name}">
-          <div class="pc-slot-name">${inst.name}</div>
-          <div class="pc-slot-lv">Lv.${startLevel}</div>
-          <div style="display:flex;gap:2px;flex-wrap:wrap;justify-content:center;">${typeBadges}</div>`;
-        const stars = makeMaxedStarsEl(inst.speciesId);
-        if (stars) slot.appendChild(stars);
-        slot.addEventListener('click', () => selectStarter(inst));
-        slot.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') selectStarter(inst); });
-        slot.addEventListener('mouseenter', () => showTeamHoverCard(inst, slot));
-        slot.addEventListener('mouseleave', () => hideTeamHoverCard());
-        regionGrid.appendChild(slot);
-      }
-      container.appendChild(regionBox);
-    }
   } else {
     container.style.display = 'flex';
     container.style.justifyContent = 'center';
