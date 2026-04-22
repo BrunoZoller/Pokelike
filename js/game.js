@@ -590,12 +590,13 @@ async function doBattleNode(node) {
   const subEl = document.getElementById('battle-subtitle');
   if (titleEl) titleEl.textContent = `Wild ${enemy.name} appeared!`;
   if (subEl) subEl.textContent = `Level ${enemy.level}`;
-  await runBattleScreen([enemy], false, () => {
-    advanceFromNode(state.map, node.id);
-    showMapScreen();
-  }, () => {
-    showGameOver();
-  }, null, [], 1); // Wild battles always give 1 level
+  const won = await new Promise(resolve => {
+    runBattleScreen([enemy], false, () => resolve(true), () => resolve(false), null, [], 1);
+  });
+  if (!won) { showGameOver(); return; }
+  if (state.isEndlessMode) await applyEndlessBugTrait();
+  advanceFromNode(state.map, node.id);
+  showMapScreen();
 }
 
 async function doBossNode(node) {
@@ -1283,12 +1284,13 @@ async function doTrainerNode(node) {
   if (titleEl) titleEl.textContent = `${config.name} wants to battle!`;
   if (subEl)   subEl.textContent   = `${enemyTeam.length} Pokémon — Lv ~${level}`;
 
-  await runBattleScreen(enemyTeam, false, () => {
-    advanceFromNode(state.map, node.id);
-    showMapScreen();
-  }, () => {
-    showGameOver();
-  }, config.sprite, [], 2, true); // always show player portrait for trainer battles
+  const won = await new Promise(resolve => {
+    runBattleScreen(enemyTeam, false, () => resolve(true), () => resolve(false), config.sprite, [], 2, true);
+  });
+  if (!won) { showGameOver(); return; }
+  if (state.isEndlessMode) await applyEndlessBugTrait();
+  advanceFromNode(state.map, node.id);
+  showMapScreen();
 }
 
 // ---- Legendary Node ----
@@ -1907,6 +1909,26 @@ async function onEndlessNodeClick(node) {
   await onNodeClick(node);
 }
 
+async function applyEndlessBugTrait() {
+  endlessState.traitTiers = computeTraitTiers(state.team);
+  const bugBonus = getBugLevelBonus(endlessState.traitTiers);
+  if (bugBonus <= 0) return;
+  const leveled = [];
+  for (const p of state.team) {
+    if (p.currentHp > 0 && p.level < 100) {
+      const oldLevel = p.level;
+      p.level = Math.min(100, p.level + bugBonus);
+      const hpBuff = p.statBuffs?.hp ?? 0;
+      const buffMult = 1 + 0.1 * hpBuff;
+      p.maxHp = Math.floor(calcHp(p.baseStats.hp, p.level) * buffMult);
+      p.currentHp = Math.min(p.currentHp + (p.maxHp - Math.floor(calcHp(p.baseStats.hp, oldLevel) * buffMult)), p.maxHp);
+      leveled.push({ name: p.nickname || p.name, spriteUrl: p.spriteUrl, level: p.level });
+    }
+  }
+  if (leveled.length) showBugLevelUpBanner(leveled);
+  await new Promise(r => setTimeout(r, 2400));
+}
+
 async function doEndlessBossNode() {
   const region = endlessState.currentRegion;
   const trainerData = region.trainers[endlessState.mapIndexInRegion];
@@ -1961,24 +1983,7 @@ async function doEndlessBossNode() {
     return;
   }
 
-  // Bug trait: chance for +1 level on alive pokemon after fight
-  const bugBonus = getBugLevelBonus(endlessState.traitTiers);
-  if (bugBonus > 0) {
-    const leveled = [];
-    for (const p of state.team) {
-      if (p.currentHp > 0 && p.level < 100) {
-        const oldLevel = p.level;
-        p.level = Math.min(100, p.level + bugBonus);
-        const hpBuff = p.statBuffs?.hp ?? 0;
-        const buffMult = 1 + 0.1 * hpBuff;
-        p.maxHp = Math.floor(calcHp(p.baseStats.hp, p.level) * buffMult);
-        p.currentHp = Math.min(p.currentHp + (p.maxHp - Math.floor(calcHp(p.baseStats.hp, oldLevel) * buffMult)), p.maxHp);
-        leveled.push({ name: p.nickname || p.name, spriteUrl: p.spriteUrl, level: p.level });
-      }
-    }
-    if (leveled.length) showBugLevelUpBanner(leveled);
-    await new Promise(r => setTimeout(r, 2400));
-  }
+  await applyEndlessBugTrait();
 
   if (isBigBoss) await showStatBuffScreen();
 
