@@ -1953,7 +1953,9 @@ async function doEndlessBossNode() {
 
   // Compute traits right before the fight (enemy bosses also get type trait benefits)
   endlessState.traitTiers = computeTraitTiers(state.team);
-  const enemyTiers = computeTraitTiers(enemyTeam, trainerData.traitBonus ?? 0);
+  const enemyTiers = trainerData.allTraits != null
+    ? Object.fromEntries(Object.keys(TRAIT_DESCRIPTIONS).map(t => [t, trainerData.allTraits]))
+    : computeTraitTiers(enemyTeam, trainerData.traitBonus ?? 0);
   const traitsConfig = buildTraitsConfig(endlessState.traitTiers, enemyTiers);
   renderBattleTraitBars(endlessState.traitTiers, enemyTiers);
 
