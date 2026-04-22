@@ -246,6 +246,7 @@ function getNodeSprite(node) {
     return `sprites/${key}.png`;
   }
   if (node.type === NODE_TYPES.BOSS) {
+    if (typeof state !== 'undefined' && state.isEndlessMode) return 'sprites/misteryTrainer.png';
     const mi = node.mapIndex ?? -1;
     if (mi >= 0 && mi < GYM_LEADER_SPRITES.length) return GYM_LEADER_SPRITES[mi];
     return 'sprites/champ.png';
@@ -436,8 +437,22 @@ function renderMap(map, container, onNodeClick) {
     }
 
     const label = getNodeLabel(node);
-    g.addEventListener('mouseenter', e => { if (_hoverEnabled) _mapTooltip.show(label, e.clientX, e.clientY); });
-    g.addEventListener('mousemove',  e => { _mapTooltip.move(e.clientX, e.clientY); if (_hoverEnabled) _mapTooltip.show(label, e.clientX, e.clientY); });
+    let hoverLabel = label;
+    if (node.type === NODE_TYPES.BOSS && typeof state !== 'undefined' && state.isEndlessMode) {
+      const trainerData = typeof endlessState !== 'undefined' && endlessState.currentRegion
+        ? endlessState.currentRegion.trainers[endlessState.mapIndexInRegion]
+        : null;
+      if (trainerData?.speciesIds?.length) {
+        const BASE = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/';
+        const imgs = trainerData.speciesIds.map(id =>
+          `<img src="${BASE}${id}.png" style="width:28px;height:28px;image-rendering:pixelated;" onerror="this.style.display='none'">`
+        ).join('');
+        const name = trainerData.archetype?.name || '???';
+        hoverLabel = `<div style="font-size:7px;margin-bottom:3px;text-align:center;">${name}</div><div style="display:flex;flex-wrap:wrap;gap:2px;justify-content:center;">${imgs}</div>`;
+      }
+    }
+    g.addEventListener('mouseenter', e => { if (_hoverEnabled) _mapTooltip.show(hoverLabel, e.clientX, e.clientY); });
+    g.addEventListener('mousemove',  e => { _mapTooltip.move(e.clientX, e.clientY); if (_hoverEnabled) _mapTooltip.show(hoverLabel, e.clientX, e.clientY); });
     g.addEventListener('mouseleave', () => _mapTooltip.hide());
 
     // Prevent native long-press image menu on mobile

@@ -151,25 +151,25 @@ const STAGE_BOSS_ARCHETYPE = ['', 'stage1_boss', 'stage2_boss', 'stage3_boss', '
 const FIXED_STAGE_REGIONS = {
   1: [
     [ // Region 1
-      { name: 'Grass Trainer',   type: 'Grass',    sprite: 'aceTrainer',  ids: [69, 1] },
-      { name: 'Water Trainer',   type: 'Water',    sprite: 'fisherman',   ids: [61, 7] },
-      { name: 'Fire Trainer',    type: 'Fire',     sprite: 'aceTrainer',  ids: [126, 58, 5] },
+      { name: 'Erika',  type: 'Grass', sprite: 'erika-lgpe',   ids: [69, 1] },
+      { name: 'Misty',  type: 'Water', sprite: 'misty-lgpe',   ids: [61, 8] },
+      { name: 'Flint',  type: 'Fire',  sprite: 'flint',        ids: [126, 58, 5] },
     ],
     [ // Region 2
-      { name: 'Flying Master',   type: 'Flying',   sprite: 'aceTrainer',  ids: [85, 22, 18] },
-      { name: 'Bug Queen',       type: 'Bug',      sprite: 'bugcatcher',  ids: [12, 15, 127, 123] },
-      { name: 'Ice / Electric',  type: 'Electric', sprite: 'aceTrainer',  ids: [124, 125, 131, 101, 135] },
+      { name: 'Falkner', type: 'Flying',       sprite: 'falkner',      ids: [85, 22, 18] },
+      { name: 'Bugsy',   type: 'Bug',          sprite: 'bugsy',        ids: [12, 15, 127, 123] },
+      { name: 'Lorelei', type: 'Ice/Electric', sprite: 'lorelei-lgpe', ids: [124, 125, 131, 101, 135] },
     ],
     [ // Region 3
-      { name: 'Psychic Sage',    type: 'Psychic',  sprite: 'scientist',   ids: [71, 103, 121, 80, 122, 65] },
-      { name: 'Ghost / Poison',  type: 'Poison',   sprite: 'teamrocket',  ids: [89, 73, 71, 45, 93, 94] },
-      // Ash: Pikachu (last slot) gets +5 extra levels on top of its position offset
-      { name: 'Ash Ketchum',     type: null,       sprite: 'ash',         ids: [143, 149, 3, 9, 6, 25], extraLevels: { 5: 5 }, traitBonus: 1 },
+      { name: 'Sabrina',    type: 'Psychic/Grass', sprite: 'sabrina-gen3', ids: [71, 103, 121, 80, 122, 65] },
+      { name: 'Agatha',     type: 'Ghost/Poison',  sprite: 'agatha-lgpe',  ids: [89, 73, 71, 45, 93, 94] },
+      // Ash: Pikachu (last slot) gets +5 extra levels; traitBonus=1 means 1 less Pokémon needed per trait tier
+      { name: 'Ash Ketchum', type: null, sprite: 'ash-johto', ids: [143, 196, 3, 9, 6, 25], extraLevels: { 5: 5 }, traitBonus: 1 },
     ],
   ],
   2: [
     [ // Region 1
-      { name: 'Eusine',  type: 'Electric',      sprite: 'eusine',       ids: [172, 180, 239] },
+      { name: 'Volkner', type: 'Electric',      sprite: 'volkner',      ids: [172, 180, 239] },
       { name: 'Janine',  type: 'Poison',        sprite: 'janine',       ids: [211, 167, 41] },
       { name: 'Jasmine', type: 'Steel',         sprite: 'jasmine',      ids: [205, 227, 208, 212] },
     ],
