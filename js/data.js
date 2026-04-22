@@ -303,7 +303,7 @@ const ELITE_4 = [
 
 // Item pool
 const ITEM_POOL = [
-  { id: 'lucky_egg',          name: 'Lucky Egg',          desc: 'Holder gains +1 extra level after every battle',                   icon: '🥚', minMap: 4 },
+  { id: 'lucky_egg',          name: 'Lucky Egg',          desc: '30% chance: holder gains +1 extra level after each battle',        icon: '🥚', minMap: 4 },
   { id: 'life_orb',           name: 'Life Orb',           desc: '+30% damage; holder loses 10% max HP per hit',                       icon: '🔮' },
   { id: 'choice_band',        name: 'Choice Band',        desc: '+40% physical damage, -20% DEF',                                     icon: '🎀' },
   { id: 'choice_specs',       name: 'Choice Specs',       desc: '+40% special damage, -20% Sp.Def',                                   icon: '👓' },
@@ -467,14 +467,16 @@ async function getSpeciesPool() {
   return _speciesPool;
 }
 
-// Legendary Pokemon (Gen 1-3) — excluded from wild/catch pools, available only via Legendary node
+// Legendary Pokemon (Gen 1-5) — excluded from wild/catch pools, available only via Legendary node
 const LEGENDARY_IDS = [
-  144,145,146,150,151,                          // Gen 1
-  243,244,245,249,250,251,                       // Gen 2
-  377,378,379,380,381,382,383,384,385,386,       // Gen 3
+  144,145,146,150,151,                                             // Gen 1
+  243,244,245,249,250,251,                                         // Gen 2
+  377,378,379,380,381,382,383,384,385,386,                         // Gen 3
+  480,481,482,483,484,485,486,487,488,489,490,491,492,493,         // Gen 4
+  494,638,639,640,641,642,643,644,645,646,647,648,649,             // Gen 5
 ];
 
-// Catchable Pokemon by BST bucket — Gen 1, 2, and 3
+// Catchable Pokemon by BST bucket — Gen 1-5
 const GEN1_BST_APPROX = {
   low: [
     // Gen 1
@@ -487,6 +489,12 @@ const GEN1_BST_APPROX = {
     252,255,258,261,263,265,266,268,270,273,276,278,280,281,283,285,
     287,290,292,293,296,298,300,304,307,309,316,318,322,325,327,328,
     331,333,339,341,343,349,353,355,360,361,363,366,370,371,374,
+    // Gen 4
+    403,406,412,415,420,425,427,431,436,438,443,447,449,451,453,456,459,
+    // Gen 5
+    495,498,501,504,506,509,517,519,522,524,527,529,532,535,540,543,
+    546,548,551,554,557,562,564,566,568,570,572,574,577,580,582,585,
+    588,590,592,595,597,599,602,605,607,610,613,616,619,622,624,627,629,633,636,
   ],
   midLow: [
     // Gen 1
@@ -496,6 +504,12 @@ const GEN1_BST_APPROX = {
     166,168,180,188,190,193,222,239,240,
     // Gen 3
     267,269,271,274,294,299,302,303,329,345,347,
+    // Gen 4
+    418,426,428,432,434,437,439,441,444,448,450,452,454,455,457,460,
+    // Gen 5
+    505,507,510,518,520,523,525,528,530,536,541,544,547,549,552,555,
+    558,563,565,567,569,571,573,575,578,581,583,586,589,591,593,596,
+    598,600,603,606,608,611,614,617,620,623,625,628,630,634,
   ],
   mid: [
     // Gen 1
@@ -507,7 +521,10 @@ const GEN1_BST_APPROX = {
     253,256,259,262,264,277,279,284,288,301,305,308,311,312,313,314,
     315,320,337,338,351,352,358,364,372,
     // Gen 4
-    446, // Munchlax
+    419,424,429,430,435,440,446,453,456,458,461,462,463,465,466,467,469,471,472,473,474,476,477,478,479,
+    // Gen 5
+    508,521,526,533,537,542,545,553,559,560,561,576,579,584,587,594,
+    601,604,609,612,615,618,621,626,631,632,635,637,
   ],
   midHigh: [
     // Gen 1
@@ -517,6 +534,10 @@ const GEN1_BST_APPROX = {
     // Gen 3
     272,275,286,291,297,310,317,319,323,324,326,332,335,336,340,342,
     354,356,357,359,362,367,368,369,375,
+    // Gen 4
+    407,416,421,423,433,445,464,468,475,
+    // Gen 5
+    497,500,503,531,538,539,550,556,
   ],
   high: [
     // Gen 1
@@ -527,6 +548,10 @@ const GEN1_BST_APPROX = {
     229,232,233,241,
     // Gen 3
     282,295,321,330,334,344,346,348,
+    // Gen 4
+    398,402,405,409,411,414,422,431,436,448,460,
+    // Gen 5
+    497,500,503,534,
   ],
   veryHigh: [
     // Gen 1
@@ -535,13 +560,16 @@ const GEN1_BST_APPROX = {
     157,160,169,230,242,248,
     // Gen 3
     254,257,260,289,306,350,365,373,376,
+    // Gen 4
+    445,448,460,466,467,468,473,475,477,
+    // Gen 5
+    497,500,503,535,537,571,609,612,635,637,
   ],
 };
 
 const LEGENDARY_ID_SET = new Set(LEGENDARY_IDS);
 const ALL_CATCHABLE_IDS = new Set([
-  ...Array.from({ length: 386 }, (_, i) => i + 1).filter(id => !LEGENDARY_ID_SET.has(id)),
-  446, // Munchlax
+  ...Array.from({ length: 649 }, (_, i) => i + 1).filter(id => !LEGENDARY_ID_SET.has(id)),
 ]);
 
 function isPokedexComplete() {
@@ -570,9 +598,9 @@ async function getRandomLegendary(mapIndex, allowAllGens = false) {
   return fetchPokemonById(id);
 }
 
-// Get 3 random pokemon ids from the right BST bucket for a given mapIndex.
-// allowAllGens=false restricts to Gen 1 only (IDs 1-151); pass true in endless mode.
-async function getCatchChoices(mapIndex, count = 3, allowAllGens = false) {
+// Get random pokemon from the right BST bucket for a given mapIndex.
+// maxGenId restricts to IDs <= that number (151 = Gen 1 only, 649 = all gens).
+async function getCatchChoices(mapIndex, count = 3, maxGenId = 151) {
   const range = MAP_BST_RANGES[Math.min(mapIndex, MAP_BST_RANGES.length - 1)];
   const pool = await getSpeciesPool();
 
@@ -584,7 +612,7 @@ async function getCatchChoices(mapIndex, count = 3, allowAllGens = false) {
   else if (range.min >= 280) bucket = GEN1_BST_APPROX.midLow;
   else bucket = GEN1_BST_APPROX.low;
 
-  const filtered = bucket.filter(id => !LEGENDARY_IDS.includes(id) && (allowAllGens || id <= 151));
+  const filtered = bucket.filter(id => !LEGENDARY_IDS.includes(id) && id <= maxGenId);
   const shuffled = [...filtered].sort(() => (typeof rng === 'function' ? rng() : Math.random()) - 0.5);
   const ids = shuffled.slice(0, Math.max(9, count * 3));
 
@@ -841,8 +869,112 @@ const GEN1_EVOLUTIONS = {
   372:{ into: 373, level: 50, name: 'Salamence' },
   374:{ into: 375, level: 20, name: 'Metang' },
   375:{ into: 376, level: 45, name: 'Metagross' },
-  // Gen 4 baby Pokémon
+  // Gen 4
+  387:{ into: 388, level: 18, name: 'Grotle' },
+  388:{ into: 389, level: 32, name: 'Torterra' },
+  390:{ into: 391, level: 14, name: 'Monferno' },
+  391:{ into: 392, level: 36, name: 'Infernape' },
+  393:{ into: 394, level: 16, name: 'Prinplup' },
+  394:{ into: 395, level: 36, name: 'Empoleon' },
+  396:{ into: 397, level: 14, name: 'Staravia' },
+  397:{ into: 398, level: 34, name: 'Staraptor' },
+  399:{ into: 400, level: 15, name: 'Bibarel' },
+  401:{ into: 402, level: 10, name: 'Kricketune' },
+  403:{ into: 404, level: 15, name: 'Luxio' },
+  404:{ into: 405, level: 30, name: 'Luxray' },
+  406:{ into: 315, level: 18, name: 'Roselia' },
+  408:{ into: 409, level: 30, name: 'Rampardos' },
+  410:{ into: 411, level: 30, name: 'Bastiodon' },
+  415:{ into: 416, level: 21, name: 'Vespiquen' },
+  418:{ into: 419, level: 26, name: 'Floatzel' },
+  420:{ into: 421, level: 25, name: 'Cherrim' },
+  422:{ into: 423, level: 30, name: 'Gastrodon' },
+  425:{ into: 426, level: 28, name: 'Drifblim' },
+  427:{ into: 428, level: 28, name: 'Lopunny' },
+  431:{ into: 432, level: 38, name: 'Purugly' },
+  434:{ into: 435, level: 34, name: 'Skuntank' },
+  436:{ into: 437, level: 33, name: 'Bronzong' },
+  443:{ into: 444, level: 24, name: 'Gabite' },
+  444:{ into: 445, level: 48, name: 'Garchomp' },
   446:{ into: 143, level: 32, name: 'Snorlax' },
+  447:{ into: 448, level: 32, name: 'Lucario' },
+  449:{ into: 450, level: 34, name: 'Hippowdon' },
+  451:{ into: 452, level: 40, name: 'Drapion' },
+  453:{ into: 454, level: 37, name: 'Toxicroak' },
+  456:{ into: 457, level: 31, name: 'Lumineon' },
+  459:{ into: 460, level: 40, name: 'Abomasnow' },
+  // Gen 5
+  495:{ into: 496, level: 17, name: 'Servine' },
+  496:{ into: 497, level: 36, name: 'Serperior' },
+  498:{ into: 499, level: 17, name: 'Pignite' },
+  499:{ into: 500, level: 36, name: 'Emboar' },
+  501:{ into: 502, level: 17, name: 'Dewott' },
+  502:{ into: 503, level: 36, name: 'Samurott' },
+  504:{ into: 505, level: 20, name: 'Watchog' },
+  506:{ into: 507, level: 16, name: 'Herdier' },
+  507:{ into: 508, level: 32, name: 'Stoutland' },
+  509:{ into: 510, level: 20, name: 'Liepard' },
+  517:{ into: 518, level: 30, name: 'Musharna' },
+  519:{ into: 520, level: 21, name: 'Tranquill' },
+  520:{ into: 521, level: 32, name: 'Unfezant' },
+  522:{ into: 523, level: 27, name: 'Zebstrika' },
+  524:{ into: 525, level: 25, name: 'Boldore' },
+  525:{ into: 526, level: 40, name: 'Gigalith' },
+  527:{ into: 528, level: 32, name: 'Swoobat' },
+  529:{ into: 530, level: 31, name: 'Excadrill' },
+  532:{ into: 533, level: 25, name: 'Gurdurr' },
+  533:{ into: 534, level: 40, name: 'Conkeldurr' },
+  535:{ into: 536, level: 25, name: 'Palpitoad' },
+  536:{ into: 537, level: 36, name: 'Seismitoad' },
+  540:{ into: 541, level: 20, name: 'Swadloon' },
+  541:{ into: 542, level: 30, name: 'Leavanny' },
+  543:{ into: 544, level: 22, name: 'Whirlipede' },
+  544:{ into: 545, level: 30, name: 'Scolipede' },
+  546:{ into: 547, level: 32, name: 'Whimsicott' },
+  548:{ into: 549, level: 28, name: 'Lilligant' },
+  551:{ into: 552, level: 29, name: 'Krokorok' },
+  552:{ into: 553, level: 40, name: 'Krookodile' },
+  554:{ into: 555, level: 35, name: 'Darmanitan' },
+  557:{ into: 558, level: 34, name: 'Crustle' },
+  559:{ into: 560, level: 39, name: 'Scrafty' },
+  562:{ into: 563, level: 34, name: 'Cofagrigus' },
+  564:{ into: 565, level: 37, name: 'Carracosta' },
+  566:{ into: 567, level: 37, name: 'Archeops' },
+  568:{ into: 569, level: 36, name: 'Garbodor' },
+  570:{ into: 571, level: 30, name: 'Zoroark' },
+  572:{ into: 573, level: 25, name: 'Cinccino' },
+  574:{ into: 575, level: 32, name: 'Gothorita' },
+  575:{ into: 576, level: 41, name: 'Gothitelle' },
+  577:{ into: 578, level: 32, name: 'Duosion' },
+  578:{ into: 579, level: 41, name: 'Reuniclus' },
+  580:{ into: 581, level: 35, name: 'Swanna' },
+  582:{ into: 583, level: 35, name: 'Vanillish' },
+  583:{ into: 584, level: 47, name: 'Vanilluxe' },
+  585:{ into: 586, level: 34, name: 'Sawsbuck' },
+  588:{ into: 589, level: 30, name: 'Escavalier' },
+  590:{ into: 591, level: 39, name: 'Amoonguss' },
+  592:{ into: 593, level: 40, name: 'Jellicent' },
+  595:{ into: 596, level: 36, name: 'Galvantula' },
+  597:{ into: 598, level: 40, name: 'Ferrothorn' },
+  599:{ into: 600, level: 38, name: 'Klang' },
+  600:{ into: 601, level: 49, name: 'Klinklang' },
+  602:{ into: 603, level: 39, name: 'Eelektrik' },
+  603:{ into: 604, level: 50, name: 'Eelektross' },
+  605:{ into: 606, level: 42, name: 'Beheeyem' },
+  607:{ into: 608, level: 41, name: 'Lampent' },
+  608:{ into: 609, level: 55, name: 'Chandelure' },
+  610:{ into: 611, level: 38, name: 'Fraxure' },
+  611:{ into: 612, level: 48, name: 'Haxorus' },
+  613:{ into: 614, level: 37, name: 'Beartic' },
+  616:{ into: 617, level: 30, name: 'Accelgor' },
+  619:{ into: 620, level: 50, name: 'Mienshao' },
+  622:{ into: 623, level: 43, name: 'Golurk' },
+  624:{ into: 625, level: 52, name: 'Bisharp' },
+  627:{ into: 628, level: 54, name: 'Braviary' },
+  629:{ into: 630, level: 54, name: 'Mandibuzz' },
+  633:{ into: 634, level: 50, name: 'Zweilous' },
+  634:{ into: 635, level: 64, name: 'Hydreigon' },
+  636:{ into: 637, level: 59, name: 'Volcarona' },
 };
 
 // Returns the minimum realistic level for a species based on its evolution chain.
@@ -895,10 +1027,11 @@ const ACHIEVEMENTS = [
   { id: 'type_quartet',      name: 'Type Supremacy', desc: 'Beat the game with at least 4 of your 6 Pokémon sharing the same type', icon: '🔣' },
   { id: 'all_shiny_win',     name: 'Shiny Squad',    desc: 'Beat the game with every Pokémon on your team being shiny (minimum 3)',             icon: '💫' },
   { id: 'back_to_back',      name: 'On a Roll',      desc: 'Beat the game twice in a row without losing a run in between',  icon: '🔁' },
-  { id: 'endless_stage_1',  name: 'Endless Beginning', desc: 'Clear Stage 1 of Endless Mode',                                 icon: '🌀' },
-  { id: 'endless_stage_5',  name: 'Endless Veteran',   desc: 'Clear Stage 5 of Endless Mode',                                 icon: '🌊' },
-  { id: 'endless_stage_10', name: 'Endless Expert',    desc: 'Clear Stage 10 of Endless Mode',                                icon: '⚔️' },
-  { id: 'endless_stage_20', name: 'Endless Legend',    desc: 'Clear Stage 20 of Endless Mode',                                icon: '🏅' },
+  { id: 'endless_stage_1',  name: 'Kanto Champion',  desc: 'Defeat Ash Ketchum and clear Stage 1 of Endless Mode',   icon: '🌀' },
+  { id: 'endless_stage_2',  name: 'Johto Champion',  desc: 'Defeat Lance and clear Stage 2 of Endless Mode',          icon: '🌊' },
+  { id: 'endless_stage_3',  name: 'Hoenn Champion',  desc: 'Defeat Steven Stone and clear Stage 3 of Endless Mode',   icon: '⚔️' },
+  { id: 'endless_stage_4',  name: 'Sinnoh Champion', desc: 'Defeat Cynthia and clear Stage 4 of Endless Mode',        icon: '💎' },
+  { id: 'endless_stage_5',  name: 'Unova Champion',  desc: 'Defeat N and clear Stage 5 of Endless Mode',              icon: '🏅' },
 ];
 
 function getUnlockedAchievements() {

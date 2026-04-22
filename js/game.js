@@ -203,7 +203,7 @@ async function showStarterSelect() {
         hofY = new Set([...ALL_CATCHABLE_IDS].map(id => getEvoLineRoot(id))).size;
       }
     }
-    if (!hofMode) starters = await getCatchChoices(0, 3, true);
+    if (!hofMode) starters = await getCatchChoices(0, 3, 649);
   } else {
     starters = await Promise.all(STARTER_IDS.map(id => fetchPokemonById(id)));
   }
@@ -559,7 +559,7 @@ function getLevelForNode(node) {
 
 async function doBattleNode(node) {
   const level = (!state.isEndlessMode && state.currentMap >= 1) ? getLevelForNode(node) - 1 : getLevelForNode(node);
-  let choices = await getCatchChoices(getEncounterMapIndex(), 3, state.isEndlessMode);
+  let choices = await getCatchChoices(getEncounterMapIndex(), 3, state.isEndlessMode ? getEndlessMaxGenId(endlessState.stageNumber) : 151);
   const lvlFiltered = choices.filter(sp => minLevelForSpecies(sp.id ?? sp.speciesId) <= level);
   if (lvlFiltered.length > 0) choices = lvlFiltered;
 
@@ -668,7 +668,7 @@ async function doCatchNode(node) {
   const choicesEl = document.getElementById('catch-choices');
   choicesEl.innerHTML = '<div class="loading">Finding Pokemon...</div>';
 
-  let choices = await getCatchChoices(getEncounterMapIndex(), 9, state.isEndlessMode);
+  let choices = await getCatchChoices(getEncounterMapIndex(), 9, state.isEndlessMode ? getEndlessMaxGenId(endlessState.stageNumber) : 151);
   const isFirstMap = state.currentMap === 0 || (state.isEndlessMode && endlessState.regionNumber === 1 && endlessState.mapIndexInRegion === 0);
   const level = isFirstMap ? Math.max(4, getLevelForNode(node)) : getLevelForNode(node);
   const lvlFiltered = choices.filter(sp => minLevelForSpecies(sp.id ?? sp.speciesId) <= level);
@@ -770,7 +770,7 @@ async function doCatchNode(node) {
         ]);
         let src = rerollPool.filter(sp => !otherIds.has(sp.id ?? sp.speciesId));
         if (src.length === 0) {
-          const fresh = await getCatchChoices(getEncounterMapIndex(), 6, state.isEndlessMode);
+          const fresh = await getCatchChoices(getEncounterMapIndex(), 6, state.isEndlessMode ? getEndlessMaxGenId(endlessState.stageNumber) : 151);
           const otherIdsPost = new Set([
             ...instances.filter((_, i) => i !== slotIdx).map(i => i.speciesId),
             ...state.team.map(p => p.speciesId),
@@ -1255,7 +1255,7 @@ async function doTrainerNode(node) {
     const fetched = await Promise.all(ids.map(id => fetchPokemonById(id)));
     speciesList = fetched.filter(Boolean);
   } else {
-    const choices = await getCatchChoices(getEncounterMapIndex(), 3, state.isEndlessMode);
+    const choices = await getCatchChoices(getEncounterMapIndex(), 3, state.isEndlessMode ? getEndlessMaxGenId(endlessState.stageNumber) : 151);
     speciesList = choices.slice(0, teamSize);
   }
 
@@ -1425,7 +1425,7 @@ async function doTradeNode(node) {
 
     const idx = i;
     const doTrade = async () => {
-      let pool = await getCatchChoices(getEncounterMapIndex(), 3, state.isEndlessMode);
+      let pool = await getCatchChoices(getEncounterMapIndex(), 3, state.isEndlessMode ? getEndlessMaxGenId(endlessState.stageNumber) : 151);
       const species = pool[Math.floor(rng() * pool.length)];
       if (!species) { advanceFromNode(state.map, node.id); showMapScreen(); return; }
       const offerLevel = Math.min(100, mine.level + 3);
@@ -1463,7 +1463,7 @@ async function doTradeNode(node) {
 }
 
 async function doShinyNode(node) {
-  let choices = await getCatchChoices(getEncounterMapIndex(), 3, state.isEndlessMode);
+  let choices = await getCatchChoices(getEncounterMapIndex(), 3, state.isEndlessMode ? getEndlessMaxGenId(endlessState.stageNumber) : 151);
   const level = getLevelForNode(node);
   const species = choices[0];
   if (!species) { advanceFromNode(state.map, node.id); showMapScreen(); return; }
@@ -1755,18 +1755,37 @@ function unlockNextStage(completedStage) {
   }
 }
 
+const MAX_ACCESSIBLE_STAGE = 2; // increase when new stage trainers are defined
+
+const STAGE_META = [
+  null,
+  { label: 'Kanto',  gens: 'Gen 1',   color: '#e8503a' },
+  { label: 'Johto',  gens: 'Gen 1-2', color: '#c0a050' },
+  { label: 'Hoenn',  gens: 'Gen 1-3', color: '#60a878' },
+  { label: 'Sinnoh', gens: 'Gen 1-4', color: '#7878c8' },
+  { label: 'Unova',  gens: 'Gen 1-5', color: '#808080' },
+];
+
 function showEndlessStageSelect() {
-  const unlocked = getUnlockedStageCount();
+  const unlocked = Math.min(getUnlockedStageCount(), MAX_ACCESSIBLE_STAGE);
   const list = document.getElementById('stage-select-list');
   if (!list) return;
   list.innerHTML = '';
-  const maxShow = unlocked + 1; // show one locked stage beyond the last unlocked
+  const maxShow = Math.min(unlocked + 1, MAX_ACCESSIBLE_STAGE + 1); // one locked preview beyond last unlocked, capped
   for (let s = 1; s <= maxShow; s++) {
     const isLocked = s > unlocked;
+    const meta = STAGE_META[Math.min(s, 5)];
     const btn = document.createElement('button');
     btn.className = isLocked ? 'btn-secondary' : 'btn-primary';
-    btn.style.cssText = `width:200px;${isLocked ? 'opacity:0.45;cursor:not-allowed;' : 'background:linear-gradient(135deg,#1a0a3e,#3a0a6e);'}`;
-    btn.innerHTML = isLocked ? `🔒 Stage ${s}` : `▶ Stage ${s}`;
+    const borderColor = (!isLocked && meta) ? meta.color : '';
+    btn.style.cssText = `width:200px;${isLocked ? 'opacity:0.45;cursor:not-allowed;' : `background:linear-gradient(135deg,#1a0a3e,#3a0a6e);${borderColor ? `border-color:${borderColor};box-shadow:0 0 6px ${borderColor}55;` : ''}`}`;
+    if (isLocked) {
+      btn.innerHTML = `🔒 Stage ${s}`;
+    } else if (meta) {
+      btn.innerHTML = `<div>▶ Stage ${s} — ${meta.label}</div><div style="font-size:5px;opacity:0.75;margin-top:2px;">${meta.gens}</div>`;
+    } else {
+      btn.innerHTML = `<div>▶ Stage ${s}</div><div style="font-size:5px;opacity:0.75;margin-top:2px;">All Gens</div>`;
+    }
     if (!isLocked) btn.addEventListener('click', () => startEndlessRun(s));
     list.appendChild(btn);
   }
@@ -1896,8 +1915,12 @@ async function doEndlessBossNode() {
   // Fetch all species for this trainer's team
   const speciesArr = await Promise.all(trainerData.speciesIds.map(id => fetchPokemonById(id)));
   const enemyTeam = speciesArr
-    .filter(Boolean)
-    .map(sp => createInstance(sp, trainerData.level, false, Math.min(2, trainerData.moveTier)));
+    .map((sp, i) => ({ sp, i }))
+    .filter(({ sp }) => sp != null)
+    .map(({ sp, i }) => {
+      const offset = trainerData.levelOffsets ? (trainerData.levelOffsets[i] ?? i) : i;
+      return createInstance(sp, Math.min(100, trainerData.level + offset), false, Math.min(2, trainerData.moveTier));
+    });
 
   if (enemyTeam.length === 0) {
     // Fallback if fetching fails
@@ -1907,13 +1930,13 @@ async function doEndlessBossNode() {
 
   // Compute traits right before the fight (enemy bosses also get type trait benefits)
   endlessState.traitTiers = computeTraitTiers(state.team);
-  const enemyTiers = computeTraitTiers(enemyTeam);
+  const enemyTiers = computeTraitTiers(enemyTeam, trainerData.traitBonus ?? 0);
   const traitsConfig = buildTraitsConfig(endlessState.traitTiers, enemyTiers);
   renderBattleTraitBars(endlessState.traitTiers, enemyTiers);
 
   const isStageFinal = isBigBoss && endlessState.regionNumber === 3;
   const title = isStageFinal
-    ? `Stage ${endlessState.stageNumber} Final Boss!`
+    ? `Stage ${endlessState.stageNumber} Final Boss: ${trainerData.archetype.name}!`
     : isBigBoss ? `Big Boss: ${trainerData.archetype.name}!`
     : `Trainer: ${trainerData.archetype.name}!`;
   const battleInfoEl = document.getElementById('battle-title');
@@ -2113,7 +2136,7 @@ function advanceEndless() {
       const completedStage = endlessState.stageNumber;
       saveHallOfFameEntry(state.team, completedStage, false, true, completedStage);
       unlockNextStage(completedStage);
-      [1, 5, 10, 20].forEach(threshold => {
+      [1, 2, 3, 4, 5].forEach(threshold => {
         if (completedStage === threshold) {
           const ach = unlockAchievement(`endless_stage_${threshold}`);
           if (ach) showAchievementToast(ach);

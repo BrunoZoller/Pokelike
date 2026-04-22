@@ -2771,13 +2771,17 @@ function renderEndlessRegionPanel(region, currentMapIndex) {
 
   const header = `<div class="hud-label">S${region.stageNum} R${region.regionNum}</div>`;
   const rows = region.trainers.map((trainer, i) => {
-    const type = trainer.archetype?.type || '???';
+    const type = trainer.archetype?.type || null;
     const name = trainer.archetype?.name || '???';
     const isBigBoss = i === 2;
     const isDone = i < currentMapIndex;
     const isCurrent = i === currentMapIndex;
 
-    const typeClass = type.toLowerCase();
+    const types = type ? type.split('/') : [];
+    const typeBadges = types.map(t =>
+      `<span class="type-badge type-${t.trim().toLowerCase()}" style="font-size:6px;padding:1px 3px;margin-right:1px;">${t.trim()}</span>`
+    ).join('');
+
     const statusIcon = isDone ? '✓ ' : isCurrent ? '▶ ' : '';
     const rowClass = isDone ? 'region-stage-row done'
       : isCurrent ? 'region-stage-row current'
@@ -2786,7 +2790,7 @@ function renderEndlessRegionPanel(region, currentMapIndex) {
     const speciesAttr = (trainer.speciesIds || []).join(',');
 
     return `<div class="${rowClass}" data-species="${speciesAttr}" style="cursor:default;">
-      <span class="type-badge type-${typeClass}" style="font-size:6px;padding:1px 3px;">${type}</span>
+      <span style="display:inline-flex;gap:1px;align-items:center;">${typeBadges}</span>
       <span class="region-stage-name">${statusIcon}${isBigBoss ? '★ ' : ''}${name}</span>
       <span class="region-stage-level">Lv${trainer.level}</span>
     </div>`;

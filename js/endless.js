@@ -71,7 +71,7 @@ function getEndlessLevelRange(stageNum, regionNum, mapIndex) {
   // R1M1 (slot 0) is identical every stage. Every subsequent slot gains
   // floor(0.5 * slot * (stage - 1)) levels so later maps scale harder in higher stages.
   const localSlot = (regionNum - 1) * 3 + mapIndex;  // 0-8 within the stage
-  const stageBonus = Math.floor(0.5 * localSlot * (stageNum - 1));
+  const stageBonus = Math.floor(2.5 * localSlot * (stageNum - 1));
   if (localSlot < ENDLESS_LEVEL_SLOTS.length) {
     const [min, max] = ENDLESS_LEVEL_SLOTS[localSlot];
     return [min + stageBonus, max + stageBonus];
@@ -80,39 +80,131 @@ function getEndlessLevelRange(stageNum, regionNum, mapIndex) {
   return [53 + stageBonus + extra * 8, 64 + stageBonus + extra * 8];
 }
 
+// ── Gen gating ────────────────────────────────────────────────────────────────
+
+// Max Pokémon ID allowed per stage (stages 6+ use 649 = all gens)
+const STAGE_MAX_GEN_ID = [0, 151, 251, 386, 493, 649];
+function getEndlessMaxGenId(stageNum) {
+  return STAGE_MAX_GEN_ID[Math.min(stageNum, 5)];
+}
+
 // ── Archetype pool ────────────────────────────────────────────────────────────
 
 const ENDLESS_ARCHETYPES = [
   { id: 'fire_ace',         name: 'Fire Ace',         type: 'Fire',     sprite: 'aceTrainer',
-    pool: [4,5,6,58,59,77,78,126,136,38,250,157,156] },
+    pool: [4,5,6,58,59,77,78,126,136,38,250,157,156,467,499,500,554,555,636,637] },
   { id: 'psychic_sage',     name: 'Psychic Sage',     type: 'Psychic',  sprite: 'scientist',
-    pool: [63,64,65,79,80,96,97,102,103,122,196] },
+    pool: [63,64,65,79,80,96,97,102,103,122,196,475,576,578,579,605,606] },
   { id: 'water_lord',       name: 'Water Lord',       type: 'Water',    sprite: 'fisherman',
-    pool: [54,55,60,61,62,72,73,86,87,90,91,98,99,116,117,118,119,129,130,134] },
+    pool: [54,55,60,61,62,72,73,86,87,90,91,98,99,116,117,118,119,129,130,134,418,419,456,457,502,503,580,581,592,593] },
   { id: 'rock_titan',       name: 'Rock Titan',       type: 'Rock',     sprite: 'hiker',
-    pool: [74,75,76,95,111,112,138,139,140,141,142,248,213] },
+    pool: [74,75,76,95,111,112,138,139,140,141,142,248,213,408,409,410,411,524,525,526,557,558] },
   { id: 'bug_queen',        name: 'Bug Queen',         type: 'Bug',      sprite: 'bugcatcher',
-    pool: [10,11,12,13,14,15,46,47,48,49,123,127,165,166,212] },
+    pool: [10,11,12,13,14,15,46,47,48,49,123,127,165,166,212,469,540,541,542,543,544,545,595,596,616,617,636,637] },
   { id: 'ghost_lord',       name: 'Ghost Lord',       type: 'Ghost',    sprite: 'scientist',
-    pool: [92,93,94,200,292,356,477,302,354,355] },
+    pool: [92,93,94,200,292,356,477,302,354,355,562,563,607,608,609] },
   { id: 'electric_sage',    name: 'Electric Sage',    type: 'Electric', sprite: 'aceTrainer',
-    pool: [25,26,81,82,100,101,125,135,466] },
+    pool: [25,26,81,82,100,101,125,135,466,522,523,587,595,596,602,603,604] },
   { id: 'ice_master',       name: 'Ice Master',       type: 'Ice',      sprite: 'aceTrainer',
-    pool: [87,91,124,131,215,220,221,361,362,471,473] },
+    pool: [87,91,124,131,215,220,221,361,362,471,473,459,460,582,583,584,613,614] },
   { id: 'ground_giant',     name: 'Ground Giant',     type: 'Ground',   sprite: 'hiker',
-    pool: [27,28,50,51,74,75,76,104,105,111,112,194,195] },
+    pool: [27,28,50,51,74,75,76,104,105,111,112,194,195,449,450,529,530,551,552,553] },
   { id: 'poison_witch',     name: 'Poison Witch',     type: 'Poison',   sprite: 'teamrocket',
-    pool: [23,24,29,30,31,32,33,34,41,42,43,44,45,88,89,109,110,169] },
+    pool: [23,24,29,30,31,32,33,34,41,42,43,44,45,88,89,109,110,169,434,435,453,454,568,569] },
   { id: 'normal_champion',  name: 'Normal Champion',  type: 'Normal',   sprite: 'aceTrainer',
-    pool: [19,20,52,53,55,83,84,85,128,133,143,163,164,241,235,446] },
+    pool: [19,20,52,53,55,83,84,85,128,133,143,163,164,241,235,446,424,504,505,506,507,508,572,573] },
   { id: 'flying_master',    name: 'Flying Master',    type: 'Flying',   sprite: 'aceTrainer',
-    pool: [16,17,18,21,22,83,84,85,123,142,149,469,227] },
+    pool: [16,17,18,21,22,83,84,85,123,142,149,469,227,396,397,398,519,520,521,627,628] },
   { id: 'grass_druid',      name: 'Grass Druid',      type: 'Grass',    sprite: 'aceTrainer',
-    pool: [1,2,3,43,44,45,69,70,71,102,103,114,182,187,188,189,357] },
-  // Stage Final Boss — mixed elite team
-  { id: 'elite_alltype',    name: 'Elite Master',     type: null,       sprite: 'aceTrainer',
-    pool: [130,149,59,65,94,143,6,131,248,376,373,445,380,381,384,385] },
+    pool: [1,2,3,43,44,45,69,70,71,102,103,114,182,187,188,189,357,406,407,495,496,497,546,547,548,549] },
+  { id: 'dragon_lord',      name: 'Dragon Lord',      type: 'Dragon',   sprite: 'aceTrainer',
+    pool: [147,148,149,230,329,330,334,373,443,444,445,610,611,612,633,634,635] },
+  { id: 'dark_shadow',      name: 'Dark Shadow',      type: 'Dark',     sprite: 'teamrocket',
+    pool: [197,198,215,228,229,248,261,302,359,461,509,510,570,571,624,625,629,630] },
+  { id: 'steel_guard',      name: 'Steel Guard',      type: 'Steel',    sprite: 'aceTrainer',
+    pool: [81,82,208,212,227,302,303,304,305,306,385,436,437,476,597,598,599,600,601,622,623] },
+  { id: 'fighting_dojo',    name: 'Fighting Master',  type: 'Fighting', sprite: 'hiker',
+    pool: [56,57,62,66,67,68,106,107,214,237,286,447,448,532,533,534,538,539,619,620] },
+  // Per-stage final bosses (region 3 map 2 for stages 1-5)
+  { id: 'stage1_boss', name: 'Ash Ketchum', type: null, sprite: 'aceTrainer',
+    pool: [25,6,1,7,18,143] },
+  { id: 'stage2_boss', name: 'Champion Lance', type: null, sprite: 'aceTrainer',
+    pool: [149,148,142,6,130,248] },
+  { id: 'stage3_boss', name: 'Steven Stone', type: null, sprite: 'aceTrainer',
+    pool: [376,373,227,302,306,308] },
+  { id: 'stage4_boss', name: 'Cynthia', type: null, sprite: 'aceTrainer',
+    pool: [445,448,350,430,460,468] },
+  { id: 'stage5_boss', name: 'N', type: null, sprite: 'aceTrainer',
+    pool: [571,600,584,565,537,635] },
+  // Stages 6+ final boss — mixed elite team
+  { id: 'elite_alltype', name: 'Elite Master', type: null, sprite: 'aceTrainer',
+    pool: [130,149,59,65,94,143,6,131,248,376,373,445,380,381,384,385,448,571,635,637] },
 ];
+
+const STAGE_BOSS_ARCHETYPE = ['', 'stage1_boss', 'stage2_boss', 'stage3_boss', 'stage4_boss', 'stage5_boss'];
+
+// ── Fixed stage teams ─────────────────────────────────────────────────────────
+
+// Hand-crafted trainer teams per stage+region. Each trainer spec:
+//   { name, type, sprite, ids[], extraLevels?: { pokemonIndex: extraLvl } }
+// Level per pokemon = baseLevel + positionIndex + (extraLevels[index] ?? 0)
+const FIXED_STAGE_REGIONS = {
+  1: [
+    [ // Region 1
+      { name: 'Grass Trainer',   type: 'Grass',    sprite: 'aceTrainer',  ids: [69, 1] },
+      { name: 'Water Trainer',   type: 'Water',    sprite: 'fisherman',   ids: [61, 7] },
+      { name: 'Fire Trainer',    type: 'Fire',     sprite: 'aceTrainer',  ids: [126, 58, 5] },
+    ],
+    [ // Region 2
+      { name: 'Flying Master',   type: 'Flying',   sprite: 'aceTrainer',  ids: [85, 22, 18] },
+      { name: 'Bug Queen',       type: 'Bug',      sprite: 'bugcatcher',  ids: [12, 15, 127, 123] },
+      { name: 'Ice / Electric',  type: 'Electric', sprite: 'aceTrainer',  ids: [124, 125, 131, 101, 135] },
+    ],
+    [ // Region 3
+      { name: 'Psychic Sage',    type: 'Psychic',  sprite: 'scientist',   ids: [71, 103, 121, 80, 122, 65] },
+      { name: 'Ghost / Poison',  type: 'Poison',   sprite: 'teamrocket',  ids: [89, 73, 71, 45, 93, 94] },
+      // Ash: Pikachu (last slot) gets +5 extra levels on top of its position offset
+      { name: 'Ash Ketchum',     type: null,       sprite: 'aceTrainer',  ids: [143, 149, 3, 9, 6, 25], extraLevels: { 5: 5 }, traitBonus: 1 },
+    ],
+  ],
+  2: [
+    [ // Region 1
+      { name: 'Electric Trainer', type: 'Electric',       sprite: 'aceTrainer',  ids: [172, 180, 239] },
+      { name: 'Poison Trainer',   type: 'Poison',         sprite: 'teamrocket',  ids: [211, 167, 41] },
+      { name: 'Steel Guard',      type: 'Steel',          sprite: 'aceTrainer',  ids: [205, 227, 208, 212] },
+    ],
+    [ // Region 2
+      { name: 'Normal Ace',       type: 'Normal',         sprite: 'aceTrainer',  ids: [234, 162, 164, 217, 203, 242] },
+      { name: 'Rock Titan',       type: 'Rock',           sprite: 'hiker',       ids: [185, 219, 222, 112, 95, 248] },
+      { name: 'Grass / Psychic',  type: 'Grass/Psychic',  sprite: 'scientist',   ids: [102, 154, 192, 65, 196, 251] },
+    ],
+    [ // Region 3
+      { name: 'Fire / Flying',    type: 'Fire/Flying',    sprite: 'aceTrainer',  ids: [157, 219, 38, 6, 244, 250] },
+      { name: 'Water / Flying',   type: 'Water/Flying',   sprite: 'fisherman',   ids: [184, 178, 176, 199, 245, 249] },
+      // Silver: Crobat (last slot) gets +5 extra levels
+      { name: 'Silver',           type: null,             sprite: 'aceTrainer',  ids: [215, 160, 82, 94, 65, 169], extraLevels: { 5: 5 }, traitBonus: 1 },
+    ],
+  ],
+};
+
+function buildFixedRegion(stageNum, regionNum, fixedTrainers) {
+  const moveTier = stageNum <= 1 ? 1 : 2;
+  const trainers = fixedTrainers.map((spec, i) => {
+    const isBigBoss = i === 2;
+    const [, maxL] = getEndlessLevelRange(stageNum, regionNum, i);
+    const levelOffsets = spec.ids.map((_, j) => j + ((spec.extraLevels && spec.extraLevels[j]) || 0));
+    return {
+      archetype: { id: `fixed_${stageNum}_${regionNum}_${i}`, name: spec.name, type: spec.type, sprite: spec.sprite },
+      level: maxL,
+      moveTier: isBigBoss ? moveTier + 1 : moveTier,
+      teamSize: spec.ids.length,
+      speciesIds: spec.ids,
+      levelOffsets,
+      traitBonus: spec.traitBonus ?? 0,
+    };
+  });
+  return { stageNum, regionNum, trainers };
+}
 
 // ── Region rolling ────────────────────────────────────────────────────────────
 
@@ -128,46 +220,66 @@ function seededRng(seed) {
 }
 
 function rollRegion(stageNum, regionNum) {
+  // Stage 1 (and future fixed stages) use hand-crafted teams
+  const fixedRegionSpecs = FIXED_STAGE_REGIONS[stageNum]?.[regionNum - 1];
+  if (fixedRegionSpecs) return buildFixedRegion(stageNum, regionNum, fixedRegionSpecs);
+
   const moveTier = stageNum <= 1 ? 1 : 2;
   const srng = seededRng(stageNum * 1000 + regionNum);
+  const maxGenId = getEndlessMaxGenId(stageNum);
 
-  // Shuffle all non-elite archetypes deterministically
-  const pool = ENDLESS_ARCHETYPES.filter(a => a.id !== 'elite_alltype');
-  const shuffled = [...pool].sort(() => srng() - 0.5);
+  // Shuffle all regular archetypes deterministically (exclude boss/elite entries)
+  const bossIds = new Set(['elite_alltype', 'stage1_boss', 'stage2_boss', 'stage3_boss', 'stage4_boss', 'stage5_boss']);
+  const regularPool = ENDLESS_ARCHETYPES.filter(a => !bossIds.has(a.id));
+  const shuffled = [...regularPool].sort(() => srng() - 0.5);
 
   const slotBase = (regionNum - 1) * 3;
-
   const noLegend = id => !LEGENDARY_ID_SET.has(id);
 
   const regularBosses = shuffled.slice(0, 2).map((arch, i) => {
     const [, maxL] = getEndlessLevelRange(stageNum, regionNum, i);
     const level = maxL;
     const teamSize = ENDLESS_TEAM_SIZES[slotBase + i] ?? 4;
-    const eligible = arch.pool.filter(id => noLegend(id) && minLevelForSpecies(id) <= level);
-    const srcPool = eligible.length ? eligible : arch.pool.filter(noLegend);
+    const eligible = arch.pool.filter(id => id <= maxGenId && noLegend(id) && minLevelForSpecies(id) <= level);
+    const fallback = arch.pool.filter(id => id <= maxGenId && noLegend(id));
+    const srcPool = eligible.length ? eligible : (fallback.length ? fallback : arch.pool.filter(id => id <= maxGenId && noLegend(id)).concat(arch.pool.filter(noLegend)).slice(0, 6));
     const ids = [...srcPool].sort(() => srng() - 0.5).slice(0, teamSize);
-    return { archetype: arch, level, moveTier, teamSize, speciesIds: ids };
+    const levelOffsets = ids.map((_, j) => j);
+    return { archetype: arch, level, moveTier, teamSize, speciesIds: ids, levelOffsets };
   });
 
-  // Region 3 big boss IS the stage final boss — use elite_alltype
+  // Region 3 big boss: use stage-specific boss for stages 1-5, elite_alltype for 6+
   const isFinalRegion = regionNum === 3;
-  const bigBossArch = isFinalRegion
-    ? ENDLESS_ARCHETYPES.find(a => a.id === 'elite_alltype')
-    : (shuffled[2] || ENDLESS_ARCHETYPES.find(a => a.id !== 'elite_alltype'));
+  let bigBossArch;
+  if (isFinalRegion) {
+    const stageBossId = STAGE_BOSS_ARCHETYPE[stageNum];
+    bigBossArch = stageBossId
+      ? ENDLESS_ARCHETYPES.find(a => a.id === stageBossId)
+      : ENDLESS_ARCHETYPES.find(a => a.id === 'elite_alltype');
+  } else {
+    bigBossArch = shuffled[2] || regularPool[0];
+  }
   const [, bigMaxL] = getEndlessLevelRange(stageNum, regionNum, 2);
   const bigBossLevel = bigMaxL;
   const bigBossTeamSize = ENDLESS_TEAM_SIZES[slotBase + 2] ?? 6;
-  // Non-final big bosses also exclude legendaries; final boss (elite_alltype) keeps them
-  const bigBossFilter = id => minLevelForSpecies(id) <= bigBossLevel && (isFinalRegion || noLegend(id));
+  // Stage bosses (1-5) skip gen and legendary filters (hand-curated pools).
+  // Elite (6+) allows legendaries but still caps at gen 5.
+  const isStageBoss = isFinalRegion && stageNum <= 5;
+  const bigBossFilter = id =>
+    minLevelForSpecies(id) <= bigBossLevel &&
+    (isFinalRegion || noLegend(id)) &&
+    (isStageBoss || id <= maxGenId);
   const bigBossEligible = bigBossArch.pool.filter(bigBossFilter);
-  const bigBossSrcPool = bigBossEligible.length ? bigBossEligible : bigBossArch.pool.filter(isFinalRegion ? () => true : noLegend);
+  const bigBossSrcPool = bigBossEligible.length ? bigBossEligible : bigBossArch.pool;
   const bigBossIds = [...bigBossSrcPool].sort(() => srng() - 0.5).slice(0, bigBossTeamSize);
+  const bigBossLevelOffsets = bigBossIds.map((_, j) => j);
   const bigBoss = {
     archetype: bigBossArch,
     level: bigBossLevel,
     moveTier: moveTier + 1,
     teamSize: bigBossTeamSize,
     speciesIds: bigBossIds,
+    levelOffsets: bigBossLevelOffsets,
   };
 
   return {
@@ -181,7 +293,7 @@ function rollRegion(stageNum, regionNum) {
 
 // Returns { Fire: 2, Water: 1, ... } — tier per type (1/2/3), omits inactive types.
 // Shiny pokemon count as 2 of each of their types.
-function computeTraitTiers(team) {
+function computeTraitTiers(team, tierBonus = 0) {
   const counts = {};
   for (const p of team) {
     const multiplier = p.isShiny ? 2 : 1;
@@ -191,7 +303,8 @@ function computeTraitTiers(team) {
   }
   const tiers = {};
   for (const [type, count] of Object.entries(counts)) {
-    const tier = Math.min(3, Math.floor(count / 2));
+    if (count === 0) continue;
+    const tier = Math.min(3, Math.floor(count / 2) + tierBonus);
     if (tier > 0) tiers[type] = tier;
   }
   return tiers;
@@ -464,8 +577,8 @@ function buildTraitsConfig(playerTiers, enemyTiers = {}) {
         for (const { p, i } of survivors) {
           triggers.push({ type: 'trait_trigger', traitType: 'Fighting', side: fSide, idx: i,
             name: p.nickname || p.name, description: `Fighting Trait T${tier}: Rally!` });
-          applyStageChange(p, 'atk', boost, fSide, i, efx);
-          applyStageChange(p, 'spatk', boost, fSide, i, efx);
+          applyStageChange(p, 'atk',     boost, fSide, i, efx);
+          applyStageChange(p, 'special', boost, fSide, i, efx);
         }
         for (const e of triggers) log.push(e);
         for (const e of efx) log.push(e);
