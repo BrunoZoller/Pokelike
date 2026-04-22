@@ -2109,10 +2109,31 @@ function getEvoLineRoot(speciesId) {
   for (const [from, evo] of Object.entries(GEN1_EVOLUTIONS)) {
     parentOf[evo.into] = Number(from);
   }
-  // Eeveelutions branch from Eevee (133) — not in GEN1_EVOLUTIONS, add manually
   for (const evo of (typeof EEVEE_EVOLUTIONS !== 'undefined' ? EEVEE_EVOLUTIONS : [])) {
     parentOf[evo.into] = 133;
   }
+  // Branch / trade / friendship evolutions missing from GEN1_EVOLUTIONS
+  Object.assign(parentOf, {
+    26:  25,   // Raichu ← Pikachu
+    186: 61,   // Politoed ← Poliwhirl
+    199: 79,   // Slowking ← Slowpoke
+    230: 117,  // Kingdra ← Seadra
+    233: 137,  // Porygon2 ← Porygon
+    242: 113,  // Blissey ← Chansey
+    464: 112,  // Rhyperior ← Rhydon
+    465: 114,  // Tangrowth ← Tangela
+    466: 125,  // Electivire ← Electabuzz
+    467: 126,  // Magmortar ← Magmar
+    468: 176,  // Togekiss ← Togetic
+    469: 193,  // Yanmega ← Yanma
+    470: 133,  // Leafeon ← Eevee
+    471: 133,  // Glaceon ← Eevee
+    472: 207,  // Gliscor ← Gligar
+    473: 221,  // Mamoswine ← Piloswine
+    474: 233,  // Porygon-Z ← Porygon2
+    475: 281,  // Gallade ← Kirlia
+    477: 356,  // Dusknoir ← Dusclops
+  });
   let id = speciesId;
   while (parentOf[id] !== undefined) id = parentOf[id];
   return id;

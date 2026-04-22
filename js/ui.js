@@ -16,6 +16,23 @@ const _itemTooltip = (() => {
   };
 })();
 
+document.addEventListener('mouseover', e => {
+  if (!_hoverEnabled || !state?.isEndlessMode) return;
+  const badge = e.target.closest('.type-badge');
+  if (!badge) return;
+  const tc = [...badge.classList].find(c => c !== 'type-badge' && c.startsWith('type-'));
+  if (!tc) return;
+  const type = tc.replace('type-', '').replace(/^./, c => c.toUpperCase());
+  if (!TRAIT_DESCRIPTIONS?.[type]) return;
+  const tiers = typeof computeTraitTiers === 'function' ? computeTraitTiers(state.team) : {};
+  const tier = tiers[type] ?? 0;
+  const text = tier > 0 ? `T${tier}: ${TRAIT_DESCRIPTIONS[type][tier - 1]}` : 'Not active (need 2+ of this type)';
+  _itemTooltip.show(`${type} — ${text}`, e.clientX + 14, e.clientY - 8);
+});
+document.addEventListener('mouseout', e => {
+  if (e.target.classList?.contains('type-badge')) _itemTooltip.hide();
+});
+
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   const s = document.getElementById(id);

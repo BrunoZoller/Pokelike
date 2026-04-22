@@ -2359,15 +2359,14 @@ body.dark-mode #btn-hard-run:hover { box-shadow: 4px 4px 0 0 #cc2222; }
   /* Show the stage/region label in the mobile header */
   #map-info { display: block; }
 
-  /* Panels above, map fills remaining space at the bottom */
-  .map-panels { order: 1; }
+  /* Map first, panels below */
   #map-container {
-    order: 2;
-    flex: 1;
+    order: 1;
     min-height: 0;
-    max-height: none;
+    max-height: 46vh;
     width: 100%;
   }
+  .map-panels { order: 2; }
 
   /* Trait panel hidden — visible during battle, saves critical space */
   .map-panel-traits { display: none !important; }
