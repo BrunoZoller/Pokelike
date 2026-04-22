@@ -164,25 +164,25 @@ const FIXED_STAGE_REGIONS = {
       { name: 'Psychic Sage',    type: 'Psychic',  sprite: 'scientist',   ids: [71, 103, 121, 80, 122, 65] },
       { name: 'Ghost / Poison',  type: 'Poison',   sprite: 'teamrocket',  ids: [89, 73, 71, 45, 93, 94] },
       // Ash: Pikachu (last slot) gets +5 extra levels on top of its position offset
-      { name: 'Ash Ketchum',     type: null,       sprite: 'aceTrainer',  ids: [143, 149, 3, 9, 6, 25], extraLevels: { 5: 5 }, traitBonus: 1 },
+      { name: 'Ash Ketchum',     type: null,       sprite: 'ash',         ids: [143, 149, 3, 9, 6, 25], extraLevels: { 5: 5 }, traitBonus: 1 },
     ],
   ],
   2: [
     [ // Region 1
-      { name: 'Electric Trainer', type: 'Electric',       sprite: 'aceTrainer',  ids: [172, 180, 239] },
-      { name: 'Poison Trainer',   type: 'Poison',         sprite: 'teamrocket',  ids: [211, 167, 41] },
-      { name: 'Steel Guard',      type: 'Steel',          sprite: 'aceTrainer',  ids: [205, 227, 208, 212] },
+      { name: 'Eusine',  type: 'Electric',      sprite: 'eusine',       ids: [172, 180, 239] },
+      { name: 'Janine',  type: 'Poison',        sprite: 'janine',       ids: [211, 167, 41] },
+      { name: 'Jasmine', type: 'Steel',         sprite: 'jasmine',      ids: [205, 227, 208, 212] },
     ],
     [ // Region 2
-      { name: 'Normal Ace',       type: 'Normal',         sprite: 'aceTrainer',  ids: [234, 162, 164, 217, 203, 242] },
-      { name: 'Rock Titan',       type: 'Rock',           sprite: 'hiker',       ids: [185, 219, 222, 112, 95, 248] },
-      { name: 'Grass / Psychic',  type: 'Grass/Psychic',  sprite: 'scientist',   ids: [102, 154, 192, 65, 196, 251] },
+      { name: 'Whitney', type: 'Normal',        sprite: 'whitney',      ids: [241, 162, 164, 217, 203, 242] },
+      { name: 'Brock',   type: 'Rock',          sprite: 'brock-lgpe',   ids: [185, 219, 222, 112, 95, 248] },
+      { name: 'Sabrina', type: 'Grass/Psychic', sprite: 'sabrina-lgpe', ids: [102, 154, 192, 65, 196, 251] },
     ],
     [ // Region 3
-      { name: 'Fire / Flying',    type: 'Fire/Flying',    sprite: 'aceTrainer',  ids: [157, 219, 38, 6, 244, 250] },
-      { name: 'Water / Flying',   type: 'Water/Flying',   sprite: 'fisherman',   ids: [184, 178, 176, 199, 245, 249] },
+      { name: 'Blaine',  type: 'Fire/Flying',   sprite: 'blaine',       ids: [157, 219, 38, 6, 244, 250] },
+      { name: 'Eusine',  type: 'Water/Flying',  sprite: 'eusine',       ids: [184, 178, 176, 199, 245, 249] },
       // Silver: Crobat (last slot) gets +5 extra levels
-      { name: 'Silver',           type: null,             sprite: 'aceTrainer',  ids: [215, 160, 82, 94, 65, 169], extraLevels: { 5: 5 }, traitBonus: 1 },
+      { name: 'Silver',  type: null,            sprite: 'silver-masters', ids: [215, 160, 82, 94, 65, 169], extraLevels: { 5: 5 }, traitBonus: 1 },
     ],
   ],
 };
