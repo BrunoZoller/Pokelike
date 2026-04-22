@@ -24,10 +24,15 @@ document.addEventListener('mouseover', e => {
   if (!tc) return;
   const type = tc.replace('type-', '').replace(/^./, c => c.toUpperCase());
   if (!TRAIT_DESCRIPTIONS?.[type]) return;
-  const tiers = typeof computeTraitTiers === 'function' ? computeTraitTiers(state.team) : {};
-  const tier = tiers[type] ?? 0;
-  const text = tier > 0 ? `T${tier}: ${TRAIT_DESCRIPTIONS[type][tier - 1]}` : 'Not active (need 2+ of this type)';
-  _itemTooltip.show(`${type} — ${text}`, e.clientX + 14, e.clientY - 8);
+  const counts = {};
+  for (const p of state.team) { const m = p.isShiny ? 2 : 1; for (const t of (p.types || [])) counts[t] = (counts[t] || 0) + m; }
+  const count = counts[type] ?? 0;
+  const maxTier = TRAIT_DESCRIPTIONS[type].length;
+  const tier = Math.min(maxTier, Math.floor(count / 2));
+  const next = tier < maxTier ? (tier + 1) * 2 : null;
+  const progress = next != null ? ` (${count}/${next})` : ' (maxed)';
+  const desc = TRAIT_DESCRIPTIONS[type][0];
+  _itemTooltip.show(`${type}: ${desc}${progress}`, e.clientX + 14, e.clientY - 8);
 });
 document.addEventListener('mouseout', e => {
   if (e.target.classList?.contains('type-badge')) _itemTooltip.hide();
