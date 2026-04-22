@@ -1966,6 +1966,8 @@ async function doEndlessBossNode() {
   if (battleInfoEl) battleInfoEl.textContent = title;
   const battleSubEl = document.getElementById('battle-subtitle');
   if (battleSubEl) battleSubEl.textContent = '';
+  const enemySideLabel = document.getElementById('enemy-side-label');
+  if (enemySideLabel) enemySideLabel.textContent = trainerData.archetype.name;
 
   const won = await runBattleScreen(
     enemyTeam, true, null, null,

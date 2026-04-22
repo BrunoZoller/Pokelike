@@ -2898,6 +2898,7 @@ function showMapNotification(msg) {
 function renderTrainerIcons(gender, enemyName = null, showPlayer = true) {
   const playerEl = document.getElementById('player-trainer-icon');
   const enemyEl  = document.getElementById('enemy-trainer-icon');
+  const labelEl  = document.getElementById('enemy-side-label');
   if (playerEl) {
     if (showPlayer) playerEl.innerHTML = TRAINER_SVG[gender] || TRAINER_SVG.boy;
     else playerEl.innerHTML = '';
@@ -2912,6 +2913,7 @@ function renderTrainerIcons(gender, enemyName = null, showPlayer = true) {
       enemyEl.innerHTML = ''; // Wild battle — no enemy trainer portrait
     }
   }
+  if (labelEl) labelEl.textContent = 'Enemy';
 }
 
 // Play the classic white-flash evolution animation
