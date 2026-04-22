@@ -205,10 +205,10 @@ const FIXED_STAGE_REGIONS = {
   ],
   4: [
     [ // Region 1
-      { name: 'Clemont',  type: 'Electric', sprite: 'clemont',          ids: [417, 172, 179, 403, 312, 311] },
       { name: 'Koga',     type: 'Poison',   sprite: 'koga',             ids: [92, 93, 41, 42, 315, 2] },
       // Aaron: Bug team with +3 extra levels across all members
       { name: 'Aaron',    type: 'Bug',      sprite: 'aaron',            ids: [267, 12, 123, 291, 416, 469], levelBonus: 3 },
+      { name: 'Clemont',  type: 'Electric', sprite: 'clemont',          ids: [417, 172, 179, 403, 312, 311] },
     ],
     [ // Region 2
       { name: 'Bertha',   type: 'Ground',   sprite: 'bertha',           ids: [323, 472, 464, 330, 450, 383] },
