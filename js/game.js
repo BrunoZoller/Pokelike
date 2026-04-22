@@ -183,13 +183,11 @@ async function showStarterSelect() {
   container.parentElement.querySelectorAll('.hof-starter-label').forEach(el => el.remove());
 
   if (state.isEndlessMode) {
-    // --- Section 1: 3 random starters from the current gen ---
+    // --- Section 1: 3 random starters from the current gen (bare cards, no box) ---
     const maxGenId = getEndlessMaxGenId(endlessState.stageNumber);
     const randomSpecies = await getCatchChoices(0, 3, maxGenId);
-    const randomSection = document.createElement('div');
-    randomSection.className = 'pc-box';
-    randomSection.innerHTML = `<div class="pc-box-titlebar"><span>PICK A STARTER</span></div><div class="pc-box-body starter-card-row"></div>`;
-    const randomBody = randomSection.querySelector('.starter-card-row');
+    const randomRow = document.createElement('div');
+    randomRow.className = 'starter-card-row';
     for (const species of randomSpecies) {
       if (!species) continue;
       const isShiny = rng() < (hasShinyCharm() ? 0.02 : 0.01);
@@ -203,9 +201,9 @@ async function showStarterSelect() {
       card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') selectStarter(inst); });
       card.addEventListener('mouseenter', () => showTeamHoverCard(inst, card));
       card.addEventListener('mouseleave', () => hideTeamHoverCard());
-      randomBody.appendChild(card);
+      randomRow.appendChild(card);
     }
-    container.appendChild(randomSection);
+    container.appendChild(randomRow);
 
     // --- Section 2: HoF PC (past run Pokémon only) ---
     const allHofEntries = getHallOfFame();
