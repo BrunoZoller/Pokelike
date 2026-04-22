@@ -299,6 +299,53 @@ async function showStarterSelect() {
     }
 
     container.appendChild(box);
+
+    // Regional starters section — one row per unlocked stage
+    const unlockedCount = getUnlockedStageCount();
+    const regionStarterIds = [];
+    for (let s = 1; s <= Math.min(unlockedCount, REGION_STARTERS.length - 1); s++) {
+      for (const id of (REGION_STARTERS[s] || [])) regionStarterIds.push({ id, stage: s });
+    }
+    if (regionStarterIds.length > 0) {
+      const fetched = await Promise.all(regionStarterIds.map(({ id }) => fetchPokemonById(id)));
+      const regionInstances = fetched.map((species, i) => {
+        if (!species) return null;
+        const isShiny = rng() < (hasShinyCharm() ? 0.02 : 0.01);
+        const inst = createInstance(species, startLevel, isShiny, 0);
+        loadBuffsIntoPokemon(inst);
+        inst._regionStage = regionStarterIds[i].stage;
+        return inst;
+      }).filter(Boolean);
+
+      const regionBox = document.createElement('div');
+      regionBox.className = 'pc-box';
+      regionBox.innerHTML = `<div class="pc-box-titlebar"><span>REGIONAL STARTERS</span></div><div class="pc-box-body"><div class="pc-box-grid" style="grid-template-columns:repeat(${Math.min(regionInstances.length, 9)},1fr);"></div></div>`;
+      const regionGrid = regionBox.querySelector('.pc-box-grid');
+
+      for (const inst of regionInstances) {
+        const typeBadges = (inst.types || []).map(t =>
+          `<span class="type-badge type-${t.toLowerCase()}" style="font-size:5px;padding:1px 2px;">${t}</span>`).join('');
+        const meta = STAGE_META[inst._regionStage];
+        const slot = document.createElement('div');
+        slot.className = 'pc-slot';
+        slot.setAttribute('role', 'button');
+        slot.setAttribute('tabindex', '0');
+        slot.innerHTML = `
+          <div style="font-size:7px;color:${meta?.color||'#aaa'};margin-bottom:1px;">${meta?.label||''}</div>
+          <img src="${inst.spriteUrl}" alt="${inst.name}">
+          <div class="pc-slot-name">${inst.name}</div>
+          <div class="pc-slot-lv">Lv.${startLevel}</div>
+          <div style="display:flex;gap:2px;flex-wrap:wrap;justify-content:center;">${typeBadges}</div>`;
+        const stars = makeMaxedStarsEl(inst.speciesId);
+        if (stars) slot.appendChild(stars);
+        slot.addEventListener('click', () => selectStarter(inst));
+        slot.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') selectStarter(inst); });
+        slot.addEventListener('mouseenter', () => showTeamHoverCard(inst, slot));
+        slot.addEventListener('mouseleave', () => hideTeamHoverCard());
+        regionGrid.appendChild(slot);
+      }
+      container.appendChild(regionBox);
+    }
   } else {
     container.style.display = 'flex';
     container.style.justifyContent = 'center';
@@ -1766,6 +1813,16 @@ const STAGE_META = [
   { label: 'Hoenn',  gens: 'Gen 1-3', color: '#60a878' },
   { label: 'Sinnoh', gens: 'Gen 1-4', color: '#7878c8' },
   { label: 'Unova',  gens: 'Gen 1-5', color: '#808080' },
+];
+
+// Starter Pokémon for each endless stage (base forms)
+const REGION_STARTERS = [
+  null,
+  [1,   4,   7],   // Kanto
+  [152, 155, 158], // Johto
+  [252, 255, 258], // Hoenn
+  [387, 390, 393], // Sinnoh
+  [495, 498, 501], // Unova
 ];
 
 function showEndlessStageSelect() {
