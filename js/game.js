@@ -1757,7 +1757,7 @@ function unlockNextStage(completedStage) {
   }
 }
 
-const MAX_ACCESSIBLE_STAGE = 2; // increase when new stage trainers are defined
+const MAX_ACCESSIBLE_STAGE = 3; // increase when new stage trainers are defined
 
 const STAGE_META = [
   null,
@@ -1934,8 +1934,9 @@ async function doEndlessBossNode() {
   const trainerData = region.trainers[endlessState.mapIndexInRegion];
   const isBigBoss = endlessState.mapIndexInRegion === 2;
 
-  // Fetch all species for this trainer's team
-  const speciesArr = await Promise.all(trainerData.speciesIds.map(id => fetchPokemonById(id)));
+  // Fetch all species — use fetchIds when available (supports form slugs like 'deoxys-attack')
+  const fetchIds = trainerData.fetchIds || trainerData.speciesIds;
+  const speciesArr = await Promise.all(fetchIds.map(id => fetchPokemonById(id)));
   const enemyTeam = speciesArr
     .map((sp, i) => ({ sp, i }))
     .filter(({ sp }) => sp != null)

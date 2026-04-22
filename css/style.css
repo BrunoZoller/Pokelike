@@ -2347,6 +2347,39 @@ body.dark-mode #btn-hard-run:hover { box-shadow: 4px 4px 0 0 #cc2222; }
   }
 }
 
+/* ── Mobile map screen layout (endless mode) ─────────────────────────────── */
+@media (max-width: 768px) {
+  /* Show the stage/region label in the mobile header */
+  #map-info { display: block; }
+
+  /* Panels above, map fills remaining space at the bottom */
+  .map-panels { order: 1; }
+  #map-container {
+    order: 2;
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+    width: 100%;
+  }
+
+  /* Trait panel hidden — visible during battle, saves critical space */
+  .map-panel-traits { display: none !important; }
+
+  /* Team panel: full width, horizontal scroll strip */
+  .map-panel-left { flex: 1 1 100%; }
+  #team-bar {
+    display: flex !important;
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 8px;
+    padding-bottom: 4px;
+  }
+
+  /* Items + region side by side */
+  .map-panel-right  { flex: 1; min-width: 0; }
+  .map-panel-region { flex: 1; min-width: 0; }
+}
+
 /* ── Endless Mode ───────────────────────────────────────────────────────────── */
 
 /* Floating stat-change arrow popup */

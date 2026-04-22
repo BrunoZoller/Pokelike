@@ -420,12 +420,31 @@ async function fetchSpeciesList() {
   }
 }
 
-async function fetchPokemonById(id) {
-  const key = `pkrl_poke_${id}`;
+// Form slug → national dex ID (used for speciesId / evolution tracking)
+const POKEMON_FORM_SLUGS = {
+  'deoxys-attack': 386, 'deoxys-defense': 386, 'deoxys-speed': 386,
+};
+
+// Form slug → PokeAPI numeric form ID (used for sprite tooltip images)
+const POKEMON_FORM_SPRITE_IDS = {
+  'deoxys-attack': 10001, 'deoxys-defense': 10002, 'deoxys-speed': 10003,
+};
+
+// 'deoxys-attack' → 'Deoxys (Attack)'
+function formatFormName(apiName) {
+  const parts = apiName.split('-');
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
+  const base = parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
+  const form = parts.slice(1).map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
+  return `${base} (${form})`;
+}
+
+async function fetchPokemonById(idOrSlug) {
+  const key = `pkrl_poke_${idOrSlug}`;
   const cached = getCached(key);
   if (cached && cached.baseStats?.special !== undefined && cached.baseStats?.spdef !== undefined) return cached;
   try {
-    const r = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
+    const r = await fetch(`https://pokeapi.co/api/v2/pokemon/${idOrSlug}`);
     const d = await r.json();
     const stats = {};
     for (const s of d.stats) {
@@ -441,19 +460,21 @@ async function fetchPokemonById(id) {
     };
     const bst = Object.values(baseStats).reduce((a,b)=>a+b,0);
     const types = d.types.map(t => t.type.name.charAt(0).toUpperCase() + t.type.name.slice(1));
+    const isFormSlug = typeof idOrSlug === 'string' && POKEMON_FORM_SLUGS[idOrSlug] !== undefined;
     const poke = {
-      id: d.id,
-      name: d.name.charAt(0).toUpperCase() + d.name.slice(1),
+      id: isFormSlug ? POKEMON_FORM_SLUGS[idOrSlug] : d.id,
+      name: isFormSlug ? formatFormName(d.name) : d.name.charAt(0).toUpperCase() + d.name.slice(1),
       types,
       baseStats,
       bst,
-      spriteUrl: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${d.id}.png`,
-      shinySpriteUrl: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/${d.id}.png`,
+      // Use API sprite URL directly — it's correct for both base forms and variants
+      spriteUrl: d.sprites.front_default || `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${d.id}.png`,
+      shinySpriteUrl: d.sprites.front_shiny || `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/${d.id}.png`,
     };
     setCached(key, poke);
     return poke;
   } catch (e) {
-    console.warn(`Failed to fetch pokemon ${id}`, e);
+    console.warn(`Failed to fetch pokemon ${idOrSlug}`, e);
     return null;
   }
 }

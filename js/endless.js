@@ -28,7 +28,7 @@ const TRAIT_DESCRIPTIONS = {
   Poison:  ['33% chance to poison on hit',                '66% chance to poison on hit',                '100% chance to poison on hit'],
   Psychic: ['10% of damage splashes to all enemies',      '20% of damage splashes to all enemies',      '30% of damage splashes to all enemies'],
   Rock:    ['33% chance: +1 DEF & Sp.DEF after attack',   '66% chance: +2 DEF & Sp.DEF after attack',   '100% chance: +3 DEF & Sp.DEF after attack'],
-  Steel:   ['Reduce incoming damage by 15%',              'Reduce incoming damage by 30%',              'Reduce incoming damage by 45%'],
+  Steel:   ['Reduce incoming damage by 15%',              'Reduce incoming damage by 30%',              'Reduce incoming damage by 45%',              'Reduce incoming damage by 60%',              'Reduce incoming damage by 75%'],
   Water:   ['33% chance: Enemy -1 Spd/ATK/SpATK on hit', '66% chance: Enemy -2 Spd/ATK/SpATK on hit', '100% chance: Enemy -3 Spd/ATK/SpATK on hit'],
 };
 
@@ -71,7 +71,7 @@ function getEndlessLevelRange(stageNum, regionNum, mapIndex) {
   // R1M1 (slot 0) is identical every stage. Every subsequent slot gains
   // floor(0.5 * slot * (stage - 1)) levels so later maps scale harder in higher stages.
   const localSlot = (regionNum - 1) * 3 + mapIndex;  // 0-8 within the stage
-  const stageBonus = Math.floor(2.5 * localSlot * (stageNum - 1));
+  const stageBonus = Math.floor(1.5 * localSlot * (stageNum - 1));
   if (localSlot < ENDLESS_LEVEL_SLOTS.length) {
     const [min, max] = ENDLESS_LEVEL_SLOTS[localSlot];
     return [min + stageBonus, max + stageBonus];
@@ -185,6 +185,24 @@ const FIXED_STAGE_REGIONS = {
       { name: 'Silver',  type: null,            sprite: 'silver-masters', ids: [215, 160, 82, 94, 65, 169], extraLevels: { 5: 5 }, traitBonus: 1 },
     ],
   ],
+  3: [
+    [ // Region 1
+      { name: 'Gardenia', type: 'Grass',       sprite: 'gardenia-masters', ids: [252, 315] },
+      { name: 'Glacia',   type: 'Ice/Water',   sprite: 'glacia',           ids: [87, 131, 365] },
+      { name: 'Brawly',   type: 'Fighting',    sprite: 'brawly',           ids: [257, 297, 214, 308] },
+    ],
+    [ // Region 2
+      { name: 'Wattson',  type: 'Electric',    sprite: 'wattson',          ids: [239, 25, 181, 135, 310] },
+      { name: 'Phoebe',   type: 'Ghost',       sprite: 'phoebe-masters',   ids: [354, 302, 353, 200, 356, 94] },
+      { name: 'Juan',     type: 'Water/Rock',  sprite: 'juan',             ids: [340, 222, 141, 260, 139, 369] },
+    ],
+    [ // Region 3
+      { name: 'Drake',    type: 'Dragon',      sprite: 'drake-gen3',       ids: [334, 149, 330, 230, 373, 384] },
+      { name: 'Anabel',   type: 'Psychic',     sprite: 'anabel-gen7',      ids: ['deoxys-attack', 'deoxys-speed', 386, 'deoxys-defense', 380, 381] },
+      // Steven: 6 Steel Pokémon + traitBonus 2 = T5 Steel (75% damage reduction)
+      { name: 'Steven Stone', type: 'Steel',   sprite: 'steven-gen6',      ids: [376, 376, 376, 306, 212, 385], traitBonus: 2 },
+    ],
+  ],
 };
 
 function buildFixedRegion(stageNum, regionNum, fixedTrainers) {
@@ -193,12 +211,17 @@ function buildFixedRegion(stageNum, regionNum, fixedTrainers) {
     const isBigBoss = i === 2;
     const [, maxL] = getEndlessLevelRange(stageNum, regionNum, i);
     const levelOffsets = spec.ids.map((_, j) => j + ((spec.extraLevels && spec.extraLevels[j]) || 0));
+    // For the region panel tooltip, resolve form slugs to their numeric sprite IDs
+    const displayIds = spec.ids.map(id =>
+      typeof id === 'string' ? (POKEMON_FORM_SPRITE_IDS[id] ?? POKEMON_FORM_SLUGS[id] ?? id) : id
+    );
     return {
       archetype: { id: `fixed_${stageNum}_${regionNum}_${i}`, name: spec.name, type: spec.type, sprite: spec.sprite },
       level: maxL,
       moveTier: isBigBoss ? moveTier + 1 : moveTier,
       teamSize: spec.ids.length,
-      speciesIds: spec.ids,
+      speciesIds: displayIds,  // numeric IDs for tooltip sprites
+      fetchIds: spec.ids,      // original slugs/IDs for fetchPokemonById
       levelOffsets,
       traitBonus: spec.traitBonus ?? 0,
     };
@@ -304,7 +327,7 @@ function computeTraitTiers(team, tierBonus = 0) {
   const tiers = {};
   for (const [type, count] of Object.entries(counts)) {
     if (count === 0) continue;
-    const tier = Math.min(3, Math.floor(count / 2) + tierBonus);
+    const tier = Math.min(5, Math.floor(count / 2) + tierBonus);
     if (tier > 0) tiers[type] = tier;
   }
   return tiers;
@@ -538,7 +561,7 @@ function buildTraitsConfig(playerTiers, enemyTiers = {}) {
       // Steel: reduce incoming damage (retroactively heal back)
       if (activeFor('Steel', dSide) && defender.currentHp > 0) {
         const tier = tierFor('Steel', dSide);
-        const reduction = Math.floor(damage * sf([0, 0.15, 0.30, 0.45][tier]));
+        const reduction = Math.floor(damage * sf([0, 0.15, 0.30, 0.45, 0.60, 0.75][tier]));
         if (reduction > 0) {
           defender.currentHp = Math.min(defender.maxHp, defender.currentHp + reduction);
           log.push({ type: 'trait_trigger', traitType: 'Steel', side: dSide, idx: dIdx,
