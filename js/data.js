@@ -423,11 +423,15 @@ async function fetchSpeciesList() {
 // Form slug → national dex ID (used for speciesId / evolution tracking)
 const POKEMON_FORM_SLUGS = {
   'deoxys-attack': 386, 'deoxys-defense': 386, 'deoxys-speed': 386,
+  'shaymin-sky': 492,
+  'charizard-mega-x': 6,
 };
 
 // Form slug → PokeAPI numeric form ID (used for sprite tooltip images)
 const POKEMON_FORM_SPRITE_IDS = {
   'deoxys-attack': 10001, 'deoxys-defense': 10002, 'deoxys-speed': 10003,
+  'shaymin-sky': 10006,
+  'charizard-mega-x': 10034,
 };
 
 // 'deoxys-attack' → 'Deoxys (Attack)'

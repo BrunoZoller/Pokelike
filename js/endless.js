@@ -203,6 +203,26 @@ const FIXED_STAGE_REGIONS = {
       { name: 'Steven Stone', type: 'Steel',   sprite: 'steven-gen6',      ids: [376, 376, 376, 306, 212, 385], traitBonus: 2 },
     ],
   ],
+  4: [
+    [ // Region 1
+      { name: 'Clemont',  type: 'Electric', sprite: 'clemont',          ids: [417, 172, 179, 403, 312, 311] },
+      { name: 'Koga',     type: 'Poison',   sprite: 'koga',             ids: [92, 93, 41, 42, 315, 2] },
+      // Aaron: Bug team with +3 extra levels across all members
+      { name: 'Aaron',    type: 'Bug',      sprite: 'aaron',            ids: [267, 12, 123, 291, 416, 469], levelBonus: 3 },
+    ],
+    [ // Region 2
+      { name: 'Bertha',   type: 'Ground',   sprite: 'bertha',           ids: [323, 472, 464, 330, 450, 383] },
+      { name: 'Gardenia', type: 'Grass',    sprite: 'gardenia-masters', ids: [492, 470, 357, 389, 251, 'shaymin-sky'] },
+      { name: 'Lucian',   type: 'Psychic',  sprite: 'lucian',           ids: [482, 480, 481, 282, 475, 488] },
+    ],
+    [ // Region 3
+      { name: 'Cyrus',        type: 'Dragon/Steel', sprite: 'cyrus',   ids: [395, 485, 483, 484, 487, 'charizard-mega-x'] },
+      // Arceus: 1 Pokémon +20 levels + traitBonus 2 = T2 Normal (50% HP bonus)
+      { name: 'Arceus',       type: 'Normal',       sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/493.png', ids: [493], levelBonus: 20, traitBonus: 2 },
+      // Cynthia: mixed champion, traitBonus 1, +10 levels
+      { name: 'Cynthia',      type: null,           sprite: 'cynthia', ids: [442, 407, 468, 448, 350, 445], levelBonus: 10, traitBonus: 1 },
+    ],
+  ],
 };
 
 function buildFixedRegion(stageNum, regionNum, fixedTrainers) {
@@ -210,7 +230,7 @@ function buildFixedRegion(stageNum, regionNum, fixedTrainers) {
   const trainers = fixedTrainers.map((spec, i) => {
     const isBigBoss = i === 2;
     const [, maxL] = getEndlessLevelRange(stageNum, regionNum, i);
-    const levelOffsets = spec.ids.map((_, j) => j + ((spec.extraLevels && spec.extraLevels[j]) || 0));
+    const levelOffsets = spec.ids.map((_, j) => j + (spec.levelBonus ?? 0) + ((spec.extraLevels && spec.extraLevels[j]) || 0));
     // For the region panel tooltip, resolve form slugs to their numeric sprite IDs
     const displayIds = spec.ids.map(id =>
       typeof id === 'string' ? (POKEMON_FORM_SPRITE_IDS[id] ?? POKEMON_FORM_SLUGS[id] ?? id) : id
@@ -327,7 +347,8 @@ function computeTraitTiers(team, tierBonus = 0) {
   const tiers = {};
   for (const [type, count] of Object.entries(counts)) {
     if (count === 0) continue;
-    const tier = Math.min(5, Math.floor(count / 2) + tierBonus);
+    const maxTier = TRAIT_DESCRIPTIONS[type]?.length ?? 3;
+    const tier = Math.min(maxTier, Math.floor(count / 2) + tierBonus);
     if (tier > 0) tiers[type] = tier;
   }
   return tiers;

@@ -1757,7 +1757,7 @@ function unlockNextStage(completedStage) {
   }
 }
 
-const MAX_ACCESSIBLE_STAGE = 3; // increase when new stage trainers are defined
+const MAX_ACCESSIBLE_STAGE = 4; // increase when new stage trainers are defined
 
 const STAGE_META = [
   null,
