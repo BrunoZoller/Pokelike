@@ -217,8 +217,8 @@ const FIXED_STAGE_REGIONS = {
     ],
     [ // Region 3
       { name: 'Cyrus',        type: 'Dragon/Steel', sprite: 'cyrus',   ids: [395, 485, 483, 484, 487, 'charizard-mega-x'] },
-      // Arceus: 1 Pokémon +10 levels, every trait in the game at T1
-      { name: 'Arceus',       type: 'Normal',       sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/493.png', ids: [493], levelBonus: 10, allTraits: 1 },
+      // Arceus: 1 Pokémon +20 levels, every trait in the game at T1
+      { name: 'Arceus',       type: 'Normal',       sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/493.png', ids: [493], levelBonus: 20, allTraits: 1 },
       // Cynthia: mixed champion, traitBonus 1, +10 levels
       { name: 'Cynthia',      type: null,           sprite: 'cynthia', ids: [442, 407, 468, 448, 350, 445], levelBonus: 10, traitBonus: 1 },
     ],
