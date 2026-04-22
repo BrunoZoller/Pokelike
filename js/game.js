@@ -175,62 +175,68 @@ async function showStarterSelect() {
     }
   }
 
-  let starters;
-  let hofMode = false;
-
-  let hofX = 0, hofY = 0;
-  if (state.isEndlessMode) {
-    // Build HoF starter pool from all completed runs
-    const allHofEntries = getHallOfFame();
-    const seen = new Set();
-    const ids = [];
-    for (const entry of allHofEntries) {
-      for (const p of entry.team) {
-        const id = getEvoLineRoot(p.speciesId);
-        if (!seen.has(id) && !LEGENDARY_ID_SET.has(id)) {
-          seen.add(id);
-          ids.push(id);
-        }
-      }
-    }
-    ids.sort((a, b) => a - b);
-    hofX = ids.length;
-    hofY = new Set([...ALL_CATCHABLE_IDS].map(id => getEvoLineRoot(id))).size;
-
-    // Append regional starters for all unlocked stages (deduped)
-    const unlockedCount = getUnlockedStageCount();
-    for (let s = 1; s <= Math.min(unlockedCount, REGION_STARTERS.length - 1); s++) {
-      for (const sid of (REGION_STARTERS[s] || [])) {
-        if (!seen.has(sid)) { seen.add(sid); ids.push(sid); }
-      }
-    }
-
-    if (ids.length > 0) {
-      const fetched = await Promise.all(ids.map(id => fetchPokemonById(id)));
-      starters = fetched.filter(Boolean);
-      hofMode = starters.length > 0;
-    }
-    if (!hofMode) starters = await getCatchChoices(0, 3, 649);
-  } else {
-    starters = await Promise.all(STARTER_IDS.map(id => fetchPokemonById(id)));
-  }
   const startLevel = 5;
+  const starters = state.isEndlessMode ? [] : await Promise.all(STARTER_IDS.map(id => fetchPokemonById(id)));
 
   container.innerHTML = '';
   container.style.cssText = '';
   container.parentElement.querySelectorAll('.hof-starter-label').forEach(el => el.remove());
 
   if (state.isEndlessMode) {
-    const cols = hofMode ? 6 : 3;
-    const title = hofMode ? `HALL OF FAME PC (${hofX}/${hofY})` : "PROF. OAK'S PC";
+    // --- Section 1: 3 random starters from the current gen ---
+    const maxGenId = getEndlessMaxGenId(endlessState.stageNumber);
+    const randomSpecies = await getCatchChoices(0, 3, maxGenId);
+    const randomSection = document.createElement('div');
+    randomSection.className = 'pc-box';
+    randomSection.innerHTML = `<div class="pc-box-titlebar"><span>PICK A STARTER</span></div><div class="pc-box-body starter-card-row"></div>`;
+    const randomBody = randomSection.querySelector('.starter-card-row');
+    for (const species of randomSpecies) {
+      if (!species) continue;
+      const isShiny = rng() < (hasShinyCharm() ? 0.02 : 0.01);
+      const inst = createInstance(species, startLevel, isShiny, 0);
+      const wrapper = document.createElement('div');
+      wrapper.innerHTML = renderPokemonCard(inst, true, false);
+      const card = wrapper.querySelector('.poke-card');
+      card.setAttribute('role', 'button');
+      card.setAttribute('tabindex', '0');
+      card.addEventListener('click', () => selectStarter(inst));
+      card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') selectStarter(inst); });
+      card.addEventListener('mouseenter', () => showTeamHoverCard(inst, card));
+      card.addEventListener('mouseleave', () => hideTeamHoverCard());
+      randomBody.appendChild(card);
+    }
+    container.appendChild(randomSection);
 
-    const box = document.createElement('div');
-    box.className = 'pc-box';
-    const sortBtnsHtml = hofMode
+    // --- Section 2: HoF PC (past run Pokémon only) ---
+    const allHofEntries = getHallOfFame();
+    const seen = new Set();
+    const hofIds = [];
+    for (const entry of allHofEntries) {
+      for (const p of entry.team) {
+        const id = getEvoLineRoot(p.speciesId);
+        if (!seen.has(id) && !LEGENDARY_ID_SET.has(id)) { seen.add(id); hofIds.push(id); }
+      }
+    }
+    hofIds.sort((a, b) => a - b);
+    const hofX = hofIds.length;
+    const hofY = new Set([...ALL_CATCHABLE_IDS].map(id => getEvoLineRoot(id))).size;
+    const hofSpecies = hofIds.length > 0
+      ? (await Promise.all(hofIds.map(id => fetchPokemonById(id)))).filter(Boolean)
+      : [];
+
+    const hofBox = document.createElement('div');
+    hofBox.className = 'pc-box';
+    const hasEntries = hofSpecies.length > 0;
+    const sortBtnsHtml = hasEntries
       ? `<div class="hof-sort-btns"><button class="hof-sort-btn active" data-sort="stars">★ Stars</button><button class="hof-sort-btn" data-sort="type">Type</button><button class="hof-sort-btn" data-sort="id">#</button></div>`
       : '';
-    box.innerHTML = `<div class="pc-box-titlebar${hofMode ? ' with-sort' : ''}"><span>${title}</span>${sortBtnsHtml}</div><div class="pc-box-body"><div class="pc-box-grid" style="grid-template-columns:repeat(${cols},1fr);"></div></div>`;
-    const grid = box.querySelector('.pc-box-grid');
+    const hofTitle = hasEntries ? `HALL OF FAME PC (${hofX}/${hofY})` : 'HALL OF FAME PC';
+    hofBox.innerHTML = `<div class="pc-box-titlebar${hasEntries ? ' with-sort' : ''}"><span>${hofTitle}</span>${sortBtnsHtml}</div><div class="pc-box-body"><div class="pc-box-grid" style="grid-template-columns:repeat(6,1fr);"></div></div>`;
+    const grid = hofBox.querySelector('.pc-box-grid');
+
+    if (!hasEntries) {
+      grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;opacity:0.5;padding:12px;font-size:8px;">Complete a run to unlock Pokémon here</div>`;
+    }
 
     const persistBuffs = loadPersistentBuffs();
     const _hofStats = ['hp','atk','def','speed','special'];
@@ -241,13 +247,12 @@ async function showStarterSelect() {
       return maxed + partial * 0.5;
     }
 
-    const hofInstances = starters.map(species => {
-      if (!species) return null;
+    const hofInstances = hofSpecies.map(species => {
       const isShiny = rng() < (hasShinyCharm() ? 0.02 : 0.01);
       const inst = createInstance(species, startLevel, isShiny, 0);
       loadBuffsIntoPokemon(inst);
       return inst;
-    }).filter(Boolean);
+    });
 
     function buildHofGrid(instances) {
       grid.innerHTML = '';
@@ -275,37 +280,24 @@ async function showStarterSelect() {
 
     function sortHof(mode) {
       const sorted = [...hofInstances];
-      if (mode === 'stars') {
-        sorted.sort((a, b) => {
-          const diff = hofStarScore(b.speciesId) - hofStarScore(a.speciesId);
-          return diff !== 0 ? diff : a.speciesId - b.speciesId;
-        });
-      } else if (mode === 'type') {
-        sorted.sort((a, b) => {
-          const ta = (a.types?.[0] || '').toLowerCase();
-          const tb = (b.types?.[0] || '').toLowerCase();
-          if (ta !== tb) return ta < tb ? -1 : 1;
-          return a.speciesId - b.speciesId;
-        });
-      } else {
-        sorted.sort((a, b) => a.speciesId - b.speciesId);
-      }
+      if (mode === 'stars') sorted.sort((a, b) => { const d = hofStarScore(b.speciesId) - hofStarScore(a.speciesId); return d !== 0 ? d : a.speciesId - b.speciesId; });
+      else if (mode === 'type') sorted.sort((a, b) => { const ta = (a.types?.[0]||'').toLowerCase(), tb = (b.types?.[0]||'').toLowerCase(); return ta !== tb ? (ta < tb ? -1 : 1) : a.speciesId - b.speciesId; });
+      else sorted.sort((a, b) => a.speciesId - b.speciesId);
       buildHofGrid(sorted);
     }
 
-    sortHof('stars');
-
-    if (hofMode) {
-      box.querySelectorAll('.hof-sort-btn').forEach(btn => {
+    if (hasEntries) {
+      sortHof('stars');
+      hofBox.querySelectorAll('.hof-sort-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-          box.querySelectorAll('.hof-sort-btn').forEach(b => b.classList.remove('active'));
+          hofBox.querySelectorAll('.hof-sort-btn').forEach(b => b.classList.remove('active'));
           btn.classList.add('active');
           sortHof(btn.dataset.sort);
         });
       });
     }
 
-    container.appendChild(box);
+    container.appendChild(hofBox);
   } else {
     container.style.display = 'flex';
     container.style.justifyContent = 'center';

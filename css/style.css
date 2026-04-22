@@ -186,6 +186,12 @@ h1, h2, .pixel-font {
 .pc-box-body {
   padding: 8px;
 }
+.starter-card-row {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
 .pc-box-grid {
   display: grid;
   gap: 5px;
