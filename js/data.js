@@ -1016,6 +1016,22 @@ function canEvolve(speciesId) {
   return speciesId in GEN1_EVOLUTIONS || speciesId === 133; // 133 = Eevee
 }
 
+// Returns the correct species ID for a given level by walking the evolution chain.
+// Advances forward if level meets thresholds; retreats backward if level is too low.
+function resolveEvoForLevel(speciesId, level) {
+  let id = speciesId;
+  while (GEN1_EVOLUTIONS[id] && level >= GEN1_EVOLUTIONS[id].level)
+    id = GEN1_EVOLUTIONS[id].into;
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const [pre, evo] of Object.entries(GEN1_EVOLUTIONS)) {
+      if (evo.into === id && level < evo.level) { id = Number(pre); changed = true; break; }
+    }
+  }
+  return id;
+}
+
 // Eevee branching evolution options (shown as a choice at level 36)
 const EEVEE_EVOLUTIONS = [
   { into: 136, level: 36, name: 'Flareon',  types: ['Fire'] },

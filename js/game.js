@@ -183,30 +183,29 @@ async function showStarterSelect() {
   container.parentElement.querySelectorAll('.hof-starter-label').forEach(el => el.remove());
 
   if (state.isEndlessMode) {
-    // --- Section 1: 3 random starters from the current gen (bare cards, no box) ---
-    const maxGenId = getEndlessMaxGenId(endlessState.stageNumber);
-    const randomSpecies = await getCatchChoices(0, 3, maxGenId);
-    const randomRow = document.createElement('div');
-    randomRow.className = 'starter-card-row';
-    for (const species of randomSpecies) {
-      if (!species) continue;
-      const isShiny = rng() < (hasShinyCharm() ? 0.02 : 0.01);
-      const inst = createInstance(species, startLevel, isShiny, 0);
-      const wrapper = document.createElement('div');
-      wrapper.innerHTML = renderPokemonCard(inst, true, false);
-      const card = wrapper.querySelector('.poke-card');
-      card.setAttribute('role', 'button');
-      card.setAttribute('tabindex', '0');
-      card.addEventListener('click', () => selectStarter(inst));
-      card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') selectStarter(inst); });
-      card.addEventListener('mouseenter', () => showTeamHoverCard(inst, card));
-      card.addEventListener('mouseleave', () => hideTeamHoverCard());
-      randomRow.appendChild(card);
+    // --- Section 1: Region starters — only shown when no HoF runs exist yet ---
+    const allHofEntries = getHallOfFame();
+    if (allHofEntries.length === 0) {
+      const starterIds = REGION_STARTERS[endlessState.stageNumber] || REGION_STARTERS[1];
+      const starterSpecies = (await Promise.all(starterIds.map(id => fetchPokemonById(id)))).filter(Boolean);
+      const starterRow = document.createElement('div');
+      starterRow.className = 'starter-card-row';
+      for (const species of starterSpecies) {
+        const isShiny = rng() < (hasShinyCharm() ? 0.02 : 0.01);
+        const inst = createInstance(species, startLevel, isShiny, 0);
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = renderPokemonCard(inst, true, false);
+        const card = wrapper.querySelector('.poke-card');
+        card.setAttribute('role', 'button');
+        card.setAttribute('tabindex', '0');
+        card.addEventListener('click', () => selectStarter(inst));
+        card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') selectStarter(inst); });
+        starterRow.appendChild(card);
+      }
+      container.appendChild(starterRow);
     }
-    container.appendChild(randomRow);
 
     // --- Section 2: HoF PC (past run Pokémon only) ---
-    const allHofEntries = getHallOfFame();
     const seen = new Set();
     const hofIds = [];
     for (const entry of allHofEntries) {
@@ -576,12 +575,15 @@ async function doBattleNode(node) {
     }
   }
 
-  const enemySpecies = choices[Math.floor(rng() * choices.length)];
-  if (!enemySpecies) {
+  const rawSpecies = choices[Math.floor(rng() * choices.length)];
+  if (!rawSpecies) {
     advanceFromNode(state.map, node.id);
     showMapScreen();
     return;
   }
+  const rawId = rawSpecies.id ?? rawSpecies.speciesId;
+  const evoId = resolveEvoForLevel(rawId, level);
+  const enemySpecies = evoId !== rawId ? (await fetchPokemonById(evoId) || rawSpecies) : rawSpecies;
   const enemy = createInstance(enemySpecies, level, false, getMoveТierForMap(state.currentMap));
   const titleEl = document.getElementById('battle-title');
   const subEl = document.getElementById('battle-subtitle');
@@ -1249,12 +1251,16 @@ async function doTrainerNode(node) {
       .filter(id => minLevelForSpecies(id) <= level);
     const pool = eligible.length ? eligible : [...new Set(config.pool)]; // fallback: use full pool
     const shuffled = pool.sort(() => rng() - 0.5);
-    const ids = Array.from({ length: teamSize }, (_, i) => shuffled[i % shuffled.length]);
+    const ids = Array.from({ length: teamSize }, (_, i) => resolveEvoForLevel(shuffled[i % shuffled.length], level));
     const fetched = await Promise.all(ids.map(id => fetchPokemonById(id)));
     speciesList = fetched.filter(Boolean);
   } else {
-    const choices = await getCatchChoices(getEncounterMapIndex(), 3, state.isEndlessMode ? getEndlessMaxGenId(endlessState.stageNumber) : 151);
-    speciesList = choices.slice(0, teamSize);
+    const rawChoices = await getCatchChoices(getEncounterMapIndex(), 3, state.isEndlessMode ? getEndlessMaxGenId(endlessState.stageNumber) : 151);
+    speciesList = (await Promise.all(rawChoices.slice(0, teamSize).map(async sp => {
+      const rawId = sp.id ?? sp.speciesId;
+      const evoId = resolveEvoForLevel(rawId, level);
+      return evoId !== rawId ? (await fetchPokemonById(evoId) || sp) : sp;
+    }))).filter(Boolean);
   }
 
   if (!speciesList.length) { advanceFromNode(state.map, node.id); showMapScreen(); return; }

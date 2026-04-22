@@ -191,6 +191,7 @@ h1, h2, .pixel-font {
   gap: 12px;
   justify-content: center;
   flex-wrap: wrap;
+  margin-bottom: 20px;
 }
 .pc-box-grid {
   display: grid;
