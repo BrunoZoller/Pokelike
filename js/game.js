@@ -1928,9 +1928,9 @@ async function applyEndlessBugTrait() {
   if (bugBonus <= 0) return;
   const leveled = [];
   for (const p of state.team) {
-    if (p.currentHp > 0 && p.level < 100) {
+    if (p.currentHp > 0) {
       const oldLevel = p.level;
-      p.level = Math.min(100, p.level + bugBonus);
+      p.level = p.level + bugBonus;
       const hpBuff = p.statBuffs?.hp ?? 0;
       const buffMult = 1 + 0.1 * hpBuff;
       p.maxHp = Math.floor(calcHp(p.baseStats.hp, p.level) * buffMult);
@@ -1955,7 +1955,7 @@ async function doEndlessBossNode() {
     .filter(({ sp }) => sp != null)
     .map(({ sp, i }) => {
       const offset = trainerData.levelOffsets ? (trainerData.levelOffsets[i] ?? i) : i;
-      return createInstance(sp, Math.min(100, trainerData.level + offset), false, Math.min(2, trainerData.moveTier));
+      return createInstance(sp, trainerData.level + offset, false, Math.min(2, trainerData.moveTier));
     });
 
   if (enemyTeam.length === 0) {
