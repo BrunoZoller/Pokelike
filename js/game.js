@@ -127,20 +127,13 @@ async function showTrainerSelect() {
 
 function makeMaxedStarsEl(speciesId) {
   const buffs = loadPersistentBuffs()[getEvoLineRoot(speciesId)] || {};
-  const stats = ['hp','atk','def','speed','special'];
-  const maxed  = stats.filter(k => (buffs[k] ?? 0) >= 10);
-  const partial = stats.filter(k => { const v = buffs[k] ?? 0; return v > 0 && v < 10; });
-  if (!maxed.length && !partial.length) return null;
+  const total = getTotalBuffPoints(buffs);
+  const stars = Math.floor(total / 10);
+  if (!stars) return null;
   const el = document.createElement('div');
   el.style.cssText = 'position:absolute;top:3px;right:3px;display:flex;gap:1px;flex-wrap:wrap;justify-content:flex-end;max-width:40px;';
-  el.innerHTML = [
-    ...maxed.map(()   => `<span style="font-size:7px;color:gold;line-height:1;">★</span>`),
-    ...partial.map(() => `<span style="position:relative;display:inline-block;font-size:7px;line-height:1;"><span style="color:#555;">★</span><span style="position:absolute;left:0;top:0;color:gold;width:50%;overflow:hidden;display:inline-block;">★</span></span>`),
-  ].join('');
-  const parts = [];
-  if (maxed.length)   parts.push(`Maxed: ${maxed.map(k => k.toUpperCase()).join(', ')}`);
-  if (partial.length) parts.push(`Upgraded: ${partial.map(k => k.toUpperCase()).join(', ')}`);
-  el.title = parts.join(' | ');
+  el.innerHTML = Array.from({ length: stars }, () => `<span style="font-size:7px;color:gold;line-height:1;">★</span>`).join('');
+  el.title = `${total} buff points (${stars}★)`;
   return el;
 }
 
@@ -387,7 +380,7 @@ function showMapScreen() {
   renderItemBadges(state.items);
 
   const mapContainer = document.getElementById('map-container');
-  mapContainer.style.backgroundImage = `url('ui/map${state.currentMap + 1}.png')`;
+  mapContainer.style.backgroundImage = `url('ui/mapsNormalMode/map${state.currentMap + 1}.png')`;
   renderMap(state.map, mapContainer, onNodeClick);
   saveRun();
 
@@ -454,7 +447,11 @@ function showItemFoundToast(icon, name) {
 }
 
 
+let _nodeClickBusy = false;
 async function onNodeClick(node) {
+  if (_nodeClickBusy) return;
+  _nodeClickBusy = true;
+  try {
   state.currentNode = node;
   saveRun();
   let resolvedType = node.type;
@@ -501,7 +498,9 @@ async function onNodeClick(node) {
     default:
       await doBattleNode(node);
   }
-
+  } finally {
+    _nodeClickBusy = false;
+  }
 }
 
 function resolveQuestionMark() {
@@ -1873,8 +1872,13 @@ function startEndlessMap() {
   state.map = generateMap(fakeMapIndex, false);
   state.endlessLevelRange = getEndlessLevelRange(endlessState.stageNumber, endlessState.regionNumber, endlessState.mapIndexInRegion);
 
-  // Pick a random map background (1-8) for this map
-  endlessState.currentMapBg = Math.floor(Math.random() * 8) + 1;
+  // Pick map background based on trainer type; finalBoss for stage final boss
+  const _btTrainer    = endlessState.currentRegion?.trainers[endlessState.mapIndexInRegion];
+  const _btType       = (_btTrainer?.archetype?.type || '').split('/')[0].toLowerCase() || 'normal';
+  const _isFinalBoss  = endlessState.mapIndexInRegion === 2 && endlessState.regionNumber === 3;
+  endlessState.currentMapBg = _isFinalBoss
+    ? 'ui/mapsBattleTower/finalBoss.png'
+    : `ui/mapsBattleTower/${_btType}.png`;
 
   saveEndlessState();
   saveRun();
@@ -1907,8 +1911,8 @@ function showEndlessMapScreen() {
   renderEndlessRegionPanel(endlessState.currentRegion, endlessState.mapIndexInRegion);
 
   const mapContainer = document.getElementById('map-container');
-  const bg = endlessState.currentMapBg || 1;
-  mapContainer.style.backgroundImage = `url('ui/map${bg}.png')`;
+  const bg = endlessState.currentMapBg || 'ui/mapsNormalMode/map1.png';
+  mapContainer.style.backgroundImage = `url('${bg}')`;
   renderMap(state.map, mapContainer, onEndlessNodeClick);
 }
 
@@ -2026,28 +2030,53 @@ async function showStatBuffScreen() {
     function showPhase1() {
       showScreen('stat-buff-screen');
       titleEl.textContent = 'Region Cleared!';
-      subEl.textContent = 'Choose a Pokémon to power up';
+      const maxPts = getMaxBuffPoints();
+      subEl.textContent = maxPts > 0 ? `Choose a Pokémon to power up (cap: ${maxPts} pts)` : 'Beat a stage to unlock buffs';
       choicesEl.innerHTML = '';
       for (const p of state.team) {
+        const store = loadPersistentBuffs();
+        const buffs = store[getEvoLineRoot(p.speciesId)] || {};
+        const totalPts = getTotalBuffPoints(buffs);
+        const capped = totalPts >= maxPts;
         const wrap = document.createElement('div');
         wrap.className = 'stat-buff-poke-wrap';
         wrap.innerHTML = renderPokemonCard(p, false, false);
+        const label = document.createElement('div');
+        label.style.cssText = 'font-size:8px;text-align:center;margin-top:2px;color:' + (capped ? '#888' : '#c8a0ff') + ';';
+        label.textContent = maxPts > 0 ? `${totalPts}/${maxPts} pts` : '—';
+        wrap.appendChild(label);
         const card = wrap.querySelector('.poke-card');
-        card.style.cursor = 'pointer';
-        card.addEventListener('click', () => showPhase2(p));
+        if (capped || maxPts === 0) {
+          card.style.opacity = '0.45';
+          card.style.cursor = 'default';
+        } else {
+          card.style.cursor = 'pointer';
+          card.addEventListener('click', () => showPhase2(p));
+        }
         choicesEl.appendChild(wrap);
       }
     }
 
     function showPhase2(pokemon) {
       titleEl.textContent = pokemon.nickname || pokemon.name;
-      subEl.textContent = 'Choose a stat to boost (+10%)';
+      const maxPts = getMaxBuffPoints();
+      const store = loadPersistentBuffs();
+      const savedBuffs = store[getEvoLineRoot(pokemon.speciesId)] || {};
+      const totalPts = getTotalBuffPoints(savedBuffs);
+      const atCap = totalPts >= maxPts;
+      subEl.textContent = atCap
+        ? `Fully buffed (${totalPts}/${maxPts} pts)`
+        : `Choose a stat to boost (+10%) — ${totalPts}/${maxPts} pts used`;
       choicesEl.innerHTML = '';
 
+      const isSpecialAttacker = (pokemon.baseStats?.special ?? 0) >= (pokemon.baseStats?.atk ?? 0);
+      const hiddenAttackStat = isSpecialAttacker ? 'atk' : 'special';
+
       for (const [key, lbl, cls] of STATS) {
+        if (key === hiddenAttackStat) continue;
         if (!pokemon.statBuffs) pokemon.statBuffs = {};
         const buffCount = pokemon.statBuffs[key] ?? 0;
-        const maxed = buffCount >= 10;
+        const maxed = buffCount >= 10 || atCap;
         const rawVal = key === 'spdef'
           ? (pokemon.baseStats?.spdef ?? pokemon.baseStats?.special ?? 0)
           : (pokemon.baseStats?.[key] ?? 0);
@@ -2101,6 +2130,14 @@ function loadPersistentBuffs() {
 }
 function savePersistentBuffs(store) {
   try { localStorage.setItem('poke_stat_buffs', JSON.stringify(store)); } catch {}
+}
+
+function getMaxBuffPoints() {
+  return (getUnlockedStageCount() - 1) * 10;
+}
+
+function getTotalBuffPoints(buffs) {
+  return ['hp','atk','def','speed','special','spdef'].reduce((s, k) => s + (buffs[k] ?? 0), 0);
 }
 
 // Returns the base-form species ID for any member of an evolution line.

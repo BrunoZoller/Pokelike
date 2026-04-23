@@ -47,10 +47,13 @@ function getTraitDisplayData(team) {
   const entries = allTypes
     .map(type => {
       const count = counts[type] || 0;
+      const maxTier = TRAIT_DESCRIPTIONS[type]?.length ?? 3;
       const tier = count >= 6 ? 3 : count >= 4 ? 2 : count >= 2 ? 1 : 0;
       const nextThreshold = count < 2 ? 2 : count < 4 ? 4 : 6;
       const description = TRAIT_DESCRIPTIONS[type]?.[tier > 0 ? tier - 1 : 0] || '';
-      return { type, count, tier, nextThreshold, description, active: tier > 0 };
+      const nextTier = Math.min(tier + 1, maxTier);
+      const nextDescription = tier < maxTier ? TRAIT_DESCRIPTIONS[type]?.[nextTier - 1] || null : null;
+      return { type, count, tier, nextThreshold, description, nextDescription, active: tier > 0 };
     })
     .filter(e => e.count > 0) // only show types the player actually has
     .sort((a, b) => b.count - a.count || a.type.localeCompare(b.type));

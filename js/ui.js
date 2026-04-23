@@ -2822,13 +2822,23 @@ function renderEndlessTraitPanel(team) {
 
   // Set description data and tap-to-tooltip handler (mobile: desc is hidden in the strip)
   const rows = panel.querySelectorAll('.trait-row');
-  data.forEach(({ description }, i) => { if (rows[i]) rows[i].dataset.desc = description; });
+  data.forEach(({ description, nextDescription, tier }, i) => {
+    if (!rows[i]) return;
+    rows[i].dataset.desc = description;
+    if (nextDescription) rows[i].dataset.nextDesc = `Next (T${tier + 1}): ${nextDescription}`;
+  });
   panel.onclick = (e) => {
     const row = e.target.closest('.trait-row');
     if (!row || !row.dataset.desc) return;
     _traitTooltip.show(row.dataset.desc, row.getBoundingClientRect());
     e.stopPropagation();
   };
+  rows.forEach(row => {
+    row.addEventListener('mouseenter', () => {
+      if (row.dataset.nextDesc) _traitTooltip.show(row.dataset.nextDesc, row.getBoundingClientRect());
+    });
+    row.addEventListener('mouseleave', () => _traitTooltip.hide());
+  });
 }
 
 function hideEndlessTraitPanel() {

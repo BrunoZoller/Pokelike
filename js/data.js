@@ -1068,11 +1068,11 @@ const ACHIEVEMENTS = [
   { id: 'type_quartet',      name: 'Type Supremacy', desc: 'Beat the game with at least 4 of your 6 Pokémon sharing the same type', icon: '🔣' },
   { id: 'all_shiny_win',     name: 'Shiny Squad',    desc: 'Beat the game with every Pokémon on your team being shiny (minimum 3)',             icon: '💫' },
   { id: 'back_to_back',      name: 'On a Roll',      desc: 'Beat the game twice in a row without losing a run in between',  icon: '🔁' },
-  { id: 'endless_stage_1',  name: 'Kanto Champion',  desc: 'Defeat Ash Ketchum and clear Stage 1 of Endless Mode',   icon: '🌀' },
-  { id: 'endless_stage_2',  name: 'Johto Champion',  desc: 'Defeat Lance and clear Stage 2 of Endless Mode',          icon: '🌊' },
-  { id: 'endless_stage_3',  name: 'Hoenn Champion',  desc: 'Defeat Steven Stone and clear Stage 3 of Endless Mode',   icon: '⚔️' },
-  { id: 'endless_stage_4',  name: 'Sinnoh Champion', desc: 'Defeat Cynthia and clear Stage 4 of Endless Mode',        icon: '💎' },
-  { id: 'endless_stage_5',  name: 'Unova Champion',  desc: 'Defeat N and clear Stage 5 of Endless Mode',              icon: '🏅' },
+  { id: 'endless_stage_1',  name: 'Kanto Champion',  desc: 'Defeat Ash Ketchum and clear Stage 1 of Battle Tower',   icon: '🌀' },
+  { id: 'endless_stage_2',  name: 'Johto Champion',  desc: 'Defeat Lance and clear Stage 2 of Battle Tower',          icon: '🌊' },
+  { id: 'endless_stage_3',  name: 'Hoenn Champion',  desc: 'Defeat Steven Stone and clear Stage 3 of Battle Tower',   icon: '⚔️' },
+  { id: 'endless_stage_4',  name: 'Sinnoh Champion', desc: 'Defeat Cynthia and clear Stage 4 of Battle Tower',        icon: '💎' },
+  { id: 'endless_stage_5',  name: 'Unova Champion',  desc: 'Defeat N and clear Stage 5 of Battle Tower',              icon: '🏅' },
 ];
 
 function getUnlockedAchievements() {
