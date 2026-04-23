@@ -549,6 +549,25 @@ h1, h2, .pixel-font {
 }
 #item-tooltip.visible { opacity: 1; }
 
+#trait-tooltip {
+  position: fixed;
+  pointer-events: none;
+  background: #0e0b06;
+  border: 2px solid #c8b070;
+  box-shadow: 0 0 0 1px #000, 3px 3px 0 0 #000;
+  color: var(--text);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  line-height: 1.9;
+  padding: 8px 12px;
+  white-space: normal;
+  max-width: 200px;
+  z-index: 200;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+#trait-tooltip.visible { opacity: 1; }
+
 /* Prevent native long-press image popup on mobile */
 #map-svg image { -webkit-touch-callout: none; }
 
@@ -1909,7 +1928,8 @@ h1, h2, .pixel-font {
   border: 1px solid #c0bcb0;
   color: #181410;
 }
-#item-tooltip {
+#item-tooltip,
+#trait-tooltip {
   background: #e8e4d8;
   border: 2px solid #181410;
   color: #181410;
@@ -2117,7 +2137,8 @@ body.dark-mode .item-badge {
   border-color: #3a3428;
   color: #e0dcd0;
 }
-body.dark-mode #item-tooltip {
+body.dark-mode #item-tooltip,
+body.dark-mode #trait-tooltip {
   background: #252118;
   border-color: #4a4438;
   color: #e0dcd0;
@@ -2356,20 +2377,55 @@ body.dark-mode #btn-hard-run:hover { box-shadow: 4px 4px 0 0 #cc2222; }
 
 /* ── Mobile map screen layout (endless mode) ─────────────────────────────── */
 @media (max-width: 768px) {
-  /* Show the stage/region label in the mobile header */
-  #map-info { display: block; }
-
-  /* Map first, panels below */
-  #map-container {
-    order: 1;
-    min-height: 0;
-    max-height: 46vh;
-    width: 100%;
+  /* Remove the top bar; surface action buttons as floating icons */
+  .map-header { display: none; }
+  .map-actions {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 8px;
+    right: 8px;
+    gap: 4px;
+    z-index: 20;
   }
-  .map-panels { order: 2; }
 
-  /* Trait panel hidden — visible during battle, saves critical space */
-  .map-panel-traits { display: none !important; }
+  /* Panels at top, map pushed to bottom and fills remaining space */
+  .map-panels { order: 1; }
+  #map-container {
+    order: 2;
+    min-height: 0;
+    flex: 1;
+    width: auto;
+    max-width: 100%;
+  }
+
+  /* Trait panel: full-width horizontal scrollable strip */
+  .map-panel-traits {
+    flex: 1 1 100%;
+    max-width: none;
+    min-width: 0;
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 0;
+    align-items: flex-start;
+  }
+  .map-panel-traits .hud-label { display: none; }
+  .trait-row {
+    flex-shrink: 0;
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+    padding-right: 8px;
+    margin-right: 8px;
+    border-right: 1px solid var(--border);
+  }
+  .trait-row:last-child {
+    border-right: none;
+    padding-right: 0;
+    margin-right: 0;
+  }
+  .trait-desc { display: none; }
 
   /* Team panel: full width, horizontal scroll strip */
   .map-panel-left { flex: 1 1 100%; }

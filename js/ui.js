@@ -16,6 +16,25 @@ const _itemTooltip = (() => {
   };
 })();
 
+const _traitTooltip = (() => {
+  let el = null;
+  const get = () => el || (el = document.getElementById('trait-tooltip'));
+  document.addEventListener('click', () => { const t = get(); if (t) t.classList.remove('visible'); });
+  return {
+    show(desc, anchorRect) {
+      const t = get();
+      if (!t) return;
+      t.textContent = desc;
+      t.classList.add('visible');
+      // Position below the tapped trait, clamped so it stays on screen
+      const left = Math.max(8, Math.min(anchorRect.left, window.innerWidth - 210));
+      t.style.left = left + 'px';
+      t.style.top = (anchorRect.bottom + 6) + 'px';
+    },
+    hide() { const t = get(); if (t) t.classList.remove('visible'); },
+  };
+})();
+
 document.addEventListener('mouseover', e => {
   if (!_hoverEnabled || !state?.isEndlessMode) return;
   const badge = e.target.closest('.type-badge');
@@ -2800,6 +2819,16 @@ function renderEndlessTraitPanel(team) {
       <div class="trait-desc">${description}</div>
     </div>`;
   }).join('');
+
+  // Set description data and tap-to-tooltip handler (mobile: desc is hidden in the strip)
+  const rows = panel.querySelectorAll('.trait-row');
+  data.forEach(({ description }, i) => { if (rows[i]) rows[i].dataset.desc = description; });
+  panel.onclick = (e) => {
+    const row = e.target.closest('.trait-row');
+    if (!row || !row.dataset.desc) return;
+    _traitTooltip.show(row.dataset.desc, row.getBoundingClientRect());
+    e.stopPropagation();
+  };
 }
 
 function hideEndlessTraitPanel() {
