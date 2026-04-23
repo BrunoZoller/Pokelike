@@ -2582,6 +2582,27 @@ async function animateBattleVisually(detailedLog, pTeamInit, eTeamInit) {
 
       await sleep(100);
 
+    } else if (event.type === 'confusion') {
+      const sideId = event.side === 'player' ? 'player-side' : 'enemy-side';
+      const el = document.querySelector(`#${sideId} .battle-pokemon[data-idx="${event.idx}"]`);
+      if (el) {
+        el.classList.add('attacking');
+        await sleep(180);
+        el.classList.remove('attacking');
+        el.classList.add('hit-normal');
+        const popup = document.createElement('div');
+        popup.className = 'crit-popup';
+        popup.textContent = 'Confusion!';
+        el.appendChild(popup);
+        setTimeout(() => popup.remove(), 900);
+        const teamHp = event.side === 'player' ? pHp : eHp;
+        const prev = teamHp[event.idx].current;
+        await animateHpBar(el, prev, event.hpAfter, teamHp[event.idx].max);
+        teamHp[event.idx].current = event.hpAfter;
+        await sleep(300);
+        el.classList.remove('hit-normal');
+      }
+
     } else if (event.type === 'effect') {
       const sideId = event.side === 'player' ? 'player-side' : 'enemy-side';
       const el = document.querySelector(`#${sideId} .battle-pokemon[data-idx="${event.idx}"]`);

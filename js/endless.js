@@ -13,7 +13,7 @@ let endlessState = {
 
 const TRAIT_DESCRIPTIONS = {
   Bug:     ['20% chance: +1 Level after fight',           '40% chance: +1 Level after fight',           '80% chance: +1 Level after fight'],
-  Dark:    ['30% chance to steal enemy held item',        '60% chance to steal enemy held item',        '100% chance to steal enemy held item'],
+  Dark:    ['5% chance: enemy hurts itself in confusion',  '10% chance: enemy hurts itself in confusion', '15% chance: enemy hurts itself in confusion'],
   Dragon:  ['+1 Spd/ATK/SpATK on KO',      '+1 Spd/ATK/SpATK on KO',      '+1 Spd/ATK/SpATK on KO'],
   Electric:['15% chance to attack again',                 '30% chance to attack again',                 '45% chance to attack again'],
   Fairy:   ['Enemy: -1 ATK & Sp.ATK at fight start',     'Enemy: -2 ATK & Sp.ATK at fight start',     'Enemy: -3 ATK & Sp.ATK at fight start'],
@@ -436,6 +436,25 @@ function buildTraitsConfig(playerTiers, enemyTiers = {}) {
       }
     },
 
+    onBeforeAttack(attacker, aIdx, aSide, target, tIdx, tSide, log, pTeam, eTeam) {
+      // Dark: enemy has a chance to hurt itself in confusion instead of attacking
+      if (activeFor('Dark', 'player') && aSide === 'enemy' && attacker.currentHp > 0) {
+        const tier = tierFor('Dark', 'player');
+        const chance = [0, 0.05, 0.10, 0.15][tier];
+        if (rng() < chance) {
+          const selfDmg = Math.max(1, Math.floor(attacker.maxHp * 0.10));
+          attacker.currentHp = Math.max(0, attacker.currentHp - selfDmg);
+          log.push({ type: 'confusion', side: aSide, idx: aIdx,
+            name: attacker.nickname || attacker.name,
+            hpChange: -selfDmg, hpAfter: attacker.currentHp });
+          if (attacker.currentHp === 0)
+            log.push({ type: 'faint', side: aSide, idx: aIdx, name: attacker.nickname || attacker.name });
+          return true;
+        }
+      }
+      return false;
+    },
+
     afterAttack(attacker, aIdx, aSide, target, tIdx, tSide, damage, log, pTeam, eTeam) {
       if (damage <= 0) return;
 
@@ -507,18 +526,6 @@ function buildTraitsConfig(playerTiers, enemyTiers = {}) {
           applyStatus(target, 'poison', tSide, tIdx, efx);
           triggers.push({ type: 'trait_trigger', traitType: 'Poison', side: aSide, idx: aIdx,
             name: attacker.nickname || attacker.name, description: `Poison Trait T${tier}: Poisoned!` });
-        }
-      }
-
-      // Dark: chance to steal target's held item
-      if (activeFor('Dark', aSide) && tSide !== aSide && target.currentHp > 0 && target.heldItem && !attacker.heldItem) {
-        const tier = tierFor('Dark', aSide);
-        const chance = sp([0, 0.30, 0.60, 1.00][tier]);
-        if (rng() < chance) {
-          attacker.heldItem = target.heldItem;
-          target.heldItem = null;
-          triggers.push({ type: 'trait_trigger', traitType: 'Dark', side: aSide, idx: aIdx,
-            name: attacker.nickname || attacker.name, description: `Dark Trait T${tier}: Stole ${attacker.heldItem.name || attacker.heldItem.id}!` });
         }
       }
 

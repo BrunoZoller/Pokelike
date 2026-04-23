@@ -228,6 +228,12 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog, traitsCon
         continue;
       }
 
+      // Dark trait: chance for attacker to hit themselves in confusion
+      if (traitsConfig?.onBeforeAttack) {
+        const confused = traitsConfig.onBeforeAttack(attacker, aIdx, side, target, tIdx, tSide, detailedLog, pTeam, eTeam);
+        if (confused) continue;
+      }
+
       let move = getBestMove(attacker.types || ['Normal'], attacker.baseStats, attacker.speciesId, attacker.moveTier ?? 1);
       // If both sides are stuck with useless moves, force Struggle on both
       if (bothUseless) {
