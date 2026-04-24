@@ -272,7 +272,10 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog, traitsCon
         continue;
       }
 
-      const { damage, typeEff, moveType, crit } = calcDamage(attacker, target, move, attackerItems, defenderItems);
+      const { damage: rawDamage, typeEff, moveType, crit } = calcDamage(attacker, target, move, attackerItems, defenderItems);
+      const damage = traitsConfig?.beforeDamage
+        ? traitsConfig.beforeDamage(target, tIdx, tSide, attacker, aIdx, side, rawDamage, detailedLog)
+        : rawDamage;
 
       const targetPreHp = target.currentHp;
       target.currentHp = Math.max(0, target.currentHp - damage);

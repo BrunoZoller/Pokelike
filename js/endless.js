@@ -628,20 +628,21 @@ function buildTraitsConfig(playerTiers, enemyTiers = {}) {
       for (const e of efx) log.push(e);
     },
 
-    whenAttacked(defender, dIdx, dSide, attacker, aIdx, aSide, damage, log) {
-      // Steel: reduce incoming damage (retroactively heal back)
-      if (activeFor('Steel', dSide) && defender.currentHp > 0) {
+    beforeDamage(defender, dIdx, dSide, attacker, aIdx, aSide, damage, log) {
+      // Steel: reduce damage before it's applied
+      if (activeFor('Steel', dSide) && damage > 0) {
         const tier = tierFor('Steel', dSide);
         const reduction = Math.floor(damage * sf([0, 0.15, 0.30, 0.45, 0.60, 0.75][tier]));
         if (reduction > 0) {
-          defender.currentHp = Math.min(defender.maxHp, defender.currentHp + reduction);
           log.push({ type: 'trait_trigger', traitType: 'Steel', side: dSide, idx: dIdx,
             name: defender.nickname || defender.name, description: `Steel Trait T${tier}: −${reduction} damage!` });
-          log.push({ type: 'effect', side: dSide, idx: dIdx, name: defender.nickname || defender.name,
-            hpChange: reduction, hpAfter: defender.currentHp, reason: `Steel Trait: absorbed ${reduction} damage` });
+          return damage - reduction;
         }
       }
+      return damage;
+    },
 
+    whenAttacked(defender, dIdx, dSide, attacker, aIdx, aSide, damage, log) {
       // Flying: chance to dodge (retroactively heal back)
       if (activeFor('Flying', dSide) && defender.currentHp > 0) {
         const tier = tierFor('Flying', dSide);
