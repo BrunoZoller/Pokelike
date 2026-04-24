@@ -3104,7 +3104,7 @@ function showEeveeChoice(pokemon) {
 async function checkAndEvolveTeam() {
   const skipAnim = getSettings().autoSkipEvolve;
   for (const pokemon of state.team) {
-    if (pokemon.currentHp <= 0) continue;
+    const wasFainted = pokemon.currentHp <= 0;
 
     let evo;
     if (pokemon.speciesId === 133) {
@@ -3133,7 +3133,7 @@ async function checkAndEvolveTeam() {
       pokemon.baseStats = newSpecies.baseStats;
       const newMax      = calcHp(newSpecies.baseStats.hp, pokemon.level);
       pokemon.maxHp     = newMax;
-      pokemon.currentHp = Math.max(1, Math.floor(oldHpRatio * newMax));
+      pokemon.currentHp = wasFainted ? 0 : Math.max(1, Math.floor(oldHpRatio * newMax));
     }
 
     const normalUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemon.speciesId}.png`;
