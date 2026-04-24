@@ -3191,7 +3191,7 @@ let _toastQueue = [];
 let _toastRunning = false;
 
 // Bug trait level-up banner — shows each leveled Pokémon's sprite + new level
-function showBugLevelUpBanner(leveled) {
+function showBugLevelUpBanner(leveled, duration = 1500) {
   // leveled: array of { name, spriteUrl, level }
   const banner = document.createElement('div');
   banner.style.cssText = [
@@ -3223,7 +3223,7 @@ function showBugLevelUpBanner(leveled) {
   setTimeout(() => {
     banner.style.opacity = '0';
     setTimeout(() => banner.remove(), 300);
-  }, 2200);
+  }, duration);
 }
 
 function showAchievementToast(ach) {

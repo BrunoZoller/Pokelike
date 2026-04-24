@@ -1969,8 +1969,10 @@ async function applyEndlessBugTrait() {
       leveled.push({ name: p.nickname || p.name, spriteUrl: p.spriteUrl, level: p.level });
     }
   }
-  if (leveled.length) showBugLevelUpBanner(leveled);
-  await new Promise(r => setTimeout(r, 2400));
+  const { autoSkipAllBattles, autoSkipBattles } = getSettings();
+  const skipFast = autoSkipAllBattles || autoSkipBattles;
+  if (leveled.length) showBugLevelUpBanner(leveled, skipFast ? 250 : 1500);
+  await new Promise(r => setTimeout(r, skipFast ? 400 : 1600));
 }
 
 async function doEndlessBossNode() {
