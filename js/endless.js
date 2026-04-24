@@ -238,8 +238,8 @@ const FIXED_STAGE_REGIONS = {
     [ // Region 2
       { name: 'Grimsley', type: 'Dark',  sprite: 'grimsley',     ids: [359, 248, 319, 635, 553, 491] },
       { name: 'Colress',  type: 'Steel', sprite: 'colress',      ids: [448, 376, 485, 483, 638, 649] },
-      // Iris: 5 legendary dragons + Haxorus (last slot, +10 extra levels)
-      { name: 'Iris',     type: 'Dragon', sprite: 'iris-gen5bw2', ids: [380, 484, 384, 644, 'kyurem-white', 612], extraLevels: { 5: 10 } },
+      // Iris: Dragon specialist, Rayquaza as +10 ace
+      { name: 'Iris',     type: 'Dragon', sprite: 'iris-gen5bw2', ids: [334, 330, 230, 148, 484, 384], extraLevels: { 5: 10 } },
     ],
     [ // Region 3
       // Benga: +3 levels across all members
