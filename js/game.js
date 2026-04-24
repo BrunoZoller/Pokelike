@@ -128,12 +128,15 @@ async function showTrainerSelect() {
 function makeMaxedStarsEl(speciesId) {
   const buffs = loadPersistentBuffs()[getEvoLineRoot(speciesId)] || {};
   const total = getTotalBuffPoints(buffs);
-  const stars = Math.floor(total / 10);
-  if (!stars) return null;
+  const fullStars = Math.floor(total / 10);
+  const halfStar = (total % 10) >= 1;
+  if (!fullStars && !halfStar) return null;
   const el = document.createElement('div');
   el.style.cssText = 'position:absolute;top:3px;right:3px;display:flex;gap:1px;flex-wrap:wrap;justify-content:flex-end;max-width:40px;';
-  el.innerHTML = Array.from({ length: stars }, () => `<span style="font-size:7px;color:gold;line-height:1;">★</span>`).join('');
-  el.title = `${total} buff points (${stars}★)`;
+  el.innerHTML =
+    Array.from({ length: fullStars }, () => `<span style="font-size:7px;color:gold;line-height:1;">★</span>`).join('') +
+    (halfStar ? `<span style="font-size:7px;color:gold;line-height:1;">½</span>` : '');
+  el.title = `${total} buff points`;
   return el;
 }
 

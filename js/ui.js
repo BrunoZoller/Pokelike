@@ -5,7 +5,8 @@ const SKIP_SPEED = 3;
 let battleSpeedMultiplier = 1;
 
 let _hoverEnabled = true;
-document.addEventListener('mousemove', () => { _hoverEnabled = true; }, { capture: true, passive: true });
+document.addEventListener('mousemove',   () => { _hoverEnabled = true; }, { capture: true, passive: true });
+document.addEventListener('touchstart',  () => { _hoverEnabled = true; }, { capture: true, passive: true });
 
 const _itemTooltip = (() => {
   let el = null;
@@ -288,7 +289,10 @@ function renderTeamBar(team, el, showTypes = false) {
         document.body.appendChild(ghost);
         slot.style.opacity = '0.3';
 
+        let _didDrag = false;
+        const _downX = e.clientX, _downY = e.clientY;
         const onMove = (ev) => {
+          if (!_didDrag && (Math.abs(ev.clientX - _downX) > 6 || Math.abs(ev.clientY - _downY) > 6)) _didDrag = true;
           ghost.style.left = (ev.clientX - offsetX) + 'px';
           ghost.style.top  = (ev.clientY - offsetY) + 'px';
           document.querySelectorAll('.team-slot-dragover').forEach(s => s.classList.remove('team-slot-dragover'));
@@ -318,6 +322,7 @@ function renderTeamBar(team, el, showTypes = false) {
               return;
             }
           }
+          if (!_didDrag) showTeamHoverCard(p, slot);
           cleanup();
         };
 
