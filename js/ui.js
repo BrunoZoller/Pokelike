@@ -2534,6 +2534,13 @@ async function animateBattleVisually(detailedLog, pTeamInit, eTeamInit) {
       const hitClass = `hit-${event.moveType.toLowerCase()}`;
 
       if (attackerEl) attackerEl.classList.add('attacking');
+      if (event.moveName === 'Struggle' && attackerEl) {
+        const popup = document.createElement('div');
+        popup.className = 'crit-popup';
+        popup.textContent = 'Struggle!';
+        attackerEl.appendChild(popup);
+        setTimeout(() => popup.remove(), 900);
+      }
 
       // Play canvas projectile animation concurrently with attacker pulse
       if (attackerEl && targetEl) {
