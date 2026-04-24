@@ -723,18 +723,17 @@ async function doCatchNode(node) {
   // Save all level-filtered candidates before team-dup filters (for reroll pool variety)
   const allCandidates = [...choices];
 
+  const teamRoots = new Set(state.team.map(p => getEvoLineRoot(p.speciesId)));
   if (state.nuzlockeMode) {
-    const teamIds = new Set(state.team.map(p => p.speciesId));
-    const filtered = choices.filter(sp => !teamIds.has(sp.id));
+    const filtered = choices.filter(sp => !teamRoots.has(getEvoLineRoot(sp.id)));
     choices = (filtered.length > 0 ? filtered : choices).slice(0, 1);
   }
   if (state.isEndlessMode) {
-    const teamIds = new Set(state.team.map(p => p.speciesId));
-    const filtered = choices.filter(sp => !teamIds.has(sp.id ?? sp.speciesId));
+    const filtered = choices.filter(sp => !teamRoots.has(getEvoLineRoot(sp.id ?? sp.speciesId)));
     if (filtered.length >= 3) {
       choices = filtered;
     } else if (filtered.length > 0) {
-      const dups = choices.filter(sp => teamIds.has(sp.id ?? sp.speciesId));
+      const dups = choices.filter(sp => teamRoots.has(getEvoLineRoot(sp.id ?? sp.speciesId)));
       choices = [...filtered, ...dups].slice(0, 3);
     }
   }
@@ -745,11 +744,10 @@ async function doCatchNode(node) {
   // Each display slot has a 1/18 chance to be swapped for a legendary (+5 levels)
   // Only in normal mode — endless mode uses dedicated legendary nodes instead
   if (!state.isEndlessMode) {
-    const teamIds = new Set(state.team.map(p => p.speciesId));
     for (let i = 0; i < choices.length; i++) {
       if (rng() < 1 / 18) {
         const leg = await getRandomLegendary(getEncounterMapIndex(), false);
-        if (leg && !teamIds.has(leg.id ?? leg.speciesId)) choices[i] = { ...leg, _legendary: true };
+        if (leg && !teamRoots.has(getEvoLineRoot(leg.id ?? leg.speciesId))) choices[i] = { ...leg, _legendary: true };
       }
     }
   }
@@ -778,19 +776,19 @@ async function doCatchNode(node) {
       btn.addEventListener('click', async () => {
         rerolled.add(slotIdx);
         btn.disabled = true;
-        // Exclude other displayed slots AND current team members
-        const otherIds = new Set([
-          ...instances.filter((_, i) => i !== slotIdx).map(i => i.speciesId),
-          ...state.team.map(p => p.speciesId),
+        // Exclude other displayed slots AND current team members (by evo-line root)
+        const otherRoots = new Set([
+          ...instances.filter((_, i) => i !== slotIdx).map(i => getEvoLineRoot(i.speciesId)),
+          ...state.team.map(p => getEvoLineRoot(p.speciesId)),
         ]);
-        let src = rerollPool.filter(sp => !otherIds.has(sp.id ?? sp.speciesId));
+        let src = rerollPool.filter(sp => !otherRoots.has(getEvoLineRoot(sp.id ?? sp.speciesId)));
         if (src.length === 0) {
           const fresh = await getCatchChoices(getEncounterMapIndex(), 6, state.isEndlessMode ? getEndlessMaxGenId(endlessState.stageNumber) : 151);
-          const otherIdsPost = new Set([
-            ...instances.filter((_, i) => i !== slotIdx).map(i => i.speciesId),
-            ...state.team.map(p => p.speciesId),
+          const otherRootsPost = new Set([
+            ...instances.filter((_, i) => i !== slotIdx).map(i => getEvoLineRoot(i.speciesId)),
+            ...state.team.map(p => getEvoLineRoot(p.speciesId)),
           ]);
-          src = fresh.filter(sp => !otherIdsPost.has(sp.id ?? sp.speciesId));
+          src = fresh.filter(sp => !otherRootsPost.has(getEvoLineRoot(sp.id ?? sp.speciesId)));
           if (src.length === 0) src = fresh;
         }
         if (src.length === 0) return;
