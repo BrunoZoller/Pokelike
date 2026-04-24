@@ -99,14 +99,18 @@ function renderPokemonCard(pokemon, onClick, selected, dexCaught = false) {
     <div class="poke-name">${pokemon.nickname || pokemon.name}</div>
     <div class="poke-level">Lv. ${pokemon.level}</div>
     <div class="poke-types">${typeHtml}</div>
-    <div class="poke-stats-bars">${[
-      ['HP',  pokemon.baseStats.hp,      'stat-hp',  'hp'],
-      ['ATK', pokemon.baseStats.atk,     'stat-atk', 'atk'],
-      ['DEF', pokemon.baseStats.def,     'stat-def', 'def'],
-      ['SPA', pokemon.baseStats.special ?? 0, 'stat-spa', 'special'],
-      ['SPD', pokemon.baseStats.spdef ?? pokemon.baseStats.special ?? 0, 'stat-spd', 'spdef'],
-      ['SPE', pokemon.baseStats.speed,   'stat-spe', 'speed'],
-    ].map(([lbl, val, cls, key]) => {
+    <div class="poke-stats-bars">${((() => {
+      const isSpecialAttacker = (pokemon.baseStats?.special ?? 0) >= (pokemon.baseStats?.atk ?? 0);
+      const hiddenAttackStat = isSpecialAttacker ? 'atk' : 'special';
+      return [
+        ['ATK', pokemon.baseStats.atk,     'stat-atk', 'atk'],
+        ['SPA', pokemon.baseStats.special ?? 0, 'stat-spa', 'special'],
+        ['SPE', pokemon.baseStats.speed,   'stat-spe', 'speed'],
+        ['HP',  pokemon.baseStats.hp,      'stat-hp',  'hp'],
+        ['DEF', pokemon.baseStats.def,     'stat-def', 'def'],
+        ['SPD', pokemon.baseStats.spdef ?? pokemon.baseStats.special ?? 0, 'stat-spd', 'spdef'],
+      ].filter(([,,,key]) => key !== hiddenAttackStat);
+    })()).map(([lbl, val, cls, key]) => {
       const buffCount = pokemon.statBuffs?.[key] ?? 0;
       const grayPct = Math.round((val / 255) * 100);
       const bluePct = Math.round((buffCount / 10) * grayPct);

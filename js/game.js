@@ -2034,9 +2034,7 @@ async function showStatBuffScreen() {
       subEl.textContent = maxPts > 0 ? `Choose a Pokémon to power up (cap: ${maxPts} pts)` : 'Beat a stage to unlock buffs';
       choicesEl.innerHTML = '';
       for (const p of state.team) {
-        const store = loadPersistentBuffs();
-        const buffs = store[getEvoLineRoot(p.speciesId)] || {};
-        const totalPts = getTotalBuffPoints(buffs);
+        const totalPts = getTotalBuffPoints(p.statBuffs || {});
         const capped = totalPts >= maxPts;
         const wrap = document.createElement('div');
         wrap.className = 'stat-buff-poke-wrap';
@@ -2055,14 +2053,19 @@ async function showStatBuffScreen() {
         }
         choicesEl.appendChild(wrap);
       }
+
+      const skip = document.createElement('button');
+      skip.className = 'btn-secondary';
+      skip.style.cssText = 'margin-top:12px;width:100%;';
+      skip.textContent = 'Skip';
+      skip.addEventListener('click', () => resolve());
+      choicesEl.appendChild(skip);
     }
 
     function showPhase2(pokemon) {
       titleEl.textContent = pokemon.nickname || pokemon.name;
       const maxPts = getMaxBuffPoints();
-      const store = loadPersistentBuffs();
-      const savedBuffs = store[getEvoLineRoot(pokemon.speciesId)] || {};
-      const totalPts = getTotalBuffPoints(savedBuffs);
+      const totalPts = getTotalBuffPoints(pokemon.statBuffs || {});
       const atCap = totalPts >= maxPts;
       subEl.textContent = atCap
         ? `Fully buffed (${totalPts}/${maxPts} pts)`
@@ -2133,7 +2136,7 @@ function savePersistentBuffs(store) {
 }
 
 function getMaxBuffPoints() {
-  return (getUnlockedStageCount() - 1) * 10;
+  return Math.min((endlessState?.stageNumber ?? 1) * 10, 50);
 }
 
 function getTotalBuffPoints(buffs) {
@@ -2170,6 +2173,7 @@ function getEvoLineRoot(speciesId) {
     474: 233,  // Porygon-Z ← Porygon2
     475: 281,  // Gallade ← Kirlia
     477: 356,  // Dusknoir ← Dusclops
+    143: 446,  // Snorlax ← Munchlax
   });
   let id = speciesId;
   while (parentOf[id] !== undefined) id = parentOf[id];
