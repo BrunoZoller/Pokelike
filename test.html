@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Battle Tester</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0f0f1e; color: #ddd; font-family: monospace; font-size: 12px; }
+
+    .root { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; gap: 0; min-height: 100vh; }
+    .panel { padding: 14px; border: 1px solid #1e1e3a; }
+    .panel-atk  { border-right: 2px solid #4040a0; }
+    .panel-def  { border-left: 1px solid #1e1e3a; }
+    .panel-log  { grid-column: 1 / 3; border-top: 2px solid #2a2a4a; background: #080814; padding: 14px; }
+    .panel-run  { grid-column: 1 / 3; border-top: 1px solid #1e1e3a; padding: 10px 14px; display: flex; gap: 10px; align-items: center; }
+
+    h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #6060cc; margin-bottom: 10px; }
+    h3 { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #555; margin: 10px 0 6px; }
+
+    /* ── Species row ── */
+    .species-row { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; }
+    .species-row input { flex: 1; background: #111; border: 1px solid #2a2a4a; color: #eee; padding: 5px 8px; border-radius: 4px; font-family: monospace; font-size: 12px; }
+    .species-row button { padding: 5px 10px; background: #2a2a60; color: #aac; border: 1px solid #3a3a70; border-radius: 4px; cursor: pointer; font-size: 11px; font-family: monospace; }
+    .species-row button:hover { background: #3a3a80; }
+    .poke-preview { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; min-height: 40px; }
+    .poke-preview img { width: 40px; height: 40px; image-rendering: pixelated; }
+    .poke-preview-name { font-size: 13px; color: #c8a0ff; font-weight: bold; }
+    .poke-preview-sub  { font-size: 10px; color: #777; margin-top: 2px; }
+
+    /* ── Config grid ── */
+    .cfg-row { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+    .cfg-lbl { width: 68px; color: #888; flex-shrink: 0; }
+    .cfg-row select, .cfg-row input[type=number] {
+      background: #111; border: 1px solid #2a2a4a; color: #eee; padding: 4px 6px;
+      border-radius: 4px; font-family: monospace; font-size: 12px;
+    }
+    .cfg-row input[type=number] { width: 54px; }
+    .cfg-row select { flex: 1; }
+
+    /* ── Stat buffs ── */
+    .buff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; margin-bottom: 8px; }
+    .buff-row { display: flex; align-items: center; gap: 6px; }
+    .buff-lbl { width: 30px; color: #888; font-size: 11px; }
+    .buff-row input[type=range] { flex: 1; accent-color: #6060ff; cursor: pointer; height: 4px; }
+    .buff-val { width: 14px; color: #8080ff; font-size: 11px; text-align: right; }
+
+    /* ── Traits ── */
+    .trait-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 8px; }
+    .trait-cell { display: flex; align-items: center; gap: 4px; }
+    .trait-lbl { font-size: 10px; color: #888; flex: 1; }
+    .trait-cell select { width: 40px; background: #111; border: 1px solid #2a2a4a; color: #eee; padding: 2px 3px; border-radius: 3px; font-size: 10px; font-family: monospace; }
+    .trait-cell.active .trait-lbl { color: #c8a0ff; }
+    .trait-cell.active select { border-color: #6060cc; }
+
+    /* ── Run bar ── */
+    .run-btn { padding: 8px 24px; background: #4040a0; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-family: monospace; font-size: 13px; letter-spacing: 0.5px; }
+    .run-btn:hover { background: #5555c0; }
+    .run-info { font-size: 11px; color: #555; }
+    .trials-row { display: flex; align-items: center; gap: 8px; }
+    .trials-row label { color: #666; font-size: 11px; }
+    .trials-row input { width: 54px; background: #111; border: 1px solid #2a2a4a; color: #eee; padding: 4px 6px; border-radius: 4px; font-family: monospace; font-size: 12px; }
+
+    /* ── Battle log ── */
+    .log-header { display: flex; gap: 16px; margin-bottom: 10px; flex-wrap: wrap; }
+    .log-stat { background: #111; border: 1px solid #1e1e3a; border-radius: 4px; padding: 5px 10px; }
+    .log-stat-lbl { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #555; }
+    .log-stat-val { font-size: 15px; color: #eee; margin-top: 1px; }
+    .log-stat-val.win  { color: #50e878; }
+    .log-stat-val.lose { color: #e85050; }
+
+    .log-box { max-height: 420px; overflow-y: auto; background: #080814; }
+    .log-line { padding: 2px 0; border-bottom: 1px solid #0d0d20; font-size: 11px; display: flex; gap: 8px; }
+    .log-line .rnd  { color: #444; width: 28px; flex-shrink: 0; }
+    .log-line .txt  { flex: 1; }
+    .log-line.atk   .txt { color: #88aaff; }
+    .log-line.def   .txt { color: #ff9980; }
+    .log-line.item  .txt { color: #ffd080; }
+    .log-line.faint .txt { color: #ff6060; font-weight: bold; }
+    .log-line.trait .txt { color: #c8a0ff; }
+    .log-line.info  .txt { color: #555; font-style: italic; }
+    .log-line.result .txt { color: #50e878; font-weight: bold; font-size: 12px; }
+    .log-line.result.lose .txt { color: #ff6060; }
+    .dmg   { color: #ffcc44; }
+    .super { color: #ff8040; }
+    .notv  { color: #aaa; }
+    .crit  { color: #ff4444; }
+
+    .log-empty { color: #444; font-size: 11px; padding: 20px 0; text-align: center; }
+
+    /* ── Effective stats preview ── */
+    .eff-stats { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+    .eff-stat { background: #0d0d20; border: 1px solid #1e1e3a; border-radius: 3px; padding: 3px 7px; }
+    .eff-stat-k { font-size: 9px; color: #555; }
+    .eff-stat-v { font-size: 12px; color: #8080ff; }
+
+    .err { color: #ff6060; font-size: 11px; margin-top: 4px; }
+
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #080814; }
+    ::-webkit-scrollbar-thumb { background: #2a2a4a; border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- Stubs must be defined BEFORE data.js/battle.js/endless.js load -->
+<script>
+  // Seeded PRNG — same algorithm as game.js
+  let _rngSeed = 0x12345678;
+  function rng() {
+    _rngSeed = (_rngSeed + 0x6D2B79F5) | 0;
+    let t = Math.imul(_rngSeed ^ (_rngSeed >>> 15), 1 | _rngSeed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  }
+  function seedRng(s) { _rngSeed = s >>> 0; }
+
+  // Global state stub — team is set to [attacker] before each battle so item checks work
+  let state = { team: [], isEndlessMode: true };
+
+</script>
+<script src="js/data.js"></script>
+<script src="js/battle.js"></script>
+<script src="js/endless.js"></script>
+
+<script>
+// ── All held items (from data.js HELD_ITEM_POOL) ─────────────────────────────
+const ALL_ITEMS = [
+  { id: '',              name: '— None —' },
+  { id: 'choice_band',  name: 'Choice Band (+40% ATK)' },
+  { id: 'choice_specs', name: 'Choice Specs (+40% SPA)' },
+  { id: 'choice_scarf', name: 'Choice Scarf (+50% SPE)' },
+  { id: 'life_orb',     name: 'Life Orb (+30% dmg, -10% HP recoil)' },
+  { id: 'wide_lens',    name: 'Wide Lens (+20% dmg)' },
+  { id: 'muscle_band',  name: 'Muscle Band (+50% ATK/DEF if 4+ phys)' },
+  { id: 'wise_glasses', name: 'Wise Glasses (+50% SPA/SPD if 4+ spec)' },
+  { id: 'metronome',    name: 'Metronome (+50% if 4+ share type)' },
+  { id: 'scope_lens',   name: 'Scope Lens (20% crit rate)' },
+  { id: 'expert_belt',  name: 'Expert Belt (+30% on SE hits)' },
+  { id: 'assault_vest', name: 'Assault Vest (+50% SPD)' },
+  { id: 'eviolite',     name: 'Eviolite (+50% DEF/SPD if not fully evolved)' },
+  { id: 'rocky_helmet', name: 'Rocky Helmet (12% recoil on attacker)' },
+  { id: 'shell_bell',   name: 'Shell Bell (heal 15% of dmg dealt)' },
+  { id: 'leftovers',    name: 'Leftovers (heal 10% HP/round)' },
+  { id: 'focus_band',   name: 'Focus Band (20% survive KO at 1 HP)' },
+  { id: 'focus_sash',   name: 'Focus Sash (survive 1 hit from full HP)' },
+  { id: 'air_balloon',  name: 'Air Balloon (immune to Ground)' },
+  { id: 'sharp_beak',   name: 'Sharp Beak (+50% Flying dmg)' },
+  { id: 'charcoal',     name: 'Charcoal (+50% Fire dmg)' },
+  { id: 'mystic_water', name: 'Mystic Water (+50% Water dmg)' },
+  { id: 'magnet',       name: 'Magnet (+50% Electric dmg)' },
+  { id: 'miracle_seed', name: 'Miracle Seed (+50% Grass dmg)' },
+  { id: 'twisted_spoon',name: 'Twisted Spoon (+50% Psychic dmg)' },
+  { id: 'black_belt',   name: 'Black Belt (+50% Fighting dmg)' },
+  { id: 'soft_sand',    name: 'Soft Sand (+50% Ground dmg)' },
+  { id: 'silver_powder',name: 'Silver Powder (+50% Bug dmg)' },
+  { id: 'hard_stone',   name: 'Hard Stone (+50% Rock dmg)' },
+  { id: 'dragon_fang',  name: 'Dragon Fang (+50% Dragon dmg)' },
+  { id: 'poison_barb',  name: 'Poison Barb (+50% Poison dmg)' },
+  { id: 'spell_tag',    name: 'Spell Tag (+50% Ghost dmg)' },
+  { id: 'silk_scarf',   name: 'Silk Scarf (+50% Normal dmg)' },
+];
+
+const TRAIT_TYPES = [
+  'Bug','Dark','Dragon','Electric','Fairy','Fighting',
+  'Fire','Flying','Ghost','Grass','Ground','Ice',
+  'Normal','Poison','Psychic','Rock','Steel','Water',
+];
+
+const STAT_KEYS = ['hp','atk','def','speed','special','spdef'];
+const STAT_LABELS = { hp:'HP', atk:'ATK', def:'DEF', speed:'SPE', special:'SPA', spdef:'SPD' };
+
+// ── Panel state ───────────────────────────────────────────────────────────────
+const panels = {
+  atk: { species: null, level: 100, moveTier: 2, item: '', buffs: {}, traits: {}, el: null },
+  def: { species: null, level: 50,  moveTier: 1, item: '', buffs: {}, traits: {}, el: null },
+};
+
+// ── Build panel HTML ──────────────────────────────────────────────────────────
+function buildPanel(side) {
+  const id = side;
+  const label = side === 'atk' ? 'Attacker' : 'Defender';
+  const p = panels[side];
+
+  const itemOptions = ALL_ITEMS.map(it =>
+    `<option value="${it.id}">${it.id === p.item ? '✓ ' : ''}${it.name}</option>`
+  ).join('');
+
+  const tierOptions = [0,1,2,3].map(t => `<option value="${t}">${t}</option>`).join('');
+
+  const traitCells = TRAIT_TYPES.map(t => `
+    <div class="trait-cell" id="${id}-trait-${t}">
+      <span class="trait-lbl">${t}</span>
+      <select onchange="setTrait('${id}','${t}',this.value)">
+        ${tierOptions}
+      </select>
+    </div>`).join('');
+
+  const buffRows = STAT_KEYS.map(k => `
+    <div class="buff-row" id="${id}-buff-row-${k}">
+      <span class="buff-lbl">${STAT_LABELS[k]}</span>
+      <input type="range" min="0" max="10" value="0"
+        oninput="setBuff('${id}','${k}',this.value); this.nextElementSibling.textContent=this.value"
+        id="${id}-buff-${k}">
+      <span class="buff-val">0</span>
+    </div>`).join('');
+
+  return `
+    <h2>${label}</h2>
+    <div class="species-row">
+      <input type="text" placeholder="ID or name (e.g. 215, sneasel)" id="${id}-species-input">
+      <button onclick="fetchSpecies('${id}')">Load</button>
+    </div>
+    <div class="poke-preview" id="${id}-preview">
+      <span style="color:#444">No Pokémon loaded</span>
+    </div>
+    <div id="${id}-err" class="err"></div>
+
+    <h3>Config</h3>
+    <div class="cfg-row">
+      <span class="cfg-lbl">Level</span>
+      <input type="number" min="1" max="100" value="${p.level}" id="${id}-level"
+        oninput="panels['${id}'].level=+this.value; refreshPreview('${id}')">
+    </div>
+    <div class="cfg-row">
+      <span class="cfg-lbl">Move tier</span>
+      <select id="${id}-movetier" onchange="panels['${id}'].moveTier=+this.value">
+        <option value="0">0 — Weak (35-60 PWR)</option>
+        <option value="1">1 — Standard (65-100 PWR)</option>
+        <option value="2" selected>2 — Powerful (100-150 PWR)</option>
+      </select>
+    </div>
+    <div class="cfg-row">
+      <span class="cfg-lbl">Held item</span>
+      <select id="${id}-item" onchange="panels['${id}'].item=this.value">${itemOptions}</select>
+    </div>
+
+    <h3>Stat buffs <span style="color:#444;font-size:9px">(each +10% per point)</span></h3>
+    <div class="buff-grid">${buffRows}</div>
+
+    <h3>Traits <span style="color:#444;font-size:9px">(tier 0=off, 1-3=on)</span></h3>
+    <div class="trait-grid">${traitCells}</div>
+
+    <h3>Effective stats</h3>
+    <div class="eff-stats" id="${id}-eff-stats"><span style="color:#444">load a Pokémon first</span></div>
+  `;
+}
+
+function setTrait(side, type, val) {
+  const tier = parseInt(val);
+  panels[side].traits[type] = tier;
+  const cell = document.getElementById(`${side}-trait-${type}`);
+  if (cell) cell.classList.toggle('active', tier > 0);
+}
+
+function setBuff(side, key, val) {
+  panels[side].buffs[key] = parseInt(val);
+  refreshPreview(side);
+}
+
+// ── Fetch species ─────────────────────────────────────────────────────────────
+async function fetchSpecies(side) {
+  const input = document.getElementById(`${side}-species-input`).value.trim().toLowerCase();
+  if (!input) return;
+  const errEl = document.getElementById(`${side}-err`);
+  errEl.textContent = 'Loading…';
+  try {
+    const sp = await fetchPokemonById(input);
+    if (!sp) throw new Error('Not found');
+    panels[side].species = sp;
+    errEl.textContent = '';
+    renderPreview(side);
+    refreshEffStats(side);
+  } catch(e) {
+    errEl.textContent = `Error: ${e.message}`;
+  }
+}
+
+function renderPreview(side) {
+  const p = panels[side];
+  const sp = p.species;
+  if (!sp) return;
+  const el = document.getElementById(`${side}-preview`);
+  const types = (sp.types || []).join('/');
+  const bs = sp.baseStats;
+  el.innerHTML = `
+    <img src="${sp.spriteUrl}" alt="${sp.name}" onerror="this.style.display='none'">
+    <div>
+      <div class="poke-preview-name">#${sp.id} ${sp.name}</div>
+      <div class="poke-preview-sub">${types} · BST ${sp.bst || Object.values(bs).reduce((a,b)=>a+b,0)}</div>
+      <div class="poke-preview-sub">ATK:${bs.atk} SPA:${bs.special} DEF:${bs.def} SPD:${bs.spdef??bs.special} SPE:${bs.speed} HP:${bs.hp}</div>
+    </div>`;
+  refreshHiddenBuffRow(side);
+}
+
+function refreshHiddenBuffRow(side) {
+  const sp = panels[side].species;
+  if (!sp) return;
+  const isSpecialAttacker = (sp.baseStats.special || 0) >= (sp.baseStats.atk || 0);
+  const hiddenKey = isSpecialAttacker ? 'atk' : 'special';
+  for (const k of STAT_KEYS) {
+    const row = document.getElementById(`${side}-buff-row-${k}`);
+    if (row) row.style.display = (k === hiddenKey) ? 'none' : '';
+  }
+}
+
+function refreshPreview(side) {
+  renderPreview(side);
+  refreshEffStats(side);
+}
+
+function buildInstance(side) {
+  const p = panels[side];
+  if (!p.species) return null;
+  const inst = createInstance(p.species, p.level, false, p.moveTier);
+  inst.statBuffs = { ...p.buffs };
+  inst.heldItem = p.item ? { id: p.item, name: p.item } : null;
+  // Apply HP buff to maxHp
+  const hpBuff = inst.statBuffs.hp ?? 0;
+  if (hpBuff > 0) {
+    inst.maxHp = Math.floor(calcHp(inst.baseStats.hp, inst.level) * (1 + 0.1 * hpBuff));
+    inst.currentHp = inst.maxHp;
+  }
+  return inst;
+}
+
+function refreshEffStats(side) {
+  const el = document.getElementById(`${side}-eff-stats`);
+  if (!el) return;
+  const inst = buildInstance(side);
+  if (!inst) { el.innerHTML = '<span style="color:#444">load a Pokémon first</span>'; return; }
+  state.team = [inst];
+  const fakeStages = { atk:0, def:0, speed:0, special:0, spdef:0 };
+  const stats = [
+    ['ATK', getEffectiveStat({...inst, stages: fakeStages}, 'atk',     inst.heldItem ? [inst.heldItem] : [], fakeStages)],
+    ['SPA', getEffectiveStat({...inst, stages: fakeStages}, 'special',  inst.heldItem ? [inst.heldItem] : [], fakeStages)],
+    ['DEF', getEffectiveStat({...inst, stages: fakeStages}, 'def',      inst.heldItem ? [inst.heldItem] : [], fakeStages)],
+    ['SPD', getEffectiveStat({...inst, stages: fakeStages}, 'spdef',    inst.heldItem ? [inst.heldItem] : [], fakeStages)],
+    ['SPE', getEffectiveStat({...inst, stages: fakeStages}, 'speed',    inst.heldItem ? [inst.heldItem] : [], fakeStages)],
+    ['HP',  inst.maxHp],
+  ];
+  el.innerHTML = stats.map(([k,v]) =>
+    `<div class="eff-stat"><div class="eff-stat-k">${k}</div><div class="eff-stat-v">${v}</div></div>`
+  ).join('');
+}
+
+// ── Battle runner ─────────────────────────────────────────────────────────────
+function buildTraits(side) {
+  const tiers = panels[side].traits;
+  // Only pass non-zero tiers
+  return Object.fromEntries(Object.entries(tiers).filter(([,v]) => v > 0));
+}
+
+function runBattleTest() {
+  const atkInst = buildInstance('atk');
+  const defInst = buildInstance('def');
+  if (!atkInst) { alert('Load an Attacker Pokémon first.'); return; }
+  if (!defInst) { alert('Load a Defender Pokémon first.'); return; }
+
+  const n = parseInt(document.getElementById('trial-count').value) || 1;
+
+  // Set state.team so item team-checks work (muscle_band, wise_glasses, metronome)
+  state.team = [atkInst];
+
+  const atkTraits = buildTraits('atk');
+  const defTraits = buildTraits('def');
+  const traitsConfig = buildTraitsConfig(atkTraits, defTraits);
+
+  const allResults = [];
+  seedRng(0x12345678); // deterministic across runs
+
+  for (let i = 0; i < n; i++) {
+    const result = runBattle(
+      [{ ...atkInst }],
+      [{ ...defInst }],
+      [],   // bag items (not used for damage)
+      [],
+      null, // onLog
+      traitsConfig
+    );
+    allResults.push(result);
+  }
+
+  renderLog(allResults, atkInst, defInst, n);
+}
+
+// ── Log rendering ─────────────────────────────────────────────────────────────
+function renderLog(allResults, atkInst, defInst, n) {
+  const wins   = allResults.filter(r => r.playerWon).length;
+  const losses = n - wins;
+  const rounds = allResults.map(r => r.detailedLog.filter(e => e.type === 'attack' && e.side === 'player').length);
+  const avgRounds = (rounds.reduce((a,b)=>a+b,0)/n).toFixed(1);
+
+  // Collect all player-dealt damage values for stats
+  const atkDmgs = [], defDmgs = [];
+  for (const r of allResults) {
+    for (const e of r.detailedLog) {
+      if (e.type !== 'attack') continue;
+      if (e.side === 'player') atkDmgs.push(e.damage);
+      else defDmgs.push(e.damage);
+    }
+  }
+  const dmgStat = arr => arr.length === 0 ? '—' :
+    `${Math.min(...arr)}–${Math.max(...arr)} avg ${(arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(1)}`;
+
+  document.getElementById('log-wins').textContent = `${wins}/${n}`;
+  document.getElementById('log-wins').className = 'log-stat-val' + (wins > losses ? ' win' : wins < losses ? ' lose' : '');
+  document.getElementById('log-atk-dmg').textContent = dmgStat(atkDmgs);
+  document.getElementById('log-def-dmg').textContent = dmgStat(defDmgs);
+  document.getElementById('log-avg-rounds').textContent = avgRounds;
+
+  // Show detailed log for the LAST trial (most recent)
+  const lastResult = allResults[allResults.length - 1];
+  const logBox = document.getElementById('log-box');
+  logBox.innerHTML = '';
+  let round = 0;
+
+  for (const ev of lastResult.detailedLog) {
+    const div = document.createElement('div');
+    div.className = 'log-line';
+
+    if (ev.type === 'attack') {
+      round++;
+      const effTxt = ev.typeEff >= 2 ? ' <span class="super">Super effective!</span>'
+        : ev.typeEff === 0 ? ' <span class="notv">No effect.</span>'
+        : ev.typeEff < 1 ? ' <span class="notv">Not very effective.</span>' : '';
+      const critTxt = ev.crit ? ' <span class="crit">[CRIT]</span>' : '';
+      const side = ev.side === 'player' ? 'atk' : 'def';
+      div.className = `log-line ${side}`;
+      div.innerHTML = `<span class="rnd">R${round}</span><span class="txt">${ev.attackerName} used ${ev.moveName} (${ev.moveType}) → <span class="dmg">${ev.damage} dmg</span>${effTxt}${critTxt} · ${ev.targetName} HP ${ev.targetHpAfter}</span>`;
+    } else if (ev.type === 'faint') {
+      div.className = 'log-line faint';
+      div.innerHTML = `<span class="rnd">  </span><span class="txt">✗ ${ev.name} fainted!</span>`;
+    } else if (ev.type === 'effect') {
+      div.className = 'log-line item';
+      div.innerHTML = `<span class="rnd">  </span><span class="txt">${ev.reason || `${ev.name} HP → ${ev.hpAfter}`}</span>`;
+    } else if (ev.type === 'stat_change') {
+      div.className = 'log-line item';
+      const dir = ev.change > 0 ? '▲' : '▼';
+      div.innerHTML = `<span class="rnd">  </span><span class="txt">${ev.name} ${ev.stat.toUpperCase()} ${dir}${Math.abs(ev.change)} (stage ${ev.newStage})</span>`;
+    } else if (ev.type === 'status_apply') {
+      div.className = 'log-line item';
+      div.innerHTML = `<span class="rnd">  </span><span class="txt">${ev.name} was ${ev.status}ed!</span>`;
+    } else if (ev.type === 'status_tick') {
+      div.className = 'log-line item';
+      const sub = ev.status === 'poison' ? `poison tick → ${ev.hpAfter} HP`
+        : ev.status === 'freeze_skip' ? 'frozen, skipped turn'
+        : 'thawed out!';
+      div.innerHTML = `<span class="rnd">  </span><span class="txt">${ev.name}: ${sub}</span>`;
+    } else if (ev.type === 'confusion') {
+      div.className = 'log-line item';
+      div.innerHTML = `<span class="rnd">  </span><span class="txt">${ev.name} hurt itself in confusion! (${ev.hpChange} HP → ${ev.hpAfter})</span>`;
+    } else if (ev.type === 'trait_trigger') {
+      div.className = 'log-line trait';
+      div.innerHTML = `<span class="rnd">  </span><span class="txt">◆ ${ev.description}</span>`;
+    } else if (ev.type === 'send_out') {
+      div.className = 'log-line info';
+      div.innerHTML = `<span class="rnd">  </span><span class="txt">${ev.name} was sent out!</span>`;
+    } else if (ev.type === 'transform') {
+      div.className = 'log-line info';
+      div.innerHTML = `<span class="rnd">  </span><span class="txt">${ev.name} transformed into ${ev.intoName}!</span>`;
+    } else if (ev.type === 'result') {
+      div.className = `log-line result${ev.playerWon ? '' : ' lose'}`;
+      div.innerHTML = `<span class="rnd">  </span><span class="txt">${ev.playerWon ? '⬤ Attacker wins!' : '⬤ Defender wins!'}</span>`;
+    } else {
+      continue;
+    }
+    logBox.appendChild(div);
+  }
+
+  if (n > 1) {
+    const sep = document.createElement('div');
+    sep.className = 'log-line info';
+    sep.innerHTML = `<span class="rnd">  </span><span class="txt">↑ showing last of ${n} trials</span>`;
+    logBox.appendChild(sep);
+  }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+function init() {
+  document.getElementById('panel-atk').innerHTML = buildPanel('atk');
+  document.getElementById('panel-def').innerHTML = buildPanel('def');
+  // Set default move tier dropdowns
+  document.getElementById('atk-movetier').value = '2';
+  document.getElementById('def-movetier').value = '1';
+}
+
+window.addEventListener('DOMContentLoaded', init);
+</script>
+
+<div class="root">
+  <!-- Attacker -->
+  <div class="panel panel-atk" id="panel-atk"></div>
+  <!-- Defender -->
+  <div class="panel panel-def" id="panel-def"></div>
+
+  <!-- Run bar -->
+  <div class="panel-run">
+    <button class="run-btn" onclick="runBattleTest()">▶ Run Battle</button>
+    <div class="trials-row">
+      <label>Trials</label>
+      <input type="number" id="trial-count" value="1" min="1" max="1000">
+    </div>
+    <span class="run-info">Set trials > 1 to aggregate damage stats across many fights</span>
+  </div>
+
+  <!-- Battle log -->
+  <div class="panel-log">
+    <div class="log-header">
+      <div class="log-stat">
+        <div class="log-stat-lbl">Attacker wins</div>
+        <div class="log-stat-val" id="log-wins">—</div>
+      </div>
+      <div class="log-stat">
+        <div class="log-stat-lbl">Atk damage range</div>
+        <div class="log-stat-val" id="log-atk-dmg">—</div>
+      </div>
+      <div class="log-stat">
+        <div class="log-stat-lbl">Def damage range</div>
+        <div class="log-stat-val" id="log-def-dmg">—</div>
+      </div>
+      <div class="log-stat">
+        <div class="log-stat-lbl">Avg rounds</div>
+        <div class="log-stat-val" id="log-avg-rounds">—</div>
+      </div>
+    </div>
+    <div class="log-box" id="log-box">
+      <div class="log-empty">Configure both Pokémon and click ▶ Run Battle</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

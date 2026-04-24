@@ -94,8 +94,8 @@ function getEffectiveStat(pokemon, stat, items, stages = null) {
     ? (pokemon.baseStats?.spdef ?? pokemon.baseStats?.special ?? 50)
     : (pokemon.baseStats?.[stat] ?? 50);
   const buffCount = pokemon.statBuffs?.[stat] ?? 0;
-  let val = Math.floor((rawStat || 50) * (1 + 0.1 * buffCount));
-  val = Math.floor(val * pokemon.level / 50) + 5;
+  let val = Math.floor((rawStat || 50) * pokemon.level / 50) + 5;
+  if (buffCount > 0) val = Math.floor(val * (1 + 0.1 * buffCount));
 
   const team = typeof state !== 'undefined' ? state.team : [];
   const physicalCount = team.filter(p => (p.baseStats?.atk || 0) > (p.baseStats?.special || 0)).length;
