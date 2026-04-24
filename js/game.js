@@ -240,8 +240,15 @@ async function showStarterSelect() {
       return maxed + partial * 0.5;
     }
 
+    const shinyRoots = new Set();
+    for (const entry of allHofEntries) {
+      for (const p of entry.team) {
+        if (p.isShiny) shinyRoots.add(getEvoLineRoot(p.speciesId));
+      }
+    }
+
     const hofInstances = hofSpecies.map(species => {
-      const isShiny = rng() < (hasShinyCharm() ? 0.02 : 0.01);
+      const isShiny = shinyRoots.has(getEvoLineRoot(species.id ?? species.speciesId));
       const inst = createInstance(species, startLevel, isShiny, 0);
       loadBuffsIntoPokemon(inst);
       return inst;
@@ -263,6 +270,13 @@ async function showStarterSelect() {
           <div style="display:flex;gap:2px;flex-wrap:wrap;justify-content:center;">${typeBadges}</div>`;
         const stars = makeMaxedStarsEl(inst.speciesId);
         if (stars) slot.appendChild(stars);
+        if (inst.isShiny) {
+          const shinyStar = document.createElement('span');
+          shinyStar.textContent = '★';
+          shinyStar.style.cssText = 'position:absolute;top:3px;left:3px;font-size:7px;color:#4af;line-height:1;';
+          shinyStar.title = 'Shiny!';
+          slot.appendChild(shinyStar);
+        }
         slot.addEventListener('click', () => selectStarter(inst));
         slot.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') selectStarter(inst); });
         slot.addEventListener('mouseenter', () => showTeamHoverCard(inst, slot));
@@ -299,8 +313,7 @@ async function showStarterSelect() {
 
     for (const species of starters) {
       if (!species) continue;
-      const isShiny = rng() < (hasShinyCharm() ? 0.02 : 0.01);
-      const inst = createInstance(species, startLevel, isShiny, 0);
+      const inst = createInstance(species, startLevel, false, 0);
       const wrapper = document.createElement('div');
       wrapper.innerHTML = renderPokemonCard(inst, true, false);
       const card = wrapper.querySelector('.poke-card');

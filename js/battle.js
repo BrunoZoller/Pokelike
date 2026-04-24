@@ -298,8 +298,10 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog, traitsCon
       }
 
       // afterAttack hook (Grass, Ghost, Electric, Ice, Poison, Rock, Water, Psychic)
-      if (damage > 0 && traitsConfig?.afterAttack) {
-        traitsConfig.afterAttack(attacker, aIdx, side, target, tIdx, tSide, damage, detailedLog, pTeam, eTeam);
+      // Use net HP lost after whenAttacked (e.g. Flying dodge heals back) so dodged attacks don't trigger splash effects
+      const actualDamage = targetPreHp - target.currentHp;
+      if (actualDamage > 0 && traitsConfig?.afterAttack) {
+        traitsConfig.afterAttack(attacker, aIdx, side, target, tIdx, tSide, actualDamage, detailedLog, pTeam, eTeam);
       }
 
       // Life Orb recoil
