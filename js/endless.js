@@ -244,8 +244,8 @@ const FIXED_STAGE_REGIONS = {
     [ // Region 3
       // Benga: Fire specialist, +3 levels across all members
       { name: 'Benga',   type: 'Fire', sprite: 'benga',   ids: [59, 6, 244, 250, 494, 637], levelBonus: 3 },
-      // Ghetsis: Dragon T10 (traitBonus 7 + 6 Dragon-types = tier 10), Black Kyurem +10 extra levels
-      { name: 'Ghetsis', type: 'Dragon',      sprite: 'ghetsis', ids: [635, 621, 487, 373, 483, 'kyurem-black'], extraLevels: { 5: 10 }, traitBonus: 7 },
+      // Ghetsis: Dragon T10 only, Black Kyurem +10 extra levels
+      { name: 'Ghetsis', type: 'Dragon',      sprite: 'ghetsis', ids: [635, 621, 487, 373, 483, 'kyurem-black'], extraLevels: { 5: 10 }, specificTraits: { Dragon: 10 } },
       // N: +15 levels, Reshiram +9 extra to reach level 140, copies and upgrades player traits
       { name: 'N',       type: null,          sprite: 'n',       ids: [571, 584, 567, 609, 612, 643], levelBonus: 15, extraLevels: { 5: 9 }, copyPlayerTraits: true },
     ],
