@@ -3131,7 +3131,8 @@ async function checkAndEvolveTeam() {
     if (newSpecies) {
       pokemon.types     = newSpecies.types;
       pokemon.baseStats = newSpecies.baseStats;
-      const newMax      = calcHp(newSpecies.baseStats.hp, pokemon.level);
+      const hpBuff      = pokemon.statBuffs?.hp ?? 0;
+      const newMax      = Math.floor(calcHp(newSpecies.baseStats.hp, pokemon.level) * (1 + 0.1 * hpBuff));
       pokemon.maxHp     = newMax;
       pokemon.currentHp = wasFainted ? 0 : Math.max(1, Math.floor(oldHpRatio * newMax));
     }

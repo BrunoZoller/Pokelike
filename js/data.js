@@ -822,6 +822,7 @@ const GEN1_EVOLUTIONS = {
   194:{ into: 195, level: 20, name: 'Quagsire' },
   204:{ into: 205, level: 31, name: 'Forretress' },
   209:{ into: 210, level: 23, name: 'Granbull' },
+  215:{ into: 461, level: 40, name: 'Weavile' },
   216:{ into: 217, level: 30, name: 'Ursaring' },
   218:{ into: 219, level: 38, name: 'Magcargo' },
   220:{ into: 221, level: 33, name: 'Piloswine' },

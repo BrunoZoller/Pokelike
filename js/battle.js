@@ -74,7 +74,7 @@ function calcDamage(attacker, defender, move, items, defItems = []) {
   }
 
   if (hasItem(items, 'expert_belt') && typeEff >= 2) damage = Math.floor(damage * 1.3);
-  if (hasItem(items, 'air_balloon') && moveType.toLowerCase() === 'ground') damage = 0;
+  if (hasItem(defItems, 'air_balloon') && moveType.toLowerCase() === 'ground') damage = 0;
 
   // Crit chance: 6.25% base, +20% with scope_lens or razor_claw
   let critChance = 0.0625;
@@ -231,7 +231,20 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog, traitsCon
       // Dark trait: chance for attacker to hit themselves in confusion
       if (traitsConfig?.onBeforeAttack) {
         const confused = traitsConfig.onBeforeAttack(attacker, aIdx, side, target, tIdx, tSide, detailedLog, pTeam, eTeam);
-        if (confused) continue;
+        if (confused) {
+          // If confusion killed the attacker, send out the next Pokemon on that side
+          if (attacker.currentHp <= 0) {
+            const nextTeam = side === 'player' ? pTeam : eTeam;
+            const next = nextTeam.map((p, i) => ({ p, idx: i })).find(x => x.p.currentHp > 0);
+            if (next) {
+              if (side === 'player') playerParticipants.add(next.idx);
+              const nName = next.p.nickname || next.p.name;
+              addLog(`${nName} was sent out!`, side === 'player' ? 'log-player' : 'log-enemy');
+              detailedLog.push({ type: 'send_out', side, idx: next.idx, name: nName });
+            }
+          }
+          continue;
+        }
       }
 
       let move = getBestMove(attacker.types || ['Normal'], attacker.baseStats, attacker.speciesId, attacker.moveTier ?? 1);
