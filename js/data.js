@@ -425,6 +425,7 @@ const POKEMON_FORM_SLUGS = {
   'deoxys-attack': 386, 'deoxys-defense': 386, 'deoxys-speed': 386,
   'shaymin-sky': 492,
   'charizard-mega-x': 6,
+  'kyurem-black': 646, 'kyurem-white': 646,
 };
 
 // Form slug → PokeAPI numeric form ID (used for sprite tooltip images)
@@ -432,6 +433,7 @@ const POKEMON_FORM_SPRITE_IDS = {
   'deoxys-attack': 10001, 'deoxys-defense': 10002, 'deoxys-speed': 10003,
   'shaymin-sky': 10006,
   'charizard-mega-x': 10034,
+  'kyurem-black': 10022, 'kyurem-white': 10023,
 };
 
 // 'deoxys-attack' → 'Deoxys (Attack)'
@@ -719,6 +721,7 @@ const GEN1_EVOLUTIONS = {
   17: { into: 18,  level: 36, name: 'Pidgeot' },
   19: { into: 20,  level: 20, name: 'Raticate' },
   21: { into: 22,  level: 20, name: 'Fearow' },
+  25: { into: 26,  level: 36, name: 'Raichu' },        // thunder stone → lv 36
   // Snakes / ground
   23: { into: 24,  level: 22, name: 'Arbok' },
   27: { into: 28,  level: 22, name: 'Sandslash' },

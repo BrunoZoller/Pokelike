@@ -14,7 +14,10 @@ let endlessState = {
 const TRAIT_DESCRIPTIONS = {
   Bug:     ['20% chance: +1 Level after fight',           '40% chance: +1 Level after fight',           '80% chance: +1 Level after fight'],
   Dark:    ['5% chance: enemy hurts itself in confusion',  '10% chance: enemy hurts itself in confusion', '15% chance: enemy hurts itself in confusion'],
-  Dragon:  ['+1 Spd/ATK/SpATK on KO',      '+1 Spd/ATK/SpATK on KO',      '+1 Spd/ATK/SpATK on KO'],
+  Dragon:  ['+1 Spd/ATK/SpATK on KO', '+2 Spd/ATK/SpATK on KO', '+3 Spd/ATK/SpATK on KO',
+            '+4 Spd/ATK/SpATK on KO', '+5 Spd/ATK/SpATK on KO', '+6 Spd/ATK/SpATK on KO',
+            '+7 Spd/ATK/SpATK on KO', '+8 Spd/ATK/SpATK on KO', '+9 Spd/ATK/SpATK on KO',
+            '+10 Spd/ATK/SpATK on KO'],
   Electric:['15% chance to attack again',                 '30% chance to attack again',                 '45% chance to attack again'],
   Fairy:   ['Enemy: -1 ATK & Sp.ATK at fight start',     'Enemy: -2 ATK & Sp.ATK at fight start',     'Enemy: -3 ATK & Sp.ATK at fight start'],
   Fighting:['When a pokemon faints, survivors get +1 ATK & Sp.ATK', 'When a pokemon faints, survivors get +2 ATK & Sp.ATK', 'When a pokemon faints, survivors get +3 ATK & Sp.ATK'],
@@ -226,7 +229,43 @@ const FIXED_STAGE_REGIONS = {
       { name: 'Cynthia',      type: null,           sprite: 'cynthia', ids: [442, 407, 468, 448, 350, 445], levelBonus: 10, traitBonus: 1 },
     ],
   ],
+  5: [
+    [ // Region 1
+      { name: 'Roark',   type: 'Rock',         sprite: 'roark',   ids: [138, 140, 408, 410, 564, 566] },
+      { name: 'Marshal', type: 'Fire/Fighting', sprite: 'marshal', ids: [256, 391, 499, 257, 392, 500] },
+      { name: 'Clay',    type: 'Ground/Water',  sprite: 'clay',    ids: [445, 472, 260, 537, 423, 340] },
+    ],
+    [ // Region 2
+      { name: 'Grimsley', type: 'Dark',  sprite: 'grimsley',     ids: [359, 248, 319, 635, 553, 491] },
+      { name: 'Colress',  type: 'Steel', sprite: 'colress',      ids: [448, 376, 485, 483, 638, 649] },
+      // Iris: 5 legendary dragons + Haxorus (last slot, +10 extra levels)
+      { name: 'Iris',     type: 'Dragon', sprite: 'iris-gen5bw2', ids: [380, 484, 384, 644, 'kyurem-white', 612], extraLevels: { 5: 10 } },
+    ],
+    [ // Region 3
+      // Benga: +3 levels across all members
+      { name: 'Benga',   type: 'Dragon/Fire', sprite: 'benga',   ids: [445, 149, 381, 380, 637, 637], levelBonus: 3 },
+      // Ghetsis: Dragon T10 (traitBonus 7 + 6 Dragon-types = tier 10), Black Kyurem +10 extra levels
+      { name: 'Ghetsis', type: 'Dragon',      sprite: 'ghetsis', ids: [635, 621, 487, 373, 483, 'kyurem-black'], extraLevels: { 5: 10 }, traitBonus: 7 },
+      // N: +15 levels, Reshiram +9 extra to reach level 140, copies and upgrades player traits
+      { name: 'N',       type: null,          sprite: 'n',       ids: [571, 584, 567, 609, 612, 643], levelBonus: 15, extraLevels: { 5: 9 }, copyPlayerTraits: true },
+    ],
+  ],
 };
+
+// Merge player and enemy base trait tiers for N's copyPlayerTraits mechanic.
+// Each type gets max(playerTier, enemyTier) + 1, capped at that type's maxTier.
+function computeMirroredTraits(playerTiers, enemyBaseTiers) {
+  const result = {};
+  const allTypes = new Set([...Object.keys(playerTiers), ...Object.keys(enemyBaseTiers)]);
+  for (const type of allTypes) {
+    const p = playerTiers[type] || 0;
+    const e = enemyBaseTiers[type] || 0;
+    const maxTier = TRAIT_DESCRIPTIONS[type]?.length ?? 3;
+    const merged = Math.min(maxTier, Math.max(p, e) + 1);
+    if (merged > 0) result[type] = merged;
+  }
+  return result;
+}
 
 function buildFixedRegion(stageNum, regionNum, fixedTrainers) {
   const moveTier = stageNum <= 1 ? 1 : 2;
@@ -639,11 +678,11 @@ function buildTraitsConfig(playerTiers, enemyTiers = {}) {
         for (const e of efx) log.push(e);
       }
 
-      // Dragon: killer gets +sc(1) Speed, ATK, Sp.ATK on KO
+      // Dragon: killer gets +tier Speed, ATK, Sp.ATK on KO
       if (activeFor('Dragon', kSide) && killer.currentHp > 0) {
-        const boost = sc(1);
+        const boost = sc(tierFor('Dragon', kSide));
         log.push({ type: 'trait_trigger', traitType: 'Dragon', side: kSide, idx: kIdx,
-          name: killer.nickname || killer.name, description: `Dragon Trait: Powered up on KO!` });
+          name: killer.nickname || killer.name, description: `Dragon Trait T${tierFor('Dragon', kSide)}: +${boost} on KO!` });
         applyStageChange(killer, 'speed',   boost, kSide, kIdx, log);
         applyStageChange(killer, 'atk',     boost, kSide, kIdx, log);
         applyStageChange(killer, 'special', boost, kSide, kIdx, log);

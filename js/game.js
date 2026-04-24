@@ -1222,7 +1222,8 @@ async function applyEvolution(pokemon) {
   if (newSpecies) {
     pokemon.types     = newSpecies.types;
     pokemon.baseStats = newSpecies.baseStats;
-    const newMax      = calcHp(newSpecies.baseStats.hp, pokemon.level);
+    const hpBuff      = pokemon.statBuffs?.hp ?? 0;
+    const newMax      = Math.floor(calcHp(newSpecies.baseStats.hp, pokemon.level) * (1 + 0.1 * hpBuff));
     pokemon.maxHp     = newMax;
     pokemon.currentHp = Math.max(1, Math.floor(oldHpRatio * newMax));
   }
@@ -2000,7 +2001,9 @@ async function doEndlessBossNode() {
   endlessState.traitTiers = computeTraitTiers(state.team);
   const enemyTiers = trainerData.allTraits != null
     ? Object.fromEntries(Object.keys(TRAIT_DESCRIPTIONS).map(t => [t, trainerData.allTraits]))
-    : computeTraitTiers(enemyTeam, trainerData.traitBonus ?? 0);
+    : trainerData.copyPlayerTraits
+      ? computeMirroredTraits(endlessState.traitTiers, computeTraitTiers(enemyTeam, 0))
+      : computeTraitTiers(enemyTeam, trainerData.traitBonus ?? 0);
   const traitsConfig = buildTraitsConfig(endlessState.traitTiers, enemyTiers);
   renderBattleTraitBars(endlessState.traitTiers, enemyTiers);
 
