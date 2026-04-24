@@ -1999,9 +1999,11 @@ async function doEndlessBossNode() {
   endlessState.traitTiers = computeTraitTiers(state.team);
   const enemyTiers = trainerData.allTraits != null
     ? Object.fromEntries(Object.keys(TRAIT_DESCRIPTIONS).map(t => [t, trainerData.allTraits]))
-    : trainerData.copyPlayerTraits
-      ? computeMirroredTraits(endlessState.traitTiers, computeTraitTiers(enemyTeam, 0))
-      : computeTraitTiers(enemyTeam, trainerData.traitBonus ?? 0);
+    : trainerData.specificTraits
+      ? trainerData.specificTraits
+      : trainerData.copyPlayerTraits
+        ? computeMirroredTraits(endlessState.traitTiers, computeTraitTiers(enemyTeam, 0))
+        : computeTraitTiers(enemyTeam, trainerData.traitBonus ?? 0);
   const traitsConfig = buildTraitsConfig(endlessState.traitTiers, enemyTiers);
   renderBattleTraitBars(endlessState.traitTiers, enemyTiers);
 
