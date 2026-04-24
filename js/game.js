@@ -1685,7 +1685,7 @@ function showWinScreen() {
   showScreen('win-screen');
   document.getElementById('win-team').innerHTML = state.team.map(p =>
     renderPokemonCard(p, false, false)).join('');
-  document.getElementById('btn-play-again').onclick = startNewRun;
+  document.getElementById('btn-play-again').onclick = () => startNewRun(state.nuzlockeMode);
 
   // Track elite four wins
   const wins = incrementEliteWins();
