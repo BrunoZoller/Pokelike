@@ -171,7 +171,7 @@ async function showStarterSelect() {
     }
   }
 
-  const startLevel = 5;
+  const startLevel = new URLSearchParams(location.search).has('dev') ? 100 : 5;
   const starters = state.isEndlessMode ? [] : await Promise.all(STARTER_IDS.map(id => fetchPokemonById(id)));
 
   container.innerHTML = '';
@@ -1778,6 +1778,7 @@ function showWinScreen() {
 // ── Endless Mode ─────────────────────────────────────────────────────────────
 
 function getUnlockedStageCount() {
+  if (new URLSearchParams(location.search).has('dev')) return 5;
   return parseInt(localStorage.getItem('poke_endless_unlocked_stages') || '1', 10);
 }
 
