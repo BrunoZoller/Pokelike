@@ -1814,7 +1814,7 @@ function showEndlessStageSelect() {
   const list = document.getElementById('stage-select-list');
   if (!list) return;
   list.innerHTML = '';
-  const maxShow = Math.min(unlocked + 1, MAX_ACCESSIBLE_STAGE + 1); // one locked preview beyond last unlocked, capped
+  const maxShow = Math.min(unlocked + 1, MAX_ACCESSIBLE_STAGE); // one locked preview, but never beyond the last defined stage
   for (let s = 1; s <= maxShow; s++) {
     const isLocked = s > unlocked;
     const meta = STAGE_META[Math.min(s, 5)];
