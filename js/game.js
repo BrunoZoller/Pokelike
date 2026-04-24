@@ -834,10 +834,13 @@ function catchPokemon(pokemon, node) {
 
 function showSwapScreen(newPoke, node) {
   showScreen('swap-screen');
+  const hasRoom = state.team.length < 6;
+  const h2 = document.querySelector('#swap-screen h2');
+  if (h2) h2.textContent = hasRoom ? 'New Pokémon!' : 'Team Full!';
   document.getElementById('swap-incoming').innerHTML = `<div style="display:flex;justify-content:center;">${renderPokemonCard(newPoke, true, false)}</div>`;
   const el = document.getElementById('swap-choices');
   el.innerHTML = '';
-  document.getElementById('swap-prompt').textContent = 'Choose a Pokémon to release:';
+  document.getElementById('swap-prompt').textContent = hasRoom ? 'Add to team or keep team as-is:' : 'Choose a Pokémon to release:';
 
   // Trait overlay (endless mode only)
   let traitOverlay = document.getElementById('swap-trait-overlay');
@@ -856,7 +859,25 @@ function showSwapScreen(newPoke, node) {
 
   const cleanup = () => { if (traitOverlay) traitOverlay.remove(); };
 
+  if (hasRoom) {
+    const addBtn = document.createElement('button');
+    addBtn.className = 'btn-primary';
+    addBtn.style.cssText = 'width:100%;margin-bottom:10px;';
+    addBtn.textContent = `Add ${newPoke.name} to team!`;
+    addBtn.addEventListener('click', () => {
+      cleanup();
+      loadBuffsIntoPokemon(newPoke);
+      state.team.push(newPoke);
+      if (state.team.length > state.maxTeamSize) state.maxTeamSize = state.team.length;
+      advanceFromNode(state.map, node.id);
+      showMapNotification(`${newPoke.name} joined your team!`);
+      showMapScreen();
+    });
+    el.appendChild(addBtn);
+  }
+
   for (let i = 0; i < state.team.length; i++) {
+    if (hasRoom) break;
     const p = state.team[i];
     const wrapper = document.createElement('div');
     wrapper.innerHTML = renderPokemonCard(p, true, false);
@@ -1322,16 +1343,7 @@ async function doLegendaryNode(node) {
     markPokedexCaught(legendary.speciesId, legendary.name, legendary.types, normalUrl);
     if (legendary.isShiny) markShinyDexCaught(legendary.speciesId, legendary.name, legendary.types, legendary.spriteUrl);
     checkDexAchievements();
-    if (state.team.length < 6) {
-      loadBuffsIntoPokemon(legendary);
-      state.team.push(legendary);
-      if (state.team.length > state.maxTeamSize) state.maxTeamSize = state.team.length;
-      advanceFromNode(state.map, node.id);
-      showMapNotification(`${legendary.name} joined your team!`);
-      showMapScreen();
-    } else {
-      showSwapScreen(legendary, node);
-    }
+    showSwapScreen(legendary, node);
   }, () => {
     showGameOver();
   }, null, [], 0); // Legendary battles give 0 extra levels (already challenging enough)
