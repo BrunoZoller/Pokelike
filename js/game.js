@@ -135,7 +135,7 @@ function makeMaxedStarsEl(speciesId) {
   el.style.cssText = 'position:absolute;top:3px;right:3px;display:flex;gap:1px;flex-wrap:wrap;justify-content:flex-end;max-width:40px;';
   el.innerHTML =
     Array.from({ length: fullStars }, () => `<span style="font-size:7px;color:gold;line-height:1;">★</span>`).join('') +
-    (halfStar ? `<span style="font-size:7px;color:gold;line-height:1;">½</span>` : '');
+    (halfStar ? `<span style="font-size:7px;color:gold;line-height:1;display:inline-block;width:0.5em;overflow:hidden;">★</span>` : '');
   el.title = `${total} buff points`;
   return el;
 }
