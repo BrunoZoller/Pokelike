@@ -287,6 +287,8 @@ function buildFixedRegion(stageNum, regionNum, fixedTrainers) {
       levelOffsets,
       traitBonus: spec.traitBonus ?? 0,
       allTraits: spec.allTraits ?? null,
+      specificTraits: spec.specificTraits ?? null,
+      copyPlayerTraits: spec.copyPlayerTraits ?? false,
     };
   });
   return { stageNum, regionNum, trainers };
