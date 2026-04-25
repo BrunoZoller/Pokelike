@@ -1825,14 +1825,15 @@ function showWinScreen() {
 // ── Endless Mode ─────────────────────────────────────────────────────────────
 
 function getUnlockedStageCount() {
-  return parseInt(localStorage.getItem('poke_endless_unlocked_stages') || '1', 10);
+  const hof = getHallOfFame();
+  const maxCompleted = hof
+    .filter(e => e.endless && e.stageNumber)
+    .reduce((max, e) => Math.max(max, e.stageNumber), 0);
+  return Math.max(1, maxCompleted + 1);
 }
 
-function unlockNextStage(completedStage) {
-  const current = getUnlockedStageCount();
-  if (completedStage >= current) {
-    localStorage.setItem('poke_endless_unlocked_stages', String(completedStage + 1));
-  }
+function unlockNextStage(_completedStage) {
+  // Unlock is now derived from Hall of Fame entries — no localStorage needed.
 }
 
 const MAX_ACCESSIBLE_STAGE = 5;
