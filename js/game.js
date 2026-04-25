@@ -1839,7 +1839,6 @@ function showWinScreen() {
 // ── Endless Mode ─────────────────────────────────────────────────────────────
 
 function getUnlockedStageCount() {
-  if (new URLSearchParams(location.search).has('dev')) return 5;
   return parseInt(localStorage.getItem('poke_endless_unlocked_stages') || '1', 10);
 }
 
