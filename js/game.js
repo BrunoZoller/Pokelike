@@ -700,7 +700,7 @@ async function doCatchNode(node) {
   const choicesEl = document.getElementById('catch-choices');
   choicesEl.innerHTML = '<div class="loading">Finding Pokemon...</div>';
 
-  let choices = await getCatchChoices(getEncounterMapIndex(), 9, state.isEndlessMode ? getEndlessMaxGenId(endlessState.stageNumber) : 151);
+  let choices = await getCatchChoices(getEncounterMapIndex(), 18, state.isEndlessMode ? getEndlessMaxGenId(endlessState.stageNumber) : 151);
   const isFirstMap = state.currentMap === 0 || (state.isEndlessMode && endlessState.regionNumber === 1 && endlessState.mapIndexInRegion === 0);
   const level = isFirstMap ? Math.max(4, getLevelForNode(node)) : getLevelForNode(node);
   const lvlFiltered = choices.filter(sp => minLevelForSpecies(sp.id ?? sp.speciesId) <= level);
@@ -747,12 +747,7 @@ async function doCatchNode(node) {
   }
   if (state.isEndlessMode) {
     const filtered = choices.filter(sp => !teamRoots.has(getEvoLineRoot(sp.id ?? sp.speciesId)));
-    if (filtered.length >= 3) {
-      choices = filtered;
-    } else if (filtered.length > 0) {
-      const remainder = choices.filter(sp => !filtered.includes(sp));
-      choices = [...filtered, ...remainder].slice(0, 3);
-    }
+    if (filtered.length > 0) choices = filtered;
   }
   const displayedIds = new Set(choices.slice(0, 3).map(sp => sp.id ?? sp.speciesId));
   const rerollPool = allCandidates.filter(sp => !displayedIds.has(sp.id ?? sp.speciesId));
