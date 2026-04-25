@@ -2545,20 +2545,19 @@ body.dark-mode #btn-hard-run:hover { box-shadow: 4px 4px 0 0 #cc2222; }
   .trait-row:last-child { border-right: none; padding-right: 0; margin-right: 0; }
   .trait-desc { display: none; }
 
-  /* Team panel: compact horizontal scroll strip with smaller cards */
+  /* Team panel: 3-column grid so all 6 slots are always visible */
   .map-panel-left { flex: 1 1 100%; padding: 4px; }
   .map-panel-left .hud-label { display: none; }
   #team-bar {
-    display: flex !important;
-    flex-direction: row;
-    overflow-x: auto;
-    gap: 6px;
-    padding-bottom: 4px;
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    overflow: visible;
+    padding-bottom: 0;
   }
-  #team-bar .poke-card { padding: 4px 6px; width: auto; flex-shrink: 0; }
-  #team-bar .poke-sprite-wrap,
-  #team-bar .poke-sprite { width: 52px; height: 52px; }
-  #team-bar .poke-name { font-size: 8px; }
+  #team-bar .team-slot { width: auto; }
+  #team-bar .team-slot-name { max-width: 100%; }
+  #team-bar .team-sprite { width: 36px; height: 36px; }
 
   /* Items: icon-only horizontal strip; region panel: hidden on mobile */
   .map-panel-right { flex: 1 1 100%; padding: 2px 4px; min-width: 0; }
