@@ -70,7 +70,15 @@ function generateMap(mapIndex, nuzlockeMode = false) {
     if (mapIndex >= 5 && ci >= 2 && !(typeof state !== 'undefined' && state.isEndlessMode)) w.legendary = 2;
     if (nuzlockeMode) { w.catch = 0; w.trade = 0; }
     if (typeof state !== 'undefined' && state.isEndlessMode) { w.trade = 0; w.catch = Math.floor(w.catch / 2); }
-    return weightedRandom(w);
+    const type = weightedRandom(w);
+    // Endless region 3: 1/6 catch nodes become legendary encounters
+    if (type === NODE_TYPES.CATCH &&
+        typeof state !== 'undefined' && state.isEndlessMode &&
+        typeof endlessState !== 'undefined' && endlessState.regionNumber === 3 &&
+        rng() < 1 / 6) {
+      return NODE_TYPES.LEGENDARY;
+    }
+    return type;
   };
 
   // Each node at position i in fromLayer connects to the 2 positionally
