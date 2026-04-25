@@ -483,6 +483,7 @@ function showItemFoundToast(icon, name) {
 let _nodeClickBusy = false;
 async function onNodeClick(node) {
   if (_nodeClickBusy) return;
+  if (!node.accessible) return;
   _nodeClickBusy = true;
   try {
   state.currentNode = node;
@@ -2020,6 +2021,7 @@ function showEndlessMapScreen() {
 }
 
 async function onEndlessNodeClick(node) {
+  if (!node.accessible) return;
   state.currentNode = node;
   // Lock sibling nodes before saving so F5 can't switch to a different path choice
   for (const n of Object.values(state.map.nodes)) {
