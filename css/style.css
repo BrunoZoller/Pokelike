@@ -2435,8 +2435,18 @@ body.dark-mode #btn-hard-run:hover { box-shadow: 4px 4px 0 0 #cc2222; }
   }
 }
 
-/* ── Mobile map screen layout (endless mode) ─────────────────────────────── */
+/* ── Mobile map screen layout ──────────────────────────────────────────────── */
 @media (max-width: 768px) {
+  /* 100dvh gives the true visible viewport on iOS Safari (excludes address bar) */
+  #map-screen {
+    height: -webkit-fill-available;
+    height: 100dvh;
+    min-height: 0;
+    padding: 6px;
+    gap: 4px;
+    overflow: hidden;
+  }
+
   /* Remove the top bar; surface action buttons as floating icons */
   .map-header { display: none; }
   .map-actions {
@@ -2449,17 +2459,17 @@ body.dark-mode #btn-hard-run:hover { box-shadow: 4px 4px 0 0 #cc2222; }
     z-index: 20;
   }
 
-  /* Panels at top, map pushed to bottom and fills remaining space */
-  .map-panels { order: 1; }
+  /* Map first (top, fills available height), panels below */
   #map-container {
-    order: 2;
-    min-height: 0;
+    order: 1;
     flex: 1;
+    min-height: 0;
     width: auto;
     max-width: 100%;
   }
+  .map-panels { order: 2; flex: 0 0 auto; }
 
-  /* Trait panel: full-width horizontal scrollable strip */
+  /* Trait panel: slim horizontal scrollable strip */
   .map-panel-traits {
     flex: 1 1 100%;
     max-width: none;
@@ -2469,6 +2479,7 @@ body.dark-mode #btn-hard-run:hover { box-shadow: 4px 4px 0 0 #cc2222; }
     overflow-x: auto;
     gap: 0;
     align-items: flex-start;
+    padding: 2px 0;
   }
   .map-panel-traits .hud-label { display: none; }
   .trait-row {
@@ -2480,26 +2491,26 @@ body.dark-mode #btn-hard-run:hover { box-shadow: 4px 4px 0 0 #cc2222; }
     margin-right: 8px;
     border-right: 1px solid var(--border);
   }
-  .trait-row:last-child {
-    border-right: none;
-    padding-right: 0;
-    margin-right: 0;
-  }
+  .trait-row:last-child { border-right: none; padding-right: 0; margin-right: 0; }
   .trait-desc { display: none; }
 
-  /* Team panel: full width, horizontal scroll strip */
-  .map-panel-left { flex: 1 1 100%; }
+  /* Team panel: compact horizontal scroll strip with smaller cards */
+  .map-panel-left { flex: 1 1 100%; padding: 4px; }
   #team-bar {
     display: flex !important;
     flex-direction: row;
     overflow-x: auto;
-    gap: 8px;
+    gap: 6px;
     padding-bottom: 4px;
   }
+  #team-bar .poke-card { padding: 4px 6px; width: auto; flex-shrink: 0; }
+  #team-bar .poke-sprite-wrap,
+  #team-bar .poke-sprite { width: 52px; height: 52px; }
+  #team-bar .poke-name { font-size: 8px; }
 
-  /* Items + region side by side */
-  .map-panel-right  { flex: 1; min-width: 0; }
-  .map-panel-region { flex: 1; min-width: 0; }
+  /* Items: compact; region panel: hidden on mobile */
+  .map-panel-right { flex: 1 1 100%; padding: 4px; min-width: 0; }
+  .map-panel-region { display: none; }
 }
 
 /* ── Endless Mode ───────────────────────────────────────────────────────────── */
