@@ -331,7 +331,8 @@ async function showStarterSelect() {
 
     for (const species of starters) {
       if (!species) continue;
-      const inst = createInstance(species, startLevel, false, 0);
+      const isShiny = rng() < (hasShinyCharm() ? 0.02 : 0.01);
+      const inst = createInstance(species, startLevel, isShiny, 0);
       const wrapper = document.createElement('div');
       wrapper.innerHTML = renderPokemonCard(inst, true, false);
       const card = wrapper.querySelector('.poke-card');

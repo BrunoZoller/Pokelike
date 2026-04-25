@@ -24,7 +24,8 @@ const FIREBASE_CONFIG = {
 const SYNC_KEYS = [
   'poke_trainer', 'poke_tutorial_seen', 'poke_settings',
   'poke_achievements', 'poke_dex', 'poke_shiny_dex',
-  'poke_elite_wins', 'poke_hall_of_fame', 'poke_last_run_won'
+  'poke_elite_wins', 'poke_hall_of_fame', 'poke_last_run_won',
+  'poke_stat_buffs',
 ];
 
 let _db = null;
