@@ -1068,7 +1068,7 @@ h1, h2, .pixel-font {
   .map-panel-left {
     order: 1;
     flex: 0 0 auto;
-    width: clamp(180px, 20vw, 360px);
+    width: fit-content;
     align-self: start;
     max-height: calc(100vh - 32px);
     overflow-y: auto;
@@ -1086,7 +1086,7 @@ h1, h2, .pixel-font {
   .map-panel-right {
     order: 3;
     flex: 0 0 auto;
-    width: clamp(120px, 13vw, 240px);
+    width: fit-content;
     align-self: start;
     max-height: calc(100vh - 32px);
     overflow-y: auto;
@@ -1095,7 +1095,7 @@ h1, h2, .pixel-font {
   #endless-trait-panel {
     order: 0;
     flex: 0 0 auto;
-    width: clamp(110px, 11vw, 210px);
+    width: fit-content;
     align-self: start;
     max-height: calc(100vh - 32px);
     overflow-y: auto;
@@ -1104,19 +1104,17 @@ h1, h2, .pixel-font {
   #endless-region-panel {
     order: 4;
     flex: 0 0 auto;
-    width: clamp(110px, 11vw, 210px);
+    width: fit-content;
     align-self: start;
     max-height: calc(100vh - 32px);
     overflow-y: auto;
   }
 
-  #team-bar { display: flex; flex-direction: column; gap: clamp(6px, 0.7vw, 12px); }
-  #team-bar .poke-card { width: 100%; }
+  #team-bar { display: flex; flex-direction: column; gap: 8px; }
 
-  /* Scale card content with viewport */
-  #map-screen .poke-card {
-    padding: clamp(10px, 1.2vw, 22px);
-    gap: clamp(6px, 0.7vw, 12px);
+  /* Card scales up with viewport — content drives panel width */
+  #team-bar .poke-card {
+    width: clamp(160px, 14vw, 260px);
   }
   #map-screen .poke-sprite,
   #map-screen .poke-sprite-wrap {
