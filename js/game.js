@@ -747,7 +747,12 @@ async function doCatchNode(node) {
   }
   if (state.isEndlessMode) {
     const filtered = choices.filter(sp => !teamRoots.has(getEvoLineRoot(sp.id ?? sp.speciesId)));
-    if (filtered.length > 0) choices = filtered;
+    if (filtered.length >= 3) {
+      choices = filtered;
+    } else if (filtered.length > 0) {
+      const remainder = choices.filter(sp => !filtered.includes(sp));
+      choices = [...filtered, ...remainder].slice(0, 3);
+    }
   }
   const displayedIds = new Set(choices.slice(0, 3).map(sp => sp.id ?? sp.speciesId));
   const rerollPool = allCandidates.filter(sp => !displayedIds.has(sp.id ?? sp.speciesId));
