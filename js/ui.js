@@ -3492,6 +3492,81 @@ function openShinyDexModal() { openPokedexModal('shiny'); }
 
 const PATCH_NOTES = [
   {
+    version: '1.4.0',
+    title: 'Battle Tower Update',
+    date: '2026-04-25',
+    sections: [
+      {
+        heading: 'Battle Tower',
+        entries: [
+          'New endless mode — the Battle Tower challenges you with 5 stages across all regions',
+          'Each stage unlocks after clearing the previous one and is named after its region: Kanto, Johto, Hoenn, Sinnoh, Unova',
+          'Each stage has 3 regions, each with 3 battles ending in a named boss trainer',
+          'Stage select shows region artwork as button backgrounds',
+          'Requires at least one Hall of Fame entry to unlock',
+          'Stage progress is now derived from your Hall of Fame history — cannot be spoofed by local storage',
+        ],
+      },
+      {
+        heading: 'Stage 5: Unova',
+        entries: [
+          'New stage featuring Gen 1–5 Pokémon',
+          'Boss trainers: N, Ghetsis, Iris, and Benga',
+          'Ghetsis brings a Dragon-only team with Dragon trait at T10',
+          'Iris and Benga have unique hand-crafted teams with no duplicates',
+          'Dragon trait extended to Tier 10',
+        ],
+      },
+      {
+        heading: 'Trait System',
+        entries: [
+          'Collect type traits by fielding Pokémon of matching types — traits level up as you progress',
+          'Each trait tier unlocks a passive effect that applies in every battle',
+          'Trait progress panel shown on the map screen and as a preview under each catch choice',
+          'Bug trait: your Pokémon gain a level after every battle — shown with a level-up banner',
+          'Dark trait: enemies have a chance to hurt themselves in confusion each turn',
+          'Stat buffs persist across evolutions and are shared by the full evo line',
+          'Stat stage cap set at ±10 stages; +10 = 4× multiplier',
+          'Boss trainers have their own trait loadouts that appear in battle',
+          'Trait type badges show your current progress on hover',
+        ],
+      },
+      {
+        heading: 'Hall of Fame',
+        entries: [
+          'Battle Tower wins are now labelled "Battle Tower: Kanto" etc. instead of "Endless Mode"',
+          'HoF PC shows unique base Pokémon count out of all catchable species',
+        ],
+      },
+      {
+        heading: 'Mobile Improvements',
+        entries: [
+          'Map screen now uses the correct viewport height on iOS Safari — no more content cut off by the address bar',
+          'Team cards on the map screen are more compact (smaller sprites, less padding)',
+          'Item bar shows icons only in a horizontal strip — no text labels',
+          'Catch and item screens always show all 3 choices in a single row',
+          'TEAM label removed from the map screen panel',
+        ],
+      },
+      {
+        heading: 'Desktop Improvements',
+        entries: [
+          'Map screen panels scale up with viewport width — larger screens show proportionally bigger UI',
+        ],
+      },
+      {
+        heading: 'Bug Fixes',
+        entries: [
+          'Catch node could show only 2 choices when evo-line deduplication was too aggressive — fixed by fetching a larger candidate pool',
+          'Saving and reloading mid-run in the Battle Tower no longer lets you revisit past nodes and make different choices',
+          'Steel trait now correctly reduces damage before applying it instead of healing it back afterward',
+          'Pokémon forced to use Struggle now show a Struggle! popup on their sprite',
+          'Air Balloon and Sneasel evolution edge cases fixed',
+        ],
+      },
+    ],
+  },
+  {
     version: '1.3.1',
     title: 'Cloud Saves & QoL Update',
     date: '2026-04-18',
