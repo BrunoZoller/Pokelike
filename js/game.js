@@ -64,25 +64,7 @@ async function initGame() {
 
   const endlessBtn = document.getElementById('btn-endless-run');
   if (endlessBtn) {
-    const hofUnlocked = getHallOfFame().length > 0;
-    if (hofUnlocked) {
-      endlessBtn.onclick = () => showEndlessStageSelect();
-    } else {
-      endlessBtn.style.opacity = '0.45';
-      endlessBtn.disabled = true;
-      endlessBtn.style.pointerEvents = 'none';
-      const wrapper = document.createElement('div');
-      wrapper.style.cssText = `position:relative;display:block;margin-top:${endlessBtn.style.marginTop || '6px'};`;
-      endlessBtn.style.marginTop = '0';
-      endlessBtn.parentNode.insertBefore(wrapper, endlessBtn);
-      wrapper.appendChild(endlessBtn);
-      const lockOverlay = document.createElement('div');
-      lockOverlay.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:24px;cursor:not-allowed;';
-      lockOverlay.innerHTML = '<img src="sprites/lock.png" style="height:36px;width:auto;image-rendering:pixelated;">';
-      lockOverlay.addEventListener('mousemove', e => _itemTooltip.show('Beat Normal or Nuzlocke mode first', e.clientX + 14, e.clientY - 8));
-      lockOverlay.addEventListener('mouseleave', () => _itemTooltip.hide());
-      wrapper.appendChild(lockOverlay);
-    }
+    endlessBtn.onclick = () => showEndlessStageSelect();
   }
 
   const continueEndlessBtn = document.getElementById('btn-continue-endless');
