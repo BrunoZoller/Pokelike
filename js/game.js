@@ -190,7 +190,7 @@ async function showStarterSelect() {
     }
   }
 
-  const startLevel = new URLSearchParams(location.search).has('skip') ? 200 : new URLSearchParams(location.search).has('dev') ? 100 : 5;
+  const startLevel = 5;
   const starters = state.isEndlessMode ? [] : await Promise.all(STARTER_IDS.map(id => fetchPokemonById(id)));
 
   container.innerHTML = '';
@@ -354,20 +354,7 @@ async function selectStarter(pokemon) {
   state.starterSpeciesId = pokemon.speciesId;
   state.maxTeamSize = 1;
   if (state.isEndlessMode) {
-    const _skipParam = new URLSearchParams(location.search).has('dev') && new URLSearchParams(location.search).get('skip');
-    if (_skipParam) {
-      const [_sStage, _sRegion, _sMap] = _skipParam.split(',').map(Number);
-      while (state.team.length < 6) state.team.push({ ...pokemon, currentHp: pokemon.maxHp });
-      state.maxTeamSize = 6;
-      endlessState.stageNumber = _sStage || endlessState.stageNumber;
-      endlessState.regionNumber = _sRegion || 1;
-      endlessState.mapIndexInRegion = _sMap ?? 0;
-      endlessState.currentRegion = rollRegion(endlessState.stageNumber, endlessState.regionNumber);
-      endlessState.traitTiers = {};
-      await doEndlessBossNode();
-    } else {
-      startEndlessRegion();
-    }
+    startEndlessRegion();
   } else {
     startMap(0);
   }
