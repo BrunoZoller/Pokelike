@@ -1111,44 +1111,7 @@ h1, h2, .pixel-font {
   }
 
   #team-bar { display: flex; flex-direction: column; gap: 8px; }
-
-  /* Card scales up with viewport — content drives panel width */
-  #team-bar .poke-card {
-    width: clamp(160px, 14vw, 260px);
-  }
-  #map-screen .poke-sprite,
-  #map-screen .poke-sprite-wrap {
-    width: clamp(96px, 8vw, 140px);
-    height: clamp(96px, 8vw, 140px);
-  }
-  #map-screen .poke-name {
-    font-size: clamp(9px, 0.85vw, 14px);
-  }
-  #map-screen .poke-level {
-    font-size: clamp(11px, 1vw, 17px);
-  }
-  #map-screen .stat-lbl {
-    font-size: clamp(6px, 0.55vw, 9px);
-    width: clamp(22px, 2vw, 32px);
-  }
-  #map-screen .stat-bar-bg {
-    height: clamp(5px, 0.5vw, 8px);
-  }
-  #map-screen .type-badge {
-    font-size: clamp(8px, 0.75vw, 12px);
-    padding: clamp(2px, 0.2vw, 4px) clamp(5px, 0.5vw, 9px);
-  }
-  #map-screen .hud-label {
-    font-size: clamp(10px, 0.9vw, 16px);
-    margin-bottom: clamp(4px, 0.5vw, 8px);
-  }
-  #map-screen .hud-box {
-    padding: clamp(8px, 0.9vw, 16px);
-  }
-  #map-screen .item-badge {
-    font-size: clamp(11px, 1vw, 16px);
-    padding: clamp(3px, 0.3vw, 6px) clamp(8px, 0.8vw, 14px);
-  }
+  #team-bar .poke-card { width: auto; }
 
   .map-actions {
     display: flex;
@@ -1167,6 +1130,21 @@ h1, h2, .pixel-font {
     gap: 4px;
     margin-top: 6px;
   }
+}
+
+@media (min-width: 1200px) {
+  .map-panel-left, .map-panel-right,
+  #endless-trait-panel, #endless-region-panel { zoom: 1.25; }
+}
+
+@media (min-width: 1600px) {
+  .map-panel-left, .map-panel-right,
+  #endless-trait-panel, #endless-region-panel { zoom: 1.5; }
+}
+
+@media (min-width: 2100px) {
+  .map-panel-left, .map-panel-right,
+  #endless-trait-panel, #endless-region-panel { zoom: 1.8; }
 }
 
 /* ---- Battle Animations ---- */
