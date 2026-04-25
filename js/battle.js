@@ -1,10 +1,40 @@
 // battle.js - Auto-battle engine (1v1: active pokemon only)
 
+// Stage multiplier: +10 = 4x, -10 = 0.25x, 0 = 1x (linear between)
+// Formula: (10 + 3n) / 10 for n >= 0, 10 / (10 + 3|n|) for n < 0
+function stageMultiplier(n) {
+  return n >= 0 ? (10 + 3 * n) / 10 : 10 / (10 + 3 * Math.abs(n));
+}
+
+// Attach per-battle mutable state to a pokemon copy
+function initBattleState(p) {
+  p.stages = { atk: 0, def: 0, speed: 0, special: 0, spdef: 0 };
+  p.status = null; // null | 'poison' | 'freeze'
+  return p;
+}
+
+// Push a stat_change event and clamp stages to [-10, +10]
+function applyStageChange(pokemon, stat, delta, side, idx, log) {
+  const prev = pokemon.stages[stat];
+  const newStage = Math.max(-10, Math.min(10, prev + delta));
+  if (newStage === prev) return;
+  pokemon.stages[stat] = newStage;
+  log.push({ type: 'stat_change', side, idx,
+    name: pokemon.nickname || pokemon.name, stat, change: delta, newStage });
+}
+
+// Apply a status condition (poison/freeze) — no-op if already has one
+function applyStatus(pokemon, status, side, idx, log) {
+  if (pokemon.status) return;
+  pokemon.status = status;
+  log.push({ type: 'status_apply', side, idx, name: pokemon.nickname || pokemon.name, status });
+}
+
 function calcDamage(attacker, defender, move, items, defItems = []) {
   const lvl = attacker.level;
   const isSpecial = (attacker.baseStats?.special || 0) >= (attacker.baseStats?.atk || 0);
-  const atk = getEffectiveStat(attacker, isSpecial ? 'special' : 'atk', items);
-  const def = getEffectiveStat(defender, isSpecial ? 'spdef' : 'def', defItems);
+  const atk = getEffectiveStat(attacker, isSpecial ? 'special' : 'atk', items, attacker.stages);
+  const def = getEffectiveStat(defender, isSpecial ? 'spdef' : 'def', defItems, defender.stages);
   const power = move.power || 40;
   const moveType = move.type || 'Normal';
 
@@ -44,7 +74,7 @@ function calcDamage(attacker, defender, move, items, defItems = []) {
   }
 
   if (hasItem(items, 'expert_belt') && typeEff >= 2) damage = Math.floor(damage * 1.3);
-  if (hasItem(items, 'air_balloon') && moveType.toLowerCase() === 'ground') damage = 0;
+  if (hasItem(defItems, 'air_balloon') && moveType.toLowerCase() === 'ground') damage = 0;
 
   // Crit chance: 6.25% base, +20% with scope_lens or razor_claw
   let critChance = 0.0625;
@@ -58,13 +88,14 @@ function calcDamage(attacker, defender, move, items, defItems = []) {
   return { damage, typeEff, moveType, crit };
 }
 
-function getEffectiveStat(pokemon, stat, items) {
+function getEffectiveStat(pokemon, stat, items, stages = null) {
   // spdef falls back to special for Gen 1 hardcoded teams that don't have it
   const rawStat = stat === 'spdef'
     ? (pokemon.baseStats?.spdef ?? pokemon.baseStats?.special ?? 50)
     : (pokemon.baseStats?.[stat] ?? 50);
-  let val = rawStat || 50;
-  val = Math.floor(val * pokemon.level / 50) + 5;
+  const buffCount = pokemon.statBuffs?.[stat] ?? 0;
+  let val = Math.floor((rawStat || 50) * pokemon.level / 50) + 5;
+  if (buffCount > 0) val = Math.floor(val * (1 + 0.1 * buffCount));
 
   const team = typeof state !== 'undefined' ? state.team : [];
   const physicalCount = team.filter(p => (p.baseStats?.atk || 0) > (p.baseStats?.special || 0)).length;
@@ -92,6 +123,12 @@ function getEffectiveStat(pokemon, stat, items) {
   if (stat === 'speed') {
     if (hasItem(items, 'choice_scarf')) val = Math.floor(val * 1.5);
   }
+
+  // Apply stat stage multiplier if present
+  if (stages && stages[stat] !== undefined && stages[stat] !== 0) {
+    val = Math.floor(val * stageMultiplier(stages[stat]));
+  }
+
   return Math.max(1, val);
 }
 
@@ -107,10 +144,10 @@ function getTypeBoostItem(moveType, items) {
   return items.some(it => it.id === needed);
 }
 
-function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog) {
+function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog, traitsConfig = null) {
   const items = bagItems; // bag — only used for Lucky Egg check in level gain
-  const pTeam = playerTeam.map(p => ({ ...p }));
-  const eTeam = enemyTeam.map(p => ({
+  const pTeam = playerTeam.map(p => initBattleState({ ...p }));
+  const eTeam = enemyTeam.map(p => initBattleState({
     ...p,
     currentHp: p.currentHp !== undefined ? p.currentHp : calcHp(p.baseStats.hp, p.level),
     maxHp:     p.maxHp     !== undefined ? p.maxHp     : calcHp(p.baseStats.hp, p.level),
@@ -127,6 +164,11 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog) {
   if (firstP.currentHp > 0) playerParticipants.add(0);
   detailedLog.push({ type: 'send_out', side: 'player', idx: 0, name: firstP.nickname || firstP.name });
   detailedLog.push({ type: 'send_out', side: 'enemy',  idx: 0, name: firstE.name });
+
+  // Start-of-fight trait hooks (Fire, Ground, Normal)
+  if (traitsConfig?.onStartFight) {
+    traitsConfig.onStartFight(pTeam, eTeam, detailedLog);
+  }
 
   let rounds = 0;
   const MAX_ROUNDS = 300;
@@ -159,16 +201,17 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog) {
     const pActiveItems = pActive.heldItem ? [pActive.heldItem] : [];
     const eActiveItems = eActive.heldItem ? [eActive.heldItem] : [];
 
-    // Speed determines turn order
-    const pSpeed = getEffectiveStat(pActive, 'speed', pActiveItems);
-    const eSpeed = getEffectiveStat(eActive, 'speed', eActiveItems);
+    // Speed determines turn order (stages applied)
+    const pSpeed = getEffectiveStat(pActive, 'speed', pActiveItems, pActive.stages);
+    const eSpeed = getEffectiveStat(eActive, 'speed', eActiveItems, eActive.stages);
 
     // If both active Pokemon can only use noDamage moves, force Struggle to break the stalemate
     const pMove = getBestMove(pActive.types || ['Normal'], pActive.baseStats, pActive.speciesId, pActive.moveTier ?? 1);
     const eMove = getBestMove(eActive.types || ['Normal'], eActive.baseStats, eActive.speciesId, eActive.moveTier ?? 1);
     const bothUseless = pMove.noDamage && eMove.noDamage;
 
-    const turns = pSpeed >= eSpeed
+    const playerFirst = pSpeed >= eSpeed;
+    const turns = playerFirst
       ? [{ attacker: pActive, aIdx: pIdx, side: 'player', target: eActive, tIdx: eIdx, tSide: 'enemy' },
          { attacker: eActive, aIdx: eIdx, side: 'enemy',  target: pActive, tIdx: pIdx, tSide: 'player' }]
       : [{ attacker: eActive, aIdx: eIdx, side: 'enemy',  target: pActive, tIdx: pIdx, tSide: 'player' },
@@ -176,6 +219,33 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog) {
 
     for (const { attacker, aIdx, side, target, tIdx, tSide } of turns) {
       if (attacker.currentHp <= 0 || target.currentHp <= 0) continue;
+
+      // Frozen pokemon skip their attack turn
+      if (attacker.status === 'freeze') {
+        detailedLog.push({ type: 'status_tick', side, idx: aIdx,
+          name: attacker.nickname || attacker.name, status: 'freeze_skip',
+          hpChange: 0, hpAfter: attacker.currentHp });
+        continue;
+      }
+
+      // Dark trait: chance for attacker to hit themselves in confusion
+      if (traitsConfig?.onBeforeAttack) {
+        const confused = traitsConfig.onBeforeAttack(attacker, aIdx, side, target, tIdx, tSide, detailedLog, pTeam, eTeam);
+        if (confused) {
+          // If confusion killed the attacker, send out the next Pokemon on that side
+          if (attacker.currentHp <= 0) {
+            const nextTeam = side === 'player' ? pTeam : eTeam;
+            const next = nextTeam.map((p, i) => ({ p, idx: i })).find(x => x.p.currentHp > 0);
+            if (next) {
+              if (side === 'player') playerParticipants.add(next.idx);
+              const nName = next.p.nickname || next.p.name;
+              addLog(`${nName} was sent out!`, side === 'player' ? 'log-player' : 'log-enemy');
+              detailedLog.push({ type: 'send_out', side, idx: next.idx, name: nName });
+            }
+          }
+          continue;
+        }
+      }
 
       let move = getBestMove(attacker.types || ['Normal'], attacker.baseStats, attacker.speciesId, attacker.moveTier ?? 1);
       // If both sides are stuck with useless moves, force Struggle on both
@@ -202,7 +272,10 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog) {
         continue;
       }
 
-      const { damage, typeEff, moveType, crit } = calcDamage(attacker, target, move, attackerItems, defenderItems);
+      const { damage: rawDamage, typeEff, moveType, crit } = calcDamage(attacker, target, move, attackerItems, defenderItems);
+      const damage = traitsConfig?.beforeDamage
+        ? traitsConfig.beforeDamage(target, tIdx, tSide, attacker, aIdx, side, rawDamage, detailedLog)
+        : rawDamage;
 
       const targetPreHp = target.currentHp;
       target.currentHp = Math.max(0, target.currentHp - damage);
@@ -227,12 +300,25 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog) {
       addLog(`${side === 'player' ? '' : '(enemy) '}${aName} used ${move.name} → ${tName} took ${damage} dmg.${effText}`,
              side === 'player' ? 'log-player' : 'log-enemy');
 
+      // Push attack event FIRST so whenAttacked hooks (Flying dodge etc.) appear after it in the log
       detailedLog.push({
         type: 'attack', side, attackerIdx: aIdx, attackerName: aName,
         targetSide: tSide, targetIdx: tIdx, targetName: tName,
         moveName: move.name, moveType, damage, typeEff, crit, isSpecial: move.isSpecial,
         attackerHpAfter: attacker.currentHp, targetHpAfter: target.currentHp,
       });
+
+      // whenAttacked hook — events pushed here appear after the attack event in the log
+      if (target.currentHp > 0 && traitsConfig?.whenAttacked) {
+        traitsConfig.whenAttacked(target, tIdx, tSide, attacker, aIdx, side, damage, detailedLog);
+      }
+
+      // afterAttack hook (Grass, Ghost, Electric, Ice, Poison, Rock, Water, Psychic)
+      // Use net HP lost after whenAttacked (e.g. Flying dodge heals back) so dodged attacks don't trigger splash effects
+      const actualDamage = targetPreHp - target.currentHp;
+      if (actualDamage > 0 && traitsConfig?.afterAttack) {
+        traitsConfig.afterAttack(attacker, aIdx, side, target, tIdx, tSide, actualDamage, detailedLog, pTeam, eTeam);
+      }
 
       // Life Orb recoil
       if (side === 'player' && attacker.heldItem?.id === 'life_orb') {
@@ -254,7 +340,7 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog) {
 
       // Shell Bell
       if (side === 'player' && attacker.heldItem?.id === 'shell_bell') {
-        const heal   = Math.max(1, Math.floor(damage * 0.25));
+        const heal   = Math.max(1, Math.floor(damage * 0.15));
         const actual = Math.min(heal, attacker.maxHp - attacker.currentHp);
         if (actual > 0) {
           attacker.currentHp += actual;
@@ -268,6 +354,9 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog) {
       if (target.currentHp <= 0) {
         addLog(`${tName} fainted!`, 'log-faint');
         detailedLog.push({ type: 'faint', side: tSide, idx: tIdx, name: tName });
+        if (traitsConfig?.onKO) {
+          traitsConfig.onKO(target, tIdx, tSide, attacker, aIdx, side, detailedLog, pTeam, eTeam);
+        }
         const nextTeam = tSide === 'player' ? pTeam : eTeam;
         const next = nextTeam.map((p, i) => ({ p, idx: i })).find(x => x.p.currentHp > 0);
         if (next) {
@@ -292,11 +381,11 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog) {
       }
     }
 
-    // Leftovers: heal active player pokemon 1/16 maxHP each round (if they hold it)
+    // Leftovers: heal active player pokemon 10% maxHP each round (if they hold it)
     const active = pTeam.map((p, i) => ({ p, i })).find(x => x.p.currentHp > 0);
     if (active?.p.heldItem?.id === 'leftovers') {
       {
-        const heal = Math.max(1, Math.floor(active.p.maxHp / 16));
+        const heal = Math.max(1, Math.floor(active.p.maxHp * 0.10));
         const actual = Math.min(heal, active.p.maxHp - active.p.currentHp);
         if (actual > 0) {
           active.p.currentHp += actual;
@@ -304,6 +393,33 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog) {
           addLog(`Leftovers restored ${actual} HP to ${n}!`, 'log-item');
           detailedLog.push({ type: 'effect', side: 'player', idx: active.i, name: n,
             hpChange: actual, hpAfter: active.p.currentHp, reason: `Leftovers restored ${actual} HP to ${n}!` });
+        }
+      }
+    }
+
+    // Status ticks at end of each round
+    for (const [team, teamSide] of [[pTeam, 'player'], [eTeam, 'enemy']]) {
+      for (let i = 0; i < team.length; i++) {
+        const p = team[i];
+        if (p.currentHp <= 0 || !p.status) continue;
+
+        if (p.status === 'poison') {
+          const tick = Math.max(1, Math.floor(p.maxHp / 8));
+          p.currentHp = Math.max(0, p.currentHp - tick);
+          detailedLog.push({ type: 'status_tick', side: teamSide, idx: i,
+            name: p.nickname || p.name, status: 'poison', hpChange: -tick, hpAfter: p.currentHp });
+          if (p.currentHp === 0) {
+            addLog(`${p.nickname || p.name} fainted from poison!`, 'log-faint');
+            detailedLog.push({ type: 'faint', side: teamSide, idx: i, name: p.nickname || p.name });
+          }
+        }
+
+        if (p.status === 'freeze') {
+          if (rng() < 0.2) {
+            p.status = null;
+            detailedLog.push({ type: 'status_tick', side: teamSide, idx: i,
+              name: p.nickname || p.name, status: 'freeze_thaw', hpChange: 0, hpAfter: p.currentHp });
+          }
         }
       }
     }
@@ -333,15 +449,16 @@ function applyLevelGain(team, bagItems, participantIdxs, maxEnemyLevel = 0, hard
     const getsXp = p.currentHp > 0 || (participantIdxs && participantIdxs.has(i));
     if (!getsXp) continue;
 
-    const luckyBonus = isWild && p.heldItem?.id === 'lucky_egg' ? 1 : 0;
+    const luckyBonus = p.heldItem?.id === 'lucky_egg' && rng() < 0.30 ? 1 : 0;
     const gain = baseGain + luckyBonus;
     const oldLevel = p.level;
-    const newLevel = Math.min(100, oldLevel + gain);
+    const newLevel = oldLevel + gain;
     if (newLevel === oldLevel) continue; // already at cap
 
     const preHp = p.currentHp;
     p.level = newLevel;
-    const newMaxHp = calcHp(p.baseStats.hp, newLevel);
+    const hpBuff = p.statBuffs?.hp ?? 0;
+    const newMaxHp = Math.floor(calcHp(p.baseStats.hp, newLevel) * (1 + 0.1 * hpBuff));
     if (p.currentHp > 0) {
       p.currentHp = Math.min(p.currentHp + (newMaxHp - p.maxHp), newMaxHp);
     }

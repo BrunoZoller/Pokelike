@@ -31,8 +31,10 @@
   <div class="game-subtitle">Pokemon Roguelike</div>
   <div style="color:var(--text-dim);font-size:9px;margin-bottom:6px;cursor:pointer;" onclick="openPatchNotesModal()">v1.3.1 — patch notes</div>
   <button id="btn-continue-run" class="btn-primary" style="display:none;margin-bottom:10px;">Continue Run</button>
+  <button id="btn-continue-endless" class="btn-primary" style="display:none;margin-bottom:10px;">Continue Battle Tower</button>
   <button id="btn-new-run" class="btn-primary">Normal Mode</button>
   <button id="btn-hard-run" class="btn-primary" style="margin-top:6px;">Nuzlocke</button>
+  <button id="btn-endless-run" class="btn-primary" style="margin-top:6px;">Battle Tower</button>
   <div style="display:flex;gap:8px;margin-top:8px;">
     <button onclick="openPokedexModal()" class="btn-secondary">📖 Pokédex</button>
     <button onclick="openAchievementsModal()" class="btn-secondary">🏆 Achievements</button>
@@ -70,13 +72,18 @@
 <!-- ===== STARTER SELECT ===== -->
 <div id="starter-screen" class="screen">
   <h2>Choose Your Starter!</h2>
-  <div id="starter-choices"></div>
+  <div id="starter-layout">
+    <div id="starter-choices"></div>
+    <div id="starter-region-panel" style="display:none;"></div>
+  </div>
 </div>
 
 <!-- Map node tooltip -->
 <div id="map-node-tooltip"></div>
 <!-- Item tooltip -->
 <div id="item-tooltip"></div>
+<!-- Trait tooltip (tap on mobile) -->
+<div id="trait-tooltip"></div>
 
 <!-- ===== MAP SCREEN ===== -->
 <div id="map-screen" class="screen">
@@ -99,6 +106,7 @@
   </div>
 
   <div class="map-panels">
+    <div id="endless-trait-panel" class="hud-box map-panel-traits" style="display:none;"></div>
     <div class="hud-box map-panel-left">
       <div class="hud-label">TEAM</div>
       <div id="team-bar"></div>
@@ -109,6 +117,7 @@
       <div class="hud-label map-badges-label">BADGES</div>
       <div id="badge-count-panel"></div>
     </div>
+    <div id="endless-region-panel" class="hud-box map-panel-region" style="display:none;"></div>
   </div>
 
   <div id="map-container"></div>
@@ -130,11 +139,13 @@
     <div class="battle-side">
       <div class="battle-trainer" id="player-trainer-icon"></div>
       <div class="battle-side-label">Your Team</div>
+      <div id="player-battle-traits" class="battle-trait-bar"></div>
       <div id="player-side"></div>
     </div>
     <div class="battle-side">
       <div class="battle-trainer" id="enemy-trainer-icon"></div>
-      <div class="battle-side-label">Enemy</div>
+      <div class="battle-side-label" id="enemy-side-label">Enemy</div>
+      <div id="enemy-battle-traits" class="battle-trait-bar battle-trait-bar-right"></div>
       <div id="enemy-side"></div>
     </div>
   </div>
@@ -231,6 +242,33 @@
   </a>
 </div>
 
+<!-- ===== STAT BUFF SCREEN ===== -->
+<div id="stat-buff-screen" class="screen">
+  <h2 id="stat-buff-title"></h2>
+  <p id="stat-buff-subtitle" style="text-align:center;color:var(--text-dim);font-size:10px;margin-bottom:16px;"></p>
+  <div id="stat-buff-choices"></div>
+</div>
+
+<!-- ===== ENDLESS STAGE SELECT ===== -->
+<div id="endless-stage-select" class="screen">
+  <div style="font-family:'Press Start 2P',monospace;font-size:13px;color:#c8a0ff;text-align:center;margin-bottom:6px;">⚔ Battle Tower</div>
+  <div style="font-size:8px;color:var(--text-dim);text-align:center;margin-bottom:18px;">Choose a stage to begin</div>
+  <div id="stage-select-list" style="display:flex;flex-direction:column;gap:8px;align-items:center;"></div>
+  <div style="text-align:center;margin-top:16px;">
+    <button onclick="showScreen('title-screen')" class="btn-secondary">← Back</button>
+  </div>
+</div>
+
+<!-- ===== ENDLESS STAGE COMPLETE ===== -->
+<div id="endless-stage-complete" class="screen">
+  <div id="stage-complete-msg" class="win-title" style="font-size:14px;"></div>
+  <div id="stage-complete-unlock" style="font-size:8px;color:#c8a0ff;text-align:center;margin:6px 0;"></div>
+  <div id="stage-complete-team" style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:12px 0;"></div>
+  <div style="text-align:center;">
+    <button id="btn-stage-continue" class="btn-primary">Stage Select →</button>
+  </div>
+</div>
+
 <!-- ===== EVOLUTION OVERLAY ===== -->
 <div id="evo-overlay" style="display:none;position:fixed;inset:0;z-index:200;background:#000;
      align-items:center;justify-content:center;flex-direction:column;gap:20px;">
@@ -255,6 +293,7 @@
 <script src="js/data.js"></script>
 <script src="js/map.js"></script>
 <script src="js/battle.js"></script>
+<script src="js/endless.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/game.js"></script>
 <!-- Firebase (loaded last so game functions are available) -->

@@ -15,7 +15,7 @@ const TYPE_CHART = {
   Psychic:  { Normal:1,   Fire:1,   Water:1,   Electric:1,   Grass:1,   Ice:1,   Fighting:2,   Poison:2,   Ground:1, Flying:1,   Psychic:0.5, Bug:1,   Rock:1,   Ghost:1,   Dragon:1,   Dark:0,   Steel:0.5 },
   Bug:      { Normal:1,   Fire:0.5, Water:1,   Electric:1,   Grass:2,   Ice:1,   Fighting:0.5, Poison:0.5, Ground:1, Flying:0.5, Psychic:2,   Bug:1,   Rock:1,   Ghost:0.5, Dragon:1,   Dark:2,   Steel:0.5 },
   Rock:     { Normal:1,   Fire:2,   Water:1,   Electric:1,   Grass:1,   Ice:2,   Fighting:0.5, Poison:1,   Ground:0.5, Flying:2, Psychic:1,   Bug:2,   Rock:1,   Ghost:1,   Dragon:1,   Dark:1,   Steel:0.5 },
-  Ghost:    { Normal:0,   Fire:1,   Water:1,   Electric:1,   Grass:1,   Ice:1,   Fighting:0,   Poison:1,   Ground:1, Flying:1,   Psychic:2,   Bug:1,   Rock:1,   Ghost:2,   Dragon:1,   Dark:0.5, Steel:0.5 },
+  Ghost:    { Normal:0,   Fire:1,   Water:1,   Electric:1,   Grass:1,   Ice:1,   Fighting:1,   Poison:1,   Ground:1, Flying:1,   Psychic:2,   Bug:1,   Rock:1,   Ghost:2,   Dragon:1,   Dark:0.5, Steel:0.5 },
   Dragon:   { Normal:1,   Fire:1,   Water:1,   Electric:1,   Grass:1,   Ice:1,   Fighting:1,   Poison:1,   Ground:1, Flying:1,   Psychic:1,   Bug:1,   Rock:1,   Ghost:1,   Dragon:2,   Dark:1,   Steel:0.5 },
   Dark:     { Normal:1,   Fire:1,   Water:1,   Electric:1,   Grass:1,   Ice:1,   Fighting:0.5, Poison:1,   Ground:1, Flying:1,   Psychic:2,   Bug:1,   Rock:1,   Ghost:2,   Dragon:1,   Dark:0.5, Steel:0.5 },
   Steel:    { Normal:1,   Fire:0.5, Water:0.5, Electric:0.5, Grass:1,   Ice:2,   Fighting:1,   Poison:1,   Ground:1, Flying:1,   Psychic:1,   Bug:1,   Rock:2,   Ghost:1,   Dragon:1,   Dark:1,   Steel:0.5 },
@@ -36,7 +36,7 @@ function getTypeEffectiveness(attackType, defenderTypes) {
 // PokeAPI type ID map for type icon sprites
 const TYPE_IDS = {
   Normal:1, Fighting:2, Flying:3, Poison:4, Ground:5, Rock:6, Bug:7, Ghost:8, Steel:9,
-  Fire:10, Water:11, Grass:12, Electric:13, Psychic:14, Ice:15, Dragon:16, Dark:17,
+  Fire:10, Water:11, Grass:12, Electric:13, Psychic:14, Ice:15, Dragon:16, Dark:17, Steel:9, Fairy:18,
 };
 
 // Move pools by type — each has physical/special arrays of [tier0, tier1, tier2]
@@ -85,18 +85,18 @@ const MOVE_POOL = {
                          {name:'Aura Sphere',       power:80,  desc:'Focuses aura energy into a perfect, unavoidable sphere.'},
                          {name:'Focus Blast',       power:120, desc:'Hurls a concentrated blast of energy at the foe.'}] },
   Poison:   { physical: [{name:'Poison Sting',      power:40,  desc:'Stabs the foe with a venomous stinger.'},
-                         {name:'Poison Jab',        power:80,  desc:'Stabs the foe with a toxic spike.'},
-                         {name:'Gunk Shot',         power:120, desc:'Hurls garbage at the foe to inflict damage.'}],
+                         {name:'Poison Jab',        power:90,  desc:'Stabs the foe with a toxic spike.'},
+                         {name:'Gunk Shot',         power:130, desc:'Hurls garbage at the foe to inflict damage.'}],
               special:  [{name:'Acid',              power:40,  desc:'Sprays the foe with a toxic acid liquid.'},
-                         {name:'Sludge Bomb',       power:90,  desc:'Hurls unsanitary sludge at the foe.'},
-                         {name:'Acid Spray',        power:110, desc:'Spits fluid that corrodes and eats away at the foe.'}] },
+                         {name:'Sludge Bomb',       power:100, desc:'Hurls unsanitary sludge at the foe.'},
+                         {name:'Acid Spray',        power:120, desc:'Spits fluid that corrodes and eats away at the foe.'}] },
   Ground:   { physical: [{name:'Mud Shot',           power:55,  desc:'Hurls a blob of mud at the foe.'},
                          {name:'Earthquake',        power:100, desc:'A massive quake shakes everything around.'},
                          {name:'Precipice Blades',  power:120, desc:'Controls the power of nature to attack with sharp blades.'}],
               special:  [{name:'Bulldoze',          power:60,  desc:'Stomps down on the ground and attacks everything nearby.'},
                          {name:'Earth Power',       power:90,  desc:'The earth erupts with force from directly below.'},
                          {name:'Land\'s Wrath',     power:110, desc:'Gathers the energy of the land and uses it to attack.'}] },
-  Flying:   { physical: [{name:'Peck',              power:35,  desc:'Jabs the foe with a sharply pointed beak.'},
+  Flying:   { physical: [{name:'Peck',              power:50,  desc:'Jabs the foe with a sharply pointed beak.'},
                          {name:'Aerial Ace',        power:60,  desc:'An extremely fast attack that never misses.'},
                          {name:'Sky Attack',        power:140, desc:'A swooping high-speed attack from above.'}],
               special:  [{name:'Gust',              power:40,  desc:'Strikes the foe with a gust of wind.'},
@@ -144,6 +144,12 @@ const MOVE_POOL = {
               special:  [{name:'Steel Wing',        power:60,  desc:'Strikes the foe with hard, steel-edged wings.'},
                          {name:'Flash Cannon',      power:90,  desc:'Fires a flash of steel-type energy at the foe.'},
                          {name:'Doom Desire',       power:140, desc:'Stores power for two turns, then fires a concentrated bundle of light.'}] },
+  Fairy:    { physical: [{name:'Fairy Wind',        power:40,  desc:'Stirs up a fairy-type breeze and attacks the foe.'},
+                         {name:'Play Rough',        power:90,  desc:'Plays rough with the foe, tossing it around wildly.'},
+                         {name:'Spirit Break',      power:130, desc:'Attacks the foe with such force it crushes their fighting spirit.'}],
+              special:  [{name:'Disarming Voice',   power:40,  desc:'Lets out a charming cry that never misses its mark.'},
+                         {name:'Dazzling Gleam',    power:80,  desc:'Emits a powerful flash of brilliant fairy light.'},
+                         {name:'Moonblast',         power:130, desc:'Borrows the overwhelming power of the moon to blast the foe.'}] },
 };
 
 function getMoveТierForMap(mapIndex) {
@@ -192,7 +198,7 @@ const GYM_LEADERS = [
     team: [
       { speciesId: 25,  name: 'Pikachu',  types: ['Electric'], baseStats: { hp:35,atk:55,def:40,speed:90,special:50 },  level: 20, heldItem: { id: 'eviolite', name: 'Eviolite', icon: '💎' } },
       { speciesId: 100, name: 'Voltorb',  types: ['Electric'], baseStats: { hp:40,atk:30,def:50,speed:100,special:55 }, level: 23, heldItem: { id: 'magnet',   name: 'Magnet',   icon: '🧲' } },
-      { speciesId: 26,  name: 'Raichu',   types: ['Electric'], baseStats: { hp:60,atk:90,def:55,speed:110,special:90 }, level: 26, heldItem: { id: 'life_orb', name: 'Life Orb', icon: '🔮' } },
+      { speciesId: 26,  name: 'Raichu',   types: ['Electric'], baseStats: { hp:60,atk:90,def:55,speed:110,special:90 }, level: 25, heldItem: { id: 'life_orb', name: 'Life Orb', icon: '🔮' } },
     ]
   },
   {
@@ -297,7 +303,7 @@ const ELITE_4 = [
 
 // Item pool
 const ITEM_POOL = [
-  { id: 'lucky_egg',          name: 'Lucky Egg',          desc: 'Holder gains +1 extra level after every battle',                   icon: '🥚', minMap: 4 },
+  { id: 'lucky_egg',          name: 'Lucky Egg',          desc: '30% chance: holder gains +1 extra level after each battle',        icon: '🥚', minMap: 4 },
   { id: 'life_orb',           name: 'Life Orb',           desc: '+30% damage; holder loses 10% max HP per hit',                       icon: '🔮' },
   { id: 'choice_band',        name: 'Choice Band',        desc: '+40% physical damage, -20% DEF',                                     icon: '🎀' },
   { id: 'choice_specs',       name: 'Choice Specs',       desc: '+40% special damage, -20% Sp.Def',                                   icon: '👓' },
@@ -306,7 +312,7 @@ const ITEM_POOL = [
   { id: 'metronome',          name: 'Metronome',          desc: '+50% damage if 4+ Pokémon on your team share a type with the attacker', icon: '🎵' },
   { id: 'scope_lens',         name: 'Scope Lens',         desc: '20% crit chance (+50% damage on crit)',                              icon: '🔭' },
   { id: 'rocky_helmet',       name: 'Rocky Helmet',       desc: 'Attacker takes 12% of their max HP on each hit',                     icon: '⛑️' },
-  { id: 'shell_bell',         name: 'Shell Bell',         desc: 'Heal 25% of damage dealt',                                           icon: '🐚' },
+  { id: 'shell_bell',         name: 'Shell Bell',         desc: 'Heal 15% of damage dealt',                                           icon: '🐚' },
   { id: 'eviolite',           name: 'Eviolite',           desc: '+50% DEF & Sp.Def if holder is not fully evolved',                   icon: '💎' },
   { id: 'sharp_beak',         name: 'Sharp Beak',         desc: '+50% Flying move damage',                                            icon: '🦅' },
   { id: 'charcoal',           name: 'Charcoal',           desc: '+50% Fire move damage',                                              icon: '🔥' },
@@ -326,7 +332,7 @@ const ITEM_POOL = [
   { id: 'assault_vest',       name: 'Assault Vest',       desc: '+50% Sp.Def',                                                        icon: '🦺' },
   { id: 'choice_scarf',       name: 'Choice Scarf',       desc: '+50% Speed',                                                         icon: '🧣' },
   // Battle effect items
-  { id: 'leftovers',          name: 'Leftovers',          desc: 'Restore 1/16 max HP each round',                                     icon: '🍃' },
+  { id: 'leftovers',          name: 'Leftovers',          desc: 'Restore 10% max HP each round',                                      icon: '🍃' },
   { id: 'expert_belt',        name: 'Expert Belt',        desc: '+30% damage on super effective hits',                                 icon: '🥊' },
   { id: 'focus_band',         name: 'Focus Band',         desc: '20% chance to survive a KO with 1 HP',                               icon: '🩹' },
   { id: 'focus_sash',         name: 'Focus Sash',         desc: 'If at full HP, guaranteed to survive any hit with 1 HP',             icon: '🎗️' },
@@ -414,17 +420,38 @@ async function fetchSpeciesList() {
   }
 }
 
-async function fetchPokemonById(id) {
-  const key = `pkrl_poke_${id}`;
+// Form slug → national dex ID (used for speciesId / evolution tracking)
+const POKEMON_FORM_SLUGS = {
+  'deoxys-attack': 386, 'deoxys-defense': 386, 'deoxys-speed': 386,
+  'shaymin-sky': 492,
+  'charizard-mega-x': 6,
+  'kyurem-black': 646, 'kyurem-white': 646,
+};
+
+// Form slug → PokeAPI numeric form ID (used for sprite tooltip images)
+const POKEMON_FORM_SPRITE_IDS = {
+  'deoxys-attack': 10001, 'deoxys-defense': 10002, 'deoxys-speed': 10003,
+  'shaymin-sky': 10006,
+  'charizard-mega-x': 10034,
+  'kyurem-black': 10022, 'kyurem-white': 10023,
+};
+
+// 'deoxys-attack' → 'Deoxys (Attack)'
+function formatFormName(apiName) {
+  const parts = apiName.split('-');
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
+  const base = parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
+  const form = parts.slice(1).map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
+  return `${base} (${form})`;
+}
+
+async function fetchPokemonById(idOrSlug) {
+  const key = `pkrl_poke_${idOrSlug}`;
   const cached = getCached(key);
   if (cached && cached.baseStats?.special !== undefined && cached.baseStats?.spdef !== undefined) return cached;
   try {
-    const r = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
+    const r = await fetch(`https://pokeapi.co/api/v2/pokemon/${idOrSlug}`);
     const d = await r.json();
-    const stats = {};
-    for (const s of d.stats) {
-      stats[s.stat.name.replace('special-attack','special').replace('special-defense','special').replace('-','_')] = s.base_stat;
-    }
     const baseStats = {
       hp: d.stats.find(s=>s.stat.name==='hp')?.base_stat || 45,
       atk: d.stats.find(s=>s.stat.name==='attack')?.base_stat || 50,
@@ -435,19 +462,21 @@ async function fetchPokemonById(id) {
     };
     const bst = Object.values(baseStats).reduce((a,b)=>a+b,0);
     const types = d.types.map(t => t.type.name.charAt(0).toUpperCase() + t.type.name.slice(1));
+    const isFormSlug = typeof idOrSlug === 'string' && POKEMON_FORM_SLUGS[idOrSlug] !== undefined;
     const poke = {
-      id: d.id,
-      name: d.name.charAt(0).toUpperCase() + d.name.slice(1),
+      id: isFormSlug ? POKEMON_FORM_SLUGS[idOrSlug] : d.id,
+      name: isFormSlug ? formatFormName(d.name) : d.name.charAt(0).toUpperCase() + d.name.slice(1),
       types,
       baseStats,
       bst,
-      spriteUrl: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${d.id}.png`,
-      shinySpriteUrl: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/${d.id}.png`,
+      // Use API sprite URL directly — it's correct for both base forms and variants
+      spriteUrl: d.sprites.front_default || `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${d.id}.png`,
+      shinySpriteUrl: d.sprites.front_shiny || `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/${d.id}.png`,
     };
     setCached(key, poke);
     return poke;
   } catch (e) {
-    console.warn(`Failed to fetch pokemon ${id}`, e);
+    console.warn(`Failed to fetch pokemon ${idOrSlug}`, e);
     return null;
   }
 }
@@ -461,41 +490,142 @@ async function getSpeciesPool() {
   return _speciesPool;
 }
 
-// Gen 1 legendary Pokemon — removed from all wild/catch pools, available only via Legendary node
-const LEGENDARY_IDS = [144, 145, 146, 150, 151];
+// Legendary Pokemon (Gen 1-5) — excluded from wild/catch pools, available only via Legendary node
+const LEGENDARY_IDS = [
+  144,145,146,150,151,                                             // Gen 1
+  243,244,245,249,250,251,                                         // Gen 2
+  377,378,379,380,381,382,383,384,385,386,                         // Gen 3
+  480,481,482,483,484,485,486,487,488,489,490,491,492,493,         // Gen 4
+  494,638,639,640,641,642,643,644,645,646,647,648,649,             // Gen 5
+];
 
-// All catchable Gen 1 IDs by BST bucket (module-level so other code can reference them)
-// Legendaries are excluded from all buckets — they appear only via the Legendary node
+// Catchable Pokemon by BST bucket — Gen 1-5
 const GEN1_BST_APPROX = {
-  low:      [10,11,13,14,16,17,19,20,21,23,27,29,32,41,46,48,52,54,56,60,
-             69,72,74,79,81,84,86,96,98,100,102,108,111,116,118,120,129,133],
-  midLow:   [25,30,33,35,37,39,43,50,58,61,63,66,73,77,83,92,95,96,104,109,
-             113,114,116,120,122,126,127,128,138,140],
-  mid:      [26,36,42,49,51,64,67,70,75,82,85,93,97,101,103,105,107,110,119,
-             121,124,125,130,137,139,141],
-  midHigh:  [40,44,55,62,76,80,87,88,89,90,91,99,106,115,117,123,131,
-             132,137,142,143],
-  high:     [3,6,9,12,15,18,22,24,28,31,34,38,45,47,53,57,59,
-             65,68,71,76,78,80,89,94,112,121,130,142,143,149],
-  veryHigh: [6,9,65,68,94,112,130,131,143,147,148,149],
+  low: [
+    // Gen 1
+    10,11,13,14,16,17,19,20,21,23,27,29,32,41,46,48,52,54,56,60,
+    69,72,74,79,81,84,86,96,98,100,102,108,111,116,118,120,129,133,
+    // Gen 2
+    152,155,158,161,163,165,167,170,172,173,174,175,177,179,183,187,
+    191,194,201,204,209,216,218,220,223,225,228,231,235,236,238,246,
+    // Gen 3
+    252,255,258,261,263,265,266,268,270,273,276,278,280,281,283,285,
+    287,290,292,293,296,298,300,304,307,309,316,318,322,325,327,328,
+    331,333,339,341,343,349,353,355,360,361,363,366,370,371,374,
+    // Gen 4
+    403,406,412,415,420,425,427,431,436,438,443,447,449,451,453,456,459,
+    // Gen 5
+    495,498,501,504,506,509,517,519,522,524,527,529,532,535,540,543,
+    546,548,551,554,557,562,564,566,568,570,572,574,577,580,582,585,
+    588,590,592,595,597,599,602,605,607,610,613,616,619,622,624,627,629,633,636,
+  ],
+  midLow: [
+    // Gen 1
+    25,30,33,35,37,39,43,50,58,61,63,66,73,77,83,92,95,96,104,109,
+    113,114,116,120,122,126,127,128,138,140,
+    // Gen 2
+    166,168,180,188,190,193,222,239,240,
+    // Gen 3
+    267,269,271,274,294,299,302,303,329,345,347,
+    // Gen 4
+    418,426,428,432,434,437,439,441,444,448,450,452,454,455,457,460,
+    // Gen 5
+    505,507,510,518,520,523,525,528,530,536,541,544,547,549,552,555,
+    558,563,565,567,569,571,573,575,578,581,583,586,589,591,593,596,
+    598,600,603,606,608,611,614,617,620,623,625,628,630,634,
+  ],
+  mid: [
+    // Gen 1
+    26,36,42,49,51,64,67,70,75,82,85,93,97,101,103,105,107,110,119,
+    121,124,125,130,137,139,141,
+    // Gen 2
+    153,156,159,162,176,184,185,192,195,198,202,206,207,215,219,247,
+    // Gen 3
+    253,256,259,262,264,277,279,284,288,301,305,308,311,312,313,314,
+    315,320,337,338,351,352,358,364,372,
+    // Gen 4
+    419,424,429,430,435,440,446,453,456,458,461,462,463,465,466,467,469,471,472,473,474,476,477,478,479,
+    // Gen 5
+    508,521,526,533,537,542,545,553,559,560,561,576,579,584,587,594,
+    601,604,609,612,615,618,621,626,631,632,635,637,
+  ],
+  midHigh: [
+    // Gen 1
+    40,44,55,62,76,80,87,88,89,90,91,99,106,115,117,123,131,132,137,142,143,
+    // Gen 2
+    164,176,178,200,203,205,207,210,211,215,221,224,226,227,234,237,
+    // Gen 3
+    272,275,286,291,297,310,317,319,323,324,326,332,335,336,340,342,
+    354,356,357,359,362,367,368,369,375,
+    // Gen 4
+    407,416,421,423,433,445,464,468,475,
+    // Gen 5
+    497,500,503,531,538,539,550,556,
+  ],
+  high: [
+    // Gen 1
+    3,6,9,12,15,18,22,24,28,31,34,38,45,47,53,57,59,
+    65,68,71,76,78,80,89,94,112,121,130,142,143,149,
+    // Gen 2
+    154,164,171,181,182,186,189,196,197,199,205,208,212,213,214,217,
+    229,232,233,241,
+    // Gen 3
+    282,295,321,330,334,344,346,348,
+    // Gen 4
+    398,402,405,409,411,414,422,431,436,448,460,
+    // Gen 5
+    497,500,503,534,
+  ],
+  veryHigh: [
+    // Gen 1
+    6,9,65,68,94,112,130,131,143,147,148,149,
+    // Gen 2
+    157,160,169,230,242,248,
+    // Gen 3
+    254,257,260,289,306,350,365,373,376,
+    // Gen 4
+    445,448,460,466,467,468,473,475,477,
+    // Gen 5
+    497,500,503,535,537,571,609,612,635,637,
+  ],
 };
 
-const ALL_CATCHABLE_IDS = new Set(Array.from({ length: 151 }, (_, i) => i + 1));
+const LEGENDARY_ID_SET = new Set(LEGENDARY_IDS);
+const ALL_CATCHABLE_IDS = new Set([
+  ...Array.from({ length: 649 }, (_, i) => i + 1).filter(id => !LEGENDARY_ID_SET.has(id)),
+]);
 
-function isPokedexComplete() {
+function isGenDexComplete(minId, maxId) {
   const dex = getPokedex();
   const caughtIds = new Set(Object.values(dex).filter(e => e.caught).map(e => e.id));
   for (const id of ALL_CATCHABLE_IDS) {
-    if (!caughtIds.has(id)) return false;
+    if (id >= minId && id <= maxId && !caughtIds.has(id)) return false;
   }
   return true;
 }
 
+function isPokedexComplete() { return isGenDexComplete(1, 151); }
+
 function hasShinyCharm() { return isPokedexComplete(); }
 
+// Legendaries grouped by BST tier (used for catch node legendary rolls)
+const LEGENDARY_POOL_HIGH     = [144, 145, 146]; // Birds ~485-490
+const LEGENDARY_POOL_VERYHIGH = [150,151,243,244,245,249,250,251,377,378,379,380,381,382,383,384,385,386];
 
-// Get 3 random pokemon ids from the right BST bucket for a given mapIndex
-async function getCatchChoices(mapIndex) {
+async function getRandomLegendary(mapIndex, allowAllGens = false) {
+  const range = MAP_BST_RANGES[Math.min(mapIndex, MAP_BST_RANGES.length - 1)];
+  const veryHighPool = allowAllGens ? LEGENDARY_POOL_VERYHIGH : [150, 151];
+  let pool;
+  if (range.min >= 530) pool = veryHighPool;
+  else if (range.min >= 460) pool = [...LEGENDARY_POOL_HIGH, ...veryHighPool];
+  else return null; // too early for legendaries
+  const id = pool[Math.floor((typeof rng === 'function' ? rng() : Math.random()) * pool.length)];
+  return fetchPokemonById(id);
+}
+
+// Get random pokemon from the right BST bucket for a given mapIndex.
+// maxGenId restricts to IDs <= that number (151 = Gen 1 only, 649 = all gens).
+async function getCatchChoices(mapIndex, count = 3, maxGenId = 151) {
   const range = MAP_BST_RANGES[Math.min(mapIndex, MAP_BST_RANGES.length - 1)];
   const pool = await getSpeciesPool();
 
@@ -507,13 +637,12 @@ async function getCatchChoices(mapIndex) {
   else if (range.min >= 280) bucket = GEN1_BST_APPROX.midLow;
   else bucket = GEN1_BST_APPROX.low;
 
-  // Shuffle and pick 3 (filter legendaries as safety net)
-  const filtered = bucket.filter(id => !LEGENDARY_IDS.includes(id));
+  const filtered = bucket.filter(id => !LEGENDARY_IDS.includes(id) && id <= maxGenId);
   const shuffled = [...filtered].sort(() => (typeof rng === 'function' ? rng() : Math.random()) - 0.5);
-  const ids = shuffled.slice(0, 3);
+  const ids = shuffled.slice(0, Math.max(9, count * 3));
 
   const results = await Promise.all(ids.map(id => fetchPokemonById(id)));
-  return results.filter(Boolean);
+  return results.filter(Boolean).slice(0, count);
 }
 
 function calcHp(baseHp, level) {
@@ -590,6 +719,7 @@ const GEN1_EVOLUTIONS = {
   17: { into: 18,  level: 36, name: 'Pidgeot' },
   19: { into: 20,  level: 20, name: 'Raticate' },
   21: { into: 22,  level: 20, name: 'Fearow' },
+  25: { into: 26,  level: 36, name: 'Raichu' },        // thunder stone → lv 36
   // Snakes / ground
   23: { into: 24,  level: 22, name: 'Arbok' },
   27: { into: 28,  level: 22, name: 'Sandslash' },
@@ -664,6 +794,214 @@ const GEN1_EVOLUTIONS = {
   129:{ into: 130, level: 20, name: 'Gyarados' },
   147:{ into: 148, level: 30, name: 'Dragonair' },
   148:{ into: 149, level: 55, name: 'Dragonite' },
+  // Gen 1 -> Gen 2 cross-gen evolutions
+  42: { into: 169, level: 30, name: 'Crobat' },
+  // Gen 2 starters
+  152:{ into: 153, level: 16, name: 'Bayleef' },
+  153:{ into: 154, level: 32, name: 'Meganium' },
+  155:{ into: 156, level: 14, name: 'Quilava' },
+  156:{ into: 157, level: 36, name: 'Typhlosion' },
+  158:{ into: 159, level: 18, name: 'Croconaw' },
+  159:{ into: 160, level: 30, name: 'Feraligatr' },
+  // Gen 2 routes
+  161:{ into: 162, level: 15, name: 'Furret' },
+  163:{ into: 164, level: 20, name: 'Noctowl' },
+  165:{ into: 166, level: 18, name: 'Ledian' },
+  167:{ into: 168, level: 22, name: 'Ariados' },
+  170:{ into: 171, level: 27, name: 'Lanturn' },
+  172:{ into: 25,  level: 15, name: 'Pikachu' },
+  173:{ into: 35,  level: 15, name: 'Clefairy' },
+  174:{ into: 39,  level: 15, name: 'Jigglypuff' },
+  175:{ into: 176, level: 15, name: 'Togetic' },
+  177:{ into: 178, level: 25, name: 'Xatu' },
+  179:{ into: 180, level: 15, name: 'Flaaffy' },
+  180:{ into: 181, level: 30, name: 'Ampharos' },
+  183:{ into: 184, level: 18, name: 'Azumarill' },
+  187:{ into: 188, level: 18, name: 'Skiploom' },
+  188:{ into: 189, level: 27, name: 'Jumpluff' },
+  191:{ into: 192, level: 30, name: 'Sunflora' },
+  194:{ into: 195, level: 20, name: 'Quagsire' },
+  204:{ into: 205, level: 31, name: 'Forretress' },
+  209:{ into: 210, level: 23, name: 'Granbull' },
+  215:{ into: 461, level: 40, name: 'Weavile' },
+  216:{ into: 217, level: 30, name: 'Ursaring' },
+  218:{ into: 219, level: 38, name: 'Magcargo' },
+  220:{ into: 221, level: 33, name: 'Piloswine' },
+  223:{ into: 224, level: 25, name: 'Octillery' },
+  228:{ into: 229, level: 24, name: 'Houndoom' },
+  231:{ into: 232, level: 25, name: 'Donphan' },
+  236:{ into: 237, level: 20, name: 'Hitmontop' },
+  238:{ into: 124, level: 30, name: 'Jynx' },
+  239:{ into: 125, level: 30, name: 'Electabuzz' },
+  240:{ into: 126, level: 30, name: 'Magmar' },
+  246:{ into: 247, level: 30, name: 'Pupitar' },
+  247:{ into: 248, level: 55, name: 'Tyranitar' },
+  360:{ into: 202, level: 15, name: 'Wobbuffet' },
+  // Gen 3 starters
+  252:{ into: 253, level: 16, name: 'Grovyle' },
+  253:{ into: 254, level: 36, name: 'Sceptile' },
+  255:{ into: 256, level: 16, name: 'Combusken' },
+  256:{ into: 257, level: 36, name: 'Blaziken' },
+  258:{ into: 259, level: 16, name: 'Marshtomp' },
+  259:{ into: 260, level: 36, name: 'Swampert' },
+  // Gen 3 routes
+  261:{ into: 262, level: 18, name: 'Mightyena' },
+  263:{ into: 264, level: 20, name: 'Linoone' },
+  265:{ into: 266, level: 7,  name: 'Silcoon' },
+  266:{ into: 267, level: 10, name: 'Beautifly' },
+  268:{ into: 269, level: 10, name: 'Dustox' },
+  270:{ into: 271, level: 14, name: 'Lombre' },
+  271:{ into: 272, level: 30, name: 'Ludicolo' },
+  273:{ into: 274, level: 14, name: 'Nuzleaf' },
+  274:{ into: 275, level: 30, name: 'Shiftry' },
+  276:{ into: 277, level: 22, name: 'Swellow' },
+  278:{ into: 279, level: 25, name: 'Pelipper' },
+  280:{ into: 281, level: 20, name: 'Kirlia' },
+  281:{ into: 282, level: 30, name: 'Gardevoir' },
+  283:{ into: 284, level: 22, name: 'Masquerain' },
+  285:{ into: 286, level: 23, name: 'Breloom' },
+  287:{ into: 288, level: 18, name: 'Vigoroth' },
+  288:{ into: 289, level: 36, name: 'Slaking' },
+  290:{ into: 291, level: 20, name: 'Ninjask' },
+  293:{ into: 294, level: 20, name: 'Loudred' },
+  294:{ into: 295, level: 40, name: 'Exploud' },
+  296:{ into: 297, level: 24, name: 'Hariyama' },
+  298:{ into: 183, level: 15, name: 'Marill' },
+  300:{ into: 301, level: 30, name: 'Delcatty' },
+  304:{ into: 305, level: 32, name: 'Lairon' },
+  305:{ into: 306, level: 42, name: 'Aggron' },
+  307:{ into: 308, level: 37, name: 'Medicham' },
+  309:{ into: 310, level: 26, name: 'Manectric' },
+  316:{ into: 317, level: 26, name: 'Swalot' },
+  318:{ into: 319, level: 30, name: 'Sharpedo' },
+  320:{ into: 321, level: 40, name: 'Wailord' },
+  322:{ into: 323, level: 33, name: 'Camerupt' },
+  325:{ into: 326, level: 32, name: 'Grumpig' },
+  328:{ into: 329, level: 35, name: 'Vibrava' },
+  329:{ into: 330, level: 45, name: 'Flygon' },
+  331:{ into: 332, level: 32, name: 'Cacturne' },
+  333:{ into: 334, level: 35, name: 'Altaria' },
+  339:{ into: 340, level: 30, name: 'Whiscash' },
+  341:{ into: 342, level: 30, name: 'Crawdaunt' },
+  343:{ into: 344, level: 36, name: 'Claydol' },
+  345:{ into: 346, level: 40, name: 'Cradily' },
+  347:{ into: 348, level: 40, name: 'Armaldo' },
+  349:{ into: 350, level: 35, name: 'Milotic' },
+  353:{ into: 354, level: 37, name: 'Banette' },
+  355:{ into: 356, level: 37, name: 'Dusclops' },
+  361:{ into: 362, level: 42, name: 'Glalie' },
+  363:{ into: 364, level: 32, name: 'Sealeo' },
+  364:{ into: 365, level: 44, name: 'Walrein' },
+  371:{ into: 372, level: 30, name: 'Shelgon' },
+  372:{ into: 373, level: 50, name: 'Salamence' },
+  374:{ into: 375, level: 20, name: 'Metang' },
+  375:{ into: 376, level: 45, name: 'Metagross' },
+  // Gen 4
+  387:{ into: 388, level: 18, name: 'Grotle' },
+  388:{ into: 389, level: 32, name: 'Torterra' },
+  390:{ into: 391, level: 14, name: 'Monferno' },
+  391:{ into: 392, level: 36, name: 'Infernape' },
+  393:{ into: 394, level: 16, name: 'Prinplup' },
+  394:{ into: 395, level: 36, name: 'Empoleon' },
+  396:{ into: 397, level: 14, name: 'Staravia' },
+  397:{ into: 398, level: 34, name: 'Staraptor' },
+  399:{ into: 400, level: 15, name: 'Bibarel' },
+  401:{ into: 402, level: 10, name: 'Kricketune' },
+  403:{ into: 404, level: 15, name: 'Luxio' },
+  404:{ into: 405, level: 30, name: 'Luxray' },
+  406:{ into: 315, level: 18, name: 'Roselia' },
+  408:{ into: 409, level: 30, name: 'Rampardos' },
+  410:{ into: 411, level: 30, name: 'Bastiodon' },
+  415:{ into: 416, level: 21, name: 'Vespiquen' },
+  418:{ into: 419, level: 26, name: 'Floatzel' },
+  420:{ into: 421, level: 25, name: 'Cherrim' },
+  422:{ into: 423, level: 30, name: 'Gastrodon' },
+  425:{ into: 426, level: 28, name: 'Drifblim' },
+  427:{ into: 428, level: 28, name: 'Lopunny' },
+  431:{ into: 432, level: 38, name: 'Purugly' },
+  434:{ into: 435, level: 34, name: 'Skuntank' },
+  436:{ into: 437, level: 33, name: 'Bronzong' },
+  443:{ into: 444, level: 24, name: 'Gabite' },
+  444:{ into: 445, level: 48, name: 'Garchomp' },
+  446:{ into: 143, level: 32, name: 'Snorlax' },
+  447:{ into: 448, level: 32, name: 'Lucario' },
+  449:{ into: 450, level: 34, name: 'Hippowdon' },
+  451:{ into: 452, level: 40, name: 'Drapion' },
+  453:{ into: 454, level: 37, name: 'Toxicroak' },
+  456:{ into: 457, level: 31, name: 'Lumineon' },
+  459:{ into: 460, level: 40, name: 'Abomasnow' },
+  // Gen 5
+  495:{ into: 496, level: 17, name: 'Servine' },
+  496:{ into: 497, level: 36, name: 'Serperior' },
+  498:{ into: 499, level: 17, name: 'Pignite' },
+  499:{ into: 500, level: 36, name: 'Emboar' },
+  501:{ into: 502, level: 17, name: 'Dewott' },
+  502:{ into: 503, level: 36, name: 'Samurott' },
+  504:{ into: 505, level: 20, name: 'Watchog' },
+  506:{ into: 507, level: 16, name: 'Herdier' },
+  507:{ into: 508, level: 32, name: 'Stoutland' },
+  509:{ into: 510, level: 20, name: 'Liepard' },
+  517:{ into: 518, level: 30, name: 'Musharna' },
+  519:{ into: 520, level: 21, name: 'Tranquill' },
+  520:{ into: 521, level: 32, name: 'Unfezant' },
+  522:{ into: 523, level: 27, name: 'Zebstrika' },
+  524:{ into: 525, level: 25, name: 'Boldore' },
+  525:{ into: 526, level: 40, name: 'Gigalith' },
+  527:{ into: 528, level: 32, name: 'Swoobat' },
+  529:{ into: 530, level: 31, name: 'Excadrill' },
+  532:{ into: 533, level: 25, name: 'Gurdurr' },
+  533:{ into: 534, level: 40, name: 'Conkeldurr' },
+  535:{ into: 536, level: 25, name: 'Palpitoad' },
+  536:{ into: 537, level: 36, name: 'Seismitoad' },
+  540:{ into: 541, level: 20, name: 'Swadloon' },
+  541:{ into: 542, level: 30, name: 'Leavanny' },
+  543:{ into: 544, level: 22, name: 'Whirlipede' },
+  544:{ into: 545, level: 30, name: 'Scolipede' },
+  546:{ into: 547, level: 32, name: 'Whimsicott' },
+  548:{ into: 549, level: 28, name: 'Lilligant' },
+  551:{ into: 552, level: 29, name: 'Krokorok' },
+  552:{ into: 553, level: 40, name: 'Krookodile' },
+  554:{ into: 555, level: 35, name: 'Darmanitan' },
+  557:{ into: 558, level: 34, name: 'Crustle' },
+  559:{ into: 560, level: 39, name: 'Scrafty' },
+  562:{ into: 563, level: 34, name: 'Cofagrigus' },
+  564:{ into: 565, level: 37, name: 'Carracosta' },
+  566:{ into: 567, level: 37, name: 'Archeops' },
+  568:{ into: 569, level: 36, name: 'Garbodor' },
+  570:{ into: 571, level: 30, name: 'Zoroark' },
+  572:{ into: 573, level: 25, name: 'Cinccino' },
+  574:{ into: 575, level: 32, name: 'Gothorita' },
+  575:{ into: 576, level: 41, name: 'Gothitelle' },
+  577:{ into: 578, level: 32, name: 'Duosion' },
+  578:{ into: 579, level: 41, name: 'Reuniclus' },
+  580:{ into: 581, level: 35, name: 'Swanna' },
+  582:{ into: 583, level: 35, name: 'Vanillish' },
+  583:{ into: 584, level: 47, name: 'Vanilluxe' },
+  585:{ into: 586, level: 34, name: 'Sawsbuck' },
+  588:{ into: 589, level: 30, name: 'Escavalier' },
+  590:{ into: 591, level: 39, name: 'Amoonguss' },
+  592:{ into: 593, level: 40, name: 'Jellicent' },
+  595:{ into: 596, level: 36, name: 'Galvantula' },
+  597:{ into: 598, level: 40, name: 'Ferrothorn' },
+  599:{ into: 600, level: 38, name: 'Klang' },
+  600:{ into: 601, level: 49, name: 'Klinklang' },
+  602:{ into: 603, level: 39, name: 'Eelektrik' },
+  603:{ into: 604, level: 50, name: 'Eelektross' },
+  605:{ into: 606, level: 42, name: 'Beheeyem' },
+  607:{ into: 608, level: 41, name: 'Lampent' },
+  608:{ into: 609, level: 55, name: 'Chandelure' },
+  610:{ into: 611, level: 38, name: 'Fraxure' },
+  611:{ into: 612, level: 48, name: 'Haxorus' },
+  613:{ into: 614, level: 37, name: 'Beartic' },
+  616:{ into: 617, level: 30, name: 'Accelgor' },
+  619:{ into: 620, level: 50, name: 'Mienshao' },
+  622:{ into: 623, level: 43, name: 'Golurk' },
+  624:{ into: 625, level: 52, name: 'Bisharp' },
+  627:{ into: 628, level: 54, name: 'Braviary' },
+  629:{ into: 630, level: 54, name: 'Mandibuzz' },
+  633:{ into: 634, level: 50, name: 'Zweilous' },
+  634:{ into: 635, level: 64, name: 'Hydreigon' },
+  636:{ into: 637, level: 59, name: 'Volcarona' },
 };
 
 // Returns the minimum realistic level for a species based on its evolution chain.
@@ -680,40 +1018,85 @@ function canEvolve(speciesId) {
   return speciesId in GEN1_EVOLUTIONS || speciesId === 133; // 133 = Eevee
 }
 
+// Returns the correct species ID for a given level by walking the evolution chain.
+// Advances forward if level meets thresholds; retreats backward if level is too low.
+function resolveEvoForLevel(speciesId, level) {
+  let id = speciesId;
+  while (GEN1_EVOLUTIONS[id] && level >= GEN1_EVOLUTIONS[id].level)
+    id = GEN1_EVOLUTIONS[id].into;
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const [pre, evo] of Object.entries(GEN1_EVOLUTIONS)) {
+      if (evo.into === id && level < evo.level) { id = Number(pre); changed = true; break; }
+    }
+  }
+  return id;
+}
+
 // Eevee branching evolution options (shown as a choice at level 36)
 const EEVEE_EVOLUTIONS = [
   { into: 136, level: 36, name: 'Flareon',  types: ['Fire'] },
   { into: 134, level: 36, name: 'Vaporeon', types: ['Water'] },
   { into: 135, level: 36, name: 'Jolteon',  types: ['Electric'] },
+  { into: 196, level: 25, name: 'Espeon',   types: ['Psychic'] },
+  { into: 197, level: 25, name: 'Umbreon',  types: ['Dark'] },
 ];
 
 // ---- Achievements ----
 
 const ACHIEVEMENTS = [
-  { id: 'gym_0', name: 'Boulder Basher',    desc: 'Clear Map 1 and defeat Brock',                                           icon: '🪨' },
-  { id: 'gym_1', name: 'Cascade Crusher',   desc: 'Clear Map 2 and defeat Misty',                                           icon: '💧' },
-  { id: 'gym_2', name: 'Thunder Tamer',     desc: 'Clear Map 3 and defeat Lt. Surge',                                       icon: '⚡' },
-  { id: 'gym_3', name: 'Rainbow Ranger',    desc: 'Clear Map 4 and defeat Erika',                                           icon: '🌿' },
-  { id: 'gym_4', name: 'Soul Crusher',      desc: 'Clear Map 5 and defeat Koga',                                            icon: '💜' },
-  { id: 'gym_5', name: 'Mind Breaker',      desc: 'Clear Map 6 and defeat Sabrina',                                         icon: '🔮' },
-  { id: 'gym_6', name: 'Volcano Victor',    desc: 'Clear Map 7 and defeat Blaine',                                          icon: '🌋' },
-  { id: 'gym_7', name: 'Earth Shaker',      desc: 'Clear Map 8 and defeat Giovanni',                                        icon: '🌍' },
-  { id: 'elite_four', name: 'Pokemon Master',    desc: 'Defeat all 4 Elite Four members and the Champion to beat the game', icon: '👑' },
-  { id: 'elite_10',   name: 'Champion League',   desc: 'Beat the game 10 times total',                                      icon: '🏆' },
-  { id: 'elite_100',  name: 'Immortal Champion', desc: 'Beat the game 100 times total',                                     icon: '💎' },
-  { id: 'starter_1', name: 'Grass Champion',  desc: 'Choose Bulbasaur as your starter and beat the game',                   icon: '🌱' },
-  { id: 'starter_4', name: 'Fire Champion',   desc: 'Choose Charmander as your starter and beat the game',                  icon: '🔥' },
-  { id: 'starter_7', name: 'Water Champion',  desc: 'Choose Squirtle as your starter and beat the game',                    icon: '🌊' },
-  { id: 'solo_run',    name: 'One is Enough',        desc: 'Beat the game while keeping only 1 Pokémon on your team',       icon: '⭐' },
-  { id: 'pokedex_complete',  name: 'Gotta Catch \'Em All', desc: 'Encounter all 151 Gen 1 Pokémon across any number of runs', icon: '📖' },
-  { id: 'shinydex_complete', name: 'Shiny Hunter',   desc: 'Encounter a shiny version of all 151 Gen 1 Pokémon',            icon: '✨' },
-  { id: 'nuzlocke_win',      name: 'True Master',    desc: 'Enable Nuzlocke Mode in Settings, then beat the game — if any Pokémon faints, it\'s gone for good', icon: '☠️' },
-  { id: 'three_birds',       name: 'Bird Keeper',    desc: 'Beat the game with Articuno, Zapdos, and Moltres all on your team', icon: '🦅' },
-  { id: 'no_pokecenter',     name: 'No Rest for the Wicked', desc: 'Beat the game without stopping at a Pokémon Center',   icon: '🏃' },
-  { id: 'no_items',          name: 'Minimalist',     desc: 'Beat the game without picking up a single item',                icon: '🎒' },
-  { id: 'type_quartet',      name: 'Type Supremacy', desc: 'Beat the game with at least 4 of your 6 Pokémon sharing the same type', icon: '🔣' },
-  { id: 'all_shiny_win',     name: 'Shiny Squad',    desc: 'Beat the game with every Pokémon on your team being shiny (minimum 3)',             icon: '💫' },
-  { id: 'back_to_back',      name: 'On a Roll',      desc: 'Beat the game twice in a row without losing a run in between',  icon: '🔁' },
+  { id: 'gym_0', name: 'Boulder Basher',    desc: 'Clear Map 1 and defeat Brock',                                           icon: '🪨', category: 'normal' },
+  { id: 'gym_1', name: 'Cascade Crusher',   desc: 'Clear Map 2 and defeat Misty',                                           icon: '💧', category: 'normal' },
+  { id: 'gym_2', name: 'Thunder Tamer',     desc: 'Clear Map 3 and defeat Lt. Surge',                                       icon: '⚡', category: 'normal' },
+  { id: 'gym_3', name: 'Rainbow Ranger',    desc: 'Clear Map 4 and defeat Erika',                                           icon: '🌿', category: 'normal' },
+  { id: 'gym_4', name: 'Soul Crusher',      desc: 'Clear Map 5 and defeat Koga',                                            icon: '💜', category: 'normal' },
+  { id: 'gym_5', name: 'Mind Breaker',      desc: 'Clear Map 6 and defeat Sabrina',                                         icon: '🔮', category: 'normal' },
+  { id: 'gym_6', name: 'Volcano Victor',    desc: 'Clear Map 7 and defeat Blaine',                                          icon: '🌋', category: 'normal' },
+  { id: 'gym_7', name: 'Earth Shaker',      desc: 'Clear Map 8 and defeat Giovanni',                                        icon: '🌍', category: 'normal' },
+  { id: 'elite_four', name: 'Pokemon Master',    desc: 'Defeat all 4 Elite Four members and the Champion to beat the game', icon: '👑', category: 'normal' },
+  { id: 'elite_10',   name: 'Champion League',   desc: 'Beat the game 10 times total',                                      icon: '🏆', category: 'normal' },
+  { id: 'elite_100',  name: 'Immortal Champion', desc: 'Beat the game 100 times total',                                     icon: '💎', category: 'normal' },
+  { id: 'starter_1', name: 'Grass Champion',  desc: 'Choose Bulbasaur as your starter and beat the game',                   icon: '🌱', category: 'normal' },
+  { id: 'starter_4', name: 'Fire Champion',   desc: 'Choose Charmander as your starter and beat the game',                  icon: '🔥', category: 'normal' },
+  { id: 'starter_7', name: 'Water Champion',  desc: 'Choose Squirtle as your starter and beat the game',                    icon: '🌊', category: 'normal' },
+  { id: 'solo_run',    name: 'One is Enough',        desc: 'Beat the game while keeping only 1 Pokémon on your team',       icon: '⭐', category: 'normal' },
+  { id: 'nuzlocke_win',      name: 'True Master',    desc: 'Enable Nuzlocke Mode in Settings, then beat the game — if any Pokémon faints, it\'s gone for good', icon: '☠️', category: 'normal' },
+  { id: 'three_birds',       name: 'Bird Keeper',    desc: 'Beat the game with Articuno, Zapdos, and Moltres all on your team', icon: '🦅', category: 'normal' },
+  { id: 'no_pokecenter',     name: 'No Rest for the Wicked', desc: 'Beat the game without stopping at a Pokémon Center',   icon: '🏃', category: 'normal' },
+  { id: 'no_items',          name: 'Minimalist',     desc: 'Beat the game without picking up a single item',                icon: '🎒', category: 'normal' },
+  { id: 'type_quartet',      name: 'Type Supremacy', desc: 'Beat the game with at least 4 of your 6 Pokémon sharing the same type', icon: '🔣', category: 'normal' },
+  { id: 'all_shiny_win',     name: 'Shiny Squad',    desc: 'Beat the game with every Pokémon on your team being shiny (minimum 3)', icon: '💫', category: 'normal' },
+  { id: 'back_to_back',      name: 'On a Roll',        desc: 'Beat the game twice in a row without losing a run in between',       icon: '🔁', category: 'normal' },
+  { id: 'back_3_back',       name: 'Hat Trick',        desc: 'Beat the game three times in a row without losing a run in between',    icon: '🎩', category: 'normal' },
+  { id: 'endless_stage_1',  name: 'Kanto Champion',  desc: 'Defeat Ash Ketchum and clear Stage 1 of Battle Tower',   icon: '🌀', category: 'tower' },
+  { id: 'endless_stage_2',  name: 'Johto Champion',  desc: 'Defeat Lance and clear Stage 2 of Battle Tower',          icon: '🌊', category: 'tower' },
+  { id: 'endless_stage_3',  name: 'Hoenn Champion',  desc: 'Defeat Steven Stone and clear Stage 3 of Battle Tower',   icon: '⚔️', category: 'tower' },
+  { id: 'endless_stage_4',  name: 'Sinnoh Champion', desc: 'Defeat Cynthia and clear Stage 4 of Battle Tower',        icon: '💎', category: 'tower' },
+  { id: 'endless_stage_5',  name: 'Unova Champion',  desc: 'Defeat N and clear Stage 5 of Battle Tower',              icon: '🏅', category: 'tower' },
+  { id: 'starters_stage_1', name: 'Kanto Trio',   desc: 'Win a Stage 1 run starting with each of Bulbasaur, Charmander, and Squirtle',   icon: '🌿', category: 'tower' },
+  { id: 'starters_stage_2', name: 'Johto Trio',   desc: 'Win a Stage 2 run starting with each of Chikorita, Cyndaquil, and Totodile',    icon: '🍃', category: 'tower' },
+  { id: 'starters_stage_3', name: 'Hoenn Trio',   desc: 'Win a Stage 3 run starting with each of Treecko, Torchic, and Mudkip',          icon: '🌊', category: 'tower' },
+  { id: 'starters_stage_4', name: 'Sinnoh Trio',  desc: 'Win a Stage 4 run starting with each of Turtwig, Chimchar, and Piplup',         icon: '⛰️', category: 'tower' },
+  { id: 'starters_stage_5', name: 'Unova Trio',   desc: 'Win a Stage 5 run starting with each of Snivy, Tepig, and Oshawott',            icon: '🌀', category: 'tower' },
+  { id: 'pokedex_complete',  name: 'Gotta Catch \'Em All', desc: 'Catch all Gen 1 Pokémon across any number of runs', icon: '📖', category: 'general' },
+  { id: 'shinydex_complete', name: 'Shiny Hunter',         desc: 'Catch a shiny version of every Gen 1 Pokémon',         icon: '✨', category: 'general' },
+  { id: 'shinydex_all',      name: 'Ultimate Shiny Hunter', desc: 'Catch a shiny version of every Pokémon across all gens', icon: '🌟', category: 'general' },
+  { id: 'pokedex_gen2', name: 'Johto Completionist', desc: 'Catch all Gen 2 Pokémon across any number of runs', icon: '📗', category: 'general' },
+  { id: 'pokedex_gen3', name: 'Hoenn Completionist', desc: 'Catch all Gen 3 Pokémon across any number of runs', icon: '📘', category: 'general' },
+  { id: 'pokedex_gen4', name: 'Sinnoh Completionist', desc: 'Catch all Gen 4 Pokémon across any number of runs', icon: '📙', category: 'general' },
+  { id: 'pokedex_gen5', name: 'Unova Completionist',  desc: 'Catch all Gen 5 Pokémon across any number of runs', icon: '📕', category: 'general' },
+  { id: 'max_stats_1',   name: 'First Peak',       desc: 'Max out 1 stat on a single Pokémon',        icon: '📈', category: 'general' },
+  { id: 'max_stats_2',   name: 'Double Peak',      desc: 'Max out 2 stats on a single Pokémon',       icon: '📊', category: 'general' },
+  { id: 'max_stats_3',   name: 'Triple Peak',      desc: 'Max out 3 stats on a single Pokémon',       icon: '🔝', category: 'general' },
+  { id: 'max_stats_4',   name: 'Quad Peak',        desc: 'Max out 4 stats on a single Pokémon',       icon: '💪', category: 'general' },
+  { id: 'max_stats_all', name: 'Perfect Specimen',  desc: 'Max out all 6 stats on a single Pokémon',   icon: '🏅', category: 'general' },
+  { id: 'shinydex_100', name: 'Shiny Spark',      desc: 'Catch 100 different shiny Pokémon',  icon: '⭐', category: 'general' },
+  { id: 'shinydex_200', name: 'Shiny Flash',      desc: 'Catch 200 different shiny Pokémon',  icon: '💥', category: 'general' },
+  { id: 'shinydex_300', name: 'Shiny Blaze',      desc: 'Catch 300 different shiny Pokémon',  icon: '🔥', category: 'general' },
+  { id: 'shinydex_400', name: 'Shiny Storm',      desc: 'Catch 400 different shiny Pokémon',  icon: '⚡', category: 'general' },
+  { id: 'shinydex_500', name: 'Shiny Legend',     desc: 'Catch 500 different shiny Pokémon',  icon: '💎', category: 'general' },
+  { id: 'shinydex_600', name: 'Shiny Immortal',   desc: 'Catch 600 different shiny Pokémon',  icon: '👑', category: 'general' },
 ];
 
 function getUnlockedAchievements() {
@@ -785,14 +1168,16 @@ function itemIconHtml(item, size = 24) {
        + `onerror="this.replaceWith(document.createTextNode('${esc}'))">`;
 }
 
-function isShinyDexComplete() {
+function isShinyGenDexComplete(minId, maxId) {
   const dex = getShinyDex();
   const caughtIds = new Set(Object.values(dex).map(e => e.id));
   for (const id of ALL_CATCHABLE_IDS) {
-    if (!caughtIds.has(id)) return false;
+    if (id >= minId && id <= maxId && !caughtIds.has(id)) return false;
   }
   return true;
 }
+
+function isShinyDexComplete() { return isShinyGenDexComplete(1, 151); }
 
 function markShinyDexCaught(id, name, types, shinySpriteUrl) {
   if (!id) return;
@@ -808,11 +1193,14 @@ function getHallOfFame() {
   catch { return []; }
 }
 
-function saveHallOfFameEntry(team, runNumber, hardMode) {
+function saveHallOfFameEntry(team, runNumber, hardMode, endless = false, stageNumber = null, starterSpeciesId = null) {
   const entries = getHallOfFame();
   entries.push({
     runNumber,
     hardMode: !!hardMode,
+    endless: !!endless,
+    stageNumber: stageNumber ?? null,
+    starterSpeciesId: starterSpeciesId ?? null,
     date: new Date().toLocaleDateString(),
     team: team.map(p => ({
       speciesId: p.speciesId,
@@ -822,6 +1210,7 @@ function saveHallOfFameEntry(team, runNumber, hardMode) {
       types: p.types,
       spriteUrl: p.spriteUrl,
       isShiny: !!p.isShiny,
+      heldItem: p.heldItem || null,
     })),
   });
   localStorage.setItem('poke_hall_of_fame', JSON.stringify(entries));
