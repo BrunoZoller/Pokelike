@@ -2435,6 +2435,24 @@ body.dark-mode #btn-hard-run:hover { box-shadow: 4px 4px 0 0 #cc2222; }
   }
 }
 
+/* ── Mobile catch / item screens: 3-in-a-row ──────────────────────────────── */
+@media (max-width: 768px) {
+  #catch-choices {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .poke-choice-wrap { width: auto; }
+  .poke-choice-wrap .poke-card { width: 100%; }
+
+  #item-choices {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .item-card { width: auto; padding: 12px 8px; }
+}
+
 /* ── Mobile map screen layout ──────────────────────────────────────────────── */
 @media (max-width: 768px) {
   /* 100dvh gives the true visible viewport on iOS Safari (excludes address bar) */
