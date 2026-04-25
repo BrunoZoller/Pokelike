@@ -2341,6 +2341,7 @@ function applyStatBuff(pokemon, statKey) {
   savePersistentBuffs(store);
   saveRun();
   saveEndlessState();
+  if (typeof syncToCloud === 'function') syncToCloud();
 }
 
 function advanceEndless() {
@@ -2363,6 +2364,7 @@ function advanceEndless() {
       checkStarterCollectionAchievements();
       clearEndlessState();
       clearSavedRun();
+      if (typeof syncToCloud === 'function') syncToCloud();
       renderStageComplete(completedStage, state.team, () => {
         showEndlessStageSelect();
       });
