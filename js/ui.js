@@ -2867,7 +2867,7 @@ function renderEndlessRegionPanel(region, currentMapIndex) {
   if (!panel || !region) return;
   panel.style.display = '';
 
-  const header = `<div class="hud-label">S${region.stageNum} R${region.regionNum}</div>`;
+  const header = `<div class="hud-label">${getStageName(region.stageNum)} R${region.regionNum}</div>`;
   const rows = region.trainers.map((trainer, i) => {
     const type = trainer.archetype?.type || null;
     const name = trainer.archetype?.name || '???';
@@ -2966,8 +2966,8 @@ function renderStageComplete(stageNum, team, onContinue) {
   const unlockEl = document.getElementById('stage-complete-unlock');
   const teamEl   = document.getElementById('stage-complete-team');
   const btnEl    = document.getElementById('btn-stage-continue');
-  if (msgEl)    msgEl.textContent    = `Stage ${stageNum} Complete!`;
-  if (unlockEl) unlockEl.textContent = `Stage ${stageNum + 1} unlocked!`;
+  if (msgEl)    msgEl.textContent    = `${getStageName(stageNum)} Complete!`;
+  if (unlockEl) unlockEl.textContent = `${getStageName(stageNum + 1)} unlocked!`;
   if (teamEl)   teamEl.innerHTML     = team.map(p => renderPokemonCard(p, false, false)).join('');
   if (btnEl)    btnEl.onclick        = onContinue;
   showScreen('endless-stage-complete');
@@ -3758,7 +3758,7 @@ function openHallOfFameModal() {
         return `
           <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-              <span style="font-size:10px;color:gold;font-weight:bold;">${e.endless ? `Endless Stage ${e.stageNumber}` : `Championship #${e.runNumber}`}${e.hardMode ? ' ☠️' : ''}</span>
+              <span style="font-size:10px;color:gold;font-weight:bold;">${e.endless ? `Endless: ${getStageName(e.stageNumber)}` : `Championship #${e.runNumber}`}${e.hardMode ? ' ☠️' : ''}</span>
               <span style="font-size:9px;color:var(--text-dim);">${e.date}</span>
             </div>
             <div style="display:flex;gap:10px;flex-wrap:wrap;">${pokemonHtml}</div>

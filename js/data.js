@@ -452,10 +452,6 @@ async function fetchPokemonById(idOrSlug) {
   try {
     const r = await fetch(`https://pokeapi.co/api/v2/pokemon/${idOrSlug}`);
     const d = await r.json();
-    const stats = {};
-    for (const s of d.stats) {
-      stats[s.stat.name.replace('special-attack','special').replace('special-defense','special').replace('-','_')] = s.base_stat;
-    }
     const baseStats = {
       hp: d.stats.find(s=>s.stat.name==='hp')?.base_stat || 45,
       atk: d.stats.find(s=>s.stat.name==='attack')?.base_stat || 50,

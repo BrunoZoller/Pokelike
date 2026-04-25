@@ -63,7 +63,27 @@ async function initGame() {
   document.getElementById('btn-hard-run').onclick = () => startNewRun(true);
 
   const endlessBtn = document.getElementById('btn-endless-run');
-  if (endlessBtn) endlessBtn.onclick = () => showEndlessStageSelect();
+  if (endlessBtn) {
+    const hofUnlocked = getHallOfFame().some(e => !e.endless);
+    if (hofUnlocked) {
+      endlessBtn.onclick = () => showEndlessStageSelect();
+    } else {
+      endlessBtn.style.opacity = '0.45';
+      endlessBtn.disabled = true;
+      endlessBtn.style.pointerEvents = 'none';
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = `position:relative;display:block;margin-top:${endlessBtn.style.marginTop || '6px'};`;
+      endlessBtn.style.marginTop = '0';
+      endlessBtn.parentNode.insertBefore(wrapper, endlessBtn);
+      wrapper.appendChild(endlessBtn);
+      const lockOverlay = document.createElement('div');
+      lockOverlay.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:24px;cursor:not-allowed;';
+      lockOverlay.innerHTML = '<img src="sprites/lock.png" style="height:36px;width:auto;image-rendering:pixelated;">';
+      lockOverlay.addEventListener('mousemove', e => _itemTooltip.show('Beat Normal or Nuzlocke mode first', e.clientX + 14, e.clientY - 8));
+      lockOverlay.addEventListener('mouseleave', () => _itemTooltip.hide());
+      wrapper.appendChild(lockOverlay);
+    }
+  }
 
   const continueEndlessBtn = document.getElementById('btn-continue-endless');
   if (continueEndlessBtn) {
@@ -81,7 +101,6 @@ async function initGame() {
     continueBtn.onclick = async () => {
       if (!loadRun()) return;
       if (state.currentNode && !state.currentNode.visited) {
-        showMapScreen();
         await onNodeClick(state.currentNode);
       } else {
         showMapScreen();
@@ -151,7 +170,7 @@ async function showStarterSelect() {
     const panel = document.getElementById('starter-region-panel');
     if (panel) {
       const region = endlessState.currentRegion;
-      const header = `<div class="hud-label">Upcoming Region</div><div class="hud-label" style="font-size:7px;opacity:0.7;">S${region.stageNum} R${region.regionNum}</div>`;
+      const header = `<div class="hud-label">Upcoming Region</div><div class="hud-label" style="font-size:7px;opacity:0.7;">${getStageName(region.stageNum)} R${region.regionNum}</div>`;
       const rows = region.trainers.map((trainer, i) => {
         const type = trainer.archetype?.type || '???';
         const name = trainer.archetype?.name || '???';
@@ -171,7 +190,7 @@ async function showStarterSelect() {
     }
   }
 
-  const startLevel = 5;
+  const startLevel = new URLSearchParams(location.search).has('skip') ? 200 : new URLSearchParams(location.search).has('dev') ? 100 : 5;
   const starters = state.isEndlessMode ? [] : await Promise.all(STARTER_IDS.map(id => fetchPokemonById(id)));
 
   container.innerHTML = '';
@@ -321,14 +340,12 @@ async function showStarterSelect() {
       card.setAttribute('tabindex', '0');
       card.addEventListener('click', () => selectStarter(inst));
       card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') selectStarter(inst); });
-      card.addEventListener('mouseenter', () => showTeamHoverCard(inst, card));
-      card.addEventListener('mouseleave', () => hideTeamHoverCard());
       container.appendChild(card);
     }
   }
 }
 
-function selectStarter(pokemon) {
+async function selectStarter(pokemon) {
   const normalUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemon.speciesId}.png`;
   markPokedexCaught(pokemon.speciesId, pokemon.name, pokemon.types, normalUrl);
   if (pokemon.isShiny) markShinyDexCaught(pokemon.speciesId, pokemon.name, pokemon.types, pokemon.spriteUrl);
@@ -337,7 +354,20 @@ function selectStarter(pokemon) {
   state.starterSpeciesId = pokemon.speciesId;
   state.maxTeamSize = 1;
   if (state.isEndlessMode) {
-    startEndlessRegion();
+    const _skipParam = new URLSearchParams(location.search).has('dev') && new URLSearchParams(location.search).get('skip');
+    if (_skipParam) {
+      const [_sStage, _sRegion, _sMap] = _skipParam.split(',').map(Number);
+      while (state.team.length < 6) state.team.push({ ...pokemon, currentHp: pokemon.maxHp });
+      state.maxTeamSize = 6;
+      endlessState.stageNumber = _sStage || endlessState.stageNumber;
+      endlessState.regionNumber = _sRegion || 1;
+      endlessState.mapIndexInRegion = _sMap ?? 0;
+      endlessState.currentRegion = rollRegion(endlessState.stageNumber, endlessState.regionNumber);
+      endlessState.traitTiers = {};
+      await doEndlessBossNode();
+    } else {
+      startEndlessRegion();
+    }
   } else {
     startMap(0);
   }
@@ -364,7 +394,7 @@ function startMap(mapIndex) {
 
 function showMapScreen() {
   // In endless mode, delegate to the endless map renderer (which uses the correct click handler)
-  if (state.isEndlessMode) { showEndlessMapScreen(); return; }
+  if (state.isEndlessMode) { saveRun(); showEndlessMapScreen(); return; }
 
   if (typeof hideEndlessTraitPanel === 'function') hideEndlessTraitPanel();
   const regionPanel = document.getElementById('endless-region-panel');
@@ -730,29 +760,13 @@ async function doCatchNode(node) {
   }
   if (state.isEndlessMode) {
     const filtered = choices.filter(sp => !teamRoots.has(getEvoLineRoot(sp.id ?? sp.speciesId)));
-    if (filtered.length >= 3) {
-      choices = filtered;
-    } else if (filtered.length > 0) {
-      const dups = choices.filter(sp => teamRoots.has(getEvoLineRoot(sp.id ?? sp.speciesId)));
-      choices = [...filtered, ...dups].slice(0, 3);
-    }
+    if (filtered.length > 0) choices = filtered;
   }
   const displayedIds = new Set(choices.slice(0, 3).map(sp => sp.id ?? sp.speciesId));
   const rerollPool = allCandidates.filter(sp => !displayedIds.has(sp.id ?? sp.speciesId));
   choices = choices.slice(0, 3);
 
-  // Each display slot has a 1/18 chance to be swapped for a legendary (+5 levels)
-  // Only in normal mode — endless mode uses dedicated legendary nodes instead
-  if (!state.isEndlessMode) {
-    for (let i = 0; i < choices.length; i++) {
-      if (rng() < 1 / 18) {
-        const leg = await getRandomLegendary(getEncounterMapIndex(), false);
-        if (leg && !teamRoots.has(getEvoLineRoot(leg.id ?? leg.speciesId))) choices[i] = { ...leg, _legendary: true };
-      }
-    }
-  }
-
-  const instances = choices.map(sp => createInstance(sp, sp._legendary ? level + 5 : level, rng() < (hasShinyCharm() ? 0.02 : 0.01), getMoveТierForMap(state.currentMap)));
+const instances = choices.map(sp => createInstance(sp, sp._legendary ? level + 5 : level, rng() < (hasShinyCharm() ? 0.02 : 0.01), getMoveТierForMap(state.currentMap)));
   const rerolled = new Set();
 
   function renderCatchSlot(inst, slotIdx) {
@@ -816,14 +830,54 @@ async function doCatchNode(node) {
   };
 }
 
+function checkStarterCollectionAchievements() {
+  const hof = getHallOfFame();
+  for (let stage = 1; stage <= 5; stage++) {
+    const starterIds = REGION_STARTERS[stage];
+    if (!starterIds) continue;
+    const used = new Set(
+      hof
+        .filter(e => e.endless && e.stageNumber === stage && e.starterSpeciesId)
+        .map(e => e.starterSpeciesId)
+    );
+    if (starterIds.every(id => used.has(id))) {
+      const ach = unlockAchievement(`starters_stage_${stage}`);
+      if (ach) showAchievementToast(ach);
+    }
+  }
+}
+
 function checkDexAchievements() {
   if (isPokedexComplete()) {
     const ach = unlockAchievement('pokedex_complete');
     if (ach) showAchievementToast(ach);
   }
+  const shinyCount = [...ALL_CATCHABLE_IDS].filter(id => getShinyDex()[id]).length;
+  for (const threshold of [100, 200, 300, 400, 500, 600]) {
+    if (shinyCount >= threshold) {
+      const ach = unlockAchievement(`shinydex_${threshold}`);
+      if (ach) showAchievementToast(ach);
+    }
+  }
   if (isShinyDexComplete()) {
     const ach = unlockAchievement('shinydex_complete');
     if (ach) showAchievementToast(ach);
+  }
+  if (isShinyGenDexComplete(1, 649)) {
+    const ach = unlockAchievement('shinydex_all');
+    if (ach) showAchievementToast(ach);
+  }
+  const genRanges = [
+    ['pokedex_gen2', 152, 251],
+    ['pokedex_gen3', 252, 386],
+    ['pokedex_gen4', 387, 493],
+    ['pokedex_gen5', 494, 649],
+  ];
+  for (const [id, min, max] of genRanges) {
+    if (isGenDexComplete(min, max)) {
+      const ach = unlockAchievement(id);
+      if (ach) showAchievementToast(ach);
+    }
   }
 }
 
@@ -1335,7 +1389,8 @@ async function doTrainerNode(node) {
 
 async function doLegendaryNode(node) {
   const teamLegendIds = state.team.map(p => p.speciesId);
-  const available = LEGENDARY_IDS.filter(id => !teamLegendIds.includes(id));
+  const maxLegendId = state.isEndlessMode ? Infinity : 151;
+  const available = LEGENDARY_IDS.filter(id => id <= maxLegendId && !teamLegendIds.includes(id));
   if (available.length === 0) { advanceFromNode(state.map, node.id); showMapScreen(); return; }
   const legendId = available[Math.floor(rng() * available.length)];
   const species = await fetchPokemonById(legendId);
@@ -1674,7 +1729,7 @@ function showBadgeScreen(leader) {
 }
 
 function showGameOver() {
-  localStorage.setItem('poke_last_run_won', 'false');
+  localStorage.setItem('poke_win_streak', '0');
   clearSavedRun();
   if (typeof syncToCloud === 'function') syncToCloud();
   initGame();
@@ -1682,13 +1737,17 @@ function showGameOver() {
 
 function showWinScreen() {
   showScreen('win-screen');
-  document.getElementById('win-team').innerHTML = state.team.map(p =>
-    renderPokemonCard(p, false, false)).join('');
+  document.getElementById('win-team').innerHTML = state.team.map(p => {
+    const itemHtml = p.heldItem
+      ? `<div style="display:flex;align-items:center;gap:4px;font-size:8px;color:var(--text-dim);margin-top:4px;">${itemIconHtml(p.heldItem, 14)}<span>${p.heldItem.name}</span></div>`
+      : '';
+    return `<div style="display:flex;flex-direction:column;align-items:center;">${renderPokemonCard(p, false, false)}${itemHtml}</div>`;
+  }).join('');
   document.getElementById('btn-play-again').onclick = () => startNewRun(state.nuzlockeMode);
 
   // Track elite four wins
   const wins = incrementEliteWins();
-  saveHallOfFameEntry(state.team, wins, state.nuzlockeMode);
+  saveHallOfFameEntry(state.team, wins, state.nuzlockeMode, false, null, state.starterSpeciesId);
   const winsEl = document.getElementById('win-run-count');
   if (winsEl) winsEl.textContent = `Championship #${wins}`;
   if (wins === 10) {
@@ -1761,12 +1820,16 @@ function showWinScreen() {
     if (ach) setTimeout(() => showAchievementToast(ach), 2000);
   }
 
-  // Back-to-back wins
-  const lastWon = localStorage.getItem('poke_last_run_won') === 'true';
-  localStorage.setItem('poke_last_run_won', 'true');
-  if (lastWon) {
+  // Consecutive win streak
+  const streak = (parseInt(localStorage.getItem('poke_win_streak') || '0', 10)) + 1;
+  localStorage.setItem('poke_win_streak', String(streak));
+  if (streak >= 2) {
     const ach = unlockAchievement('back_to_back');
     if (ach) setTimeout(() => showAchievementToast(ach), 2400);
+  }
+  if (streak >= 3) {
+    const ach = unlockAchievement('back_3_back');
+    if (ach) setTimeout(() => showAchievementToast(ach), 2800);
   }
 
   clearSavedRun();
@@ -1776,6 +1839,7 @@ function showWinScreen() {
 // ── Endless Mode ─────────────────────────────────────────────────────────────
 
 function getUnlockedStageCount() {
+  if (new URLSearchParams(location.search).has('dev')) return 5;
   return parseInt(localStorage.getItem('poke_endless_unlocked_stages') || '1', 10);
 }
 
@@ -1786,7 +1850,7 @@ function unlockNextStage(completedStage) {
   }
 }
 
-const MAX_ACCESSIBLE_STAGE = 4; // increase when new stage trainers are defined
+const MAX_ACCESSIBLE_STAGE = 5;
 
 const STAGE_META = [
   null,
@@ -1796,6 +1860,17 @@ const STAGE_META = [
   { label: 'Sinnoh', gens: 'Gen 1-4', color: '#7878c8' },
   { label: 'Unova',  gens: 'Gen 1-5', color: '#808080' },
 ];
+
+const STAGE_REGION_BG = [
+  null,
+  'ui/regions/HGSS_Kanto.jpg',
+  'ui/regions/Johtoart.jpg',
+  'ui/regions/ORAS_Hoenn_Map.jpg',
+  'ui/regions/Pt_Artwork_Sinnoh-Karte_(mit_Zerrwelt).jpg',
+  'ui/regions/Einall_S2W2.png',
+];
+
+function getStageName(n) { return STAGE_META[n]?.label || `Stage ${n}`; }
 
 // Starter Pokémon for each endless stage (base forms)
 const REGION_STARTERS = [
@@ -1819,13 +1894,17 @@ function showEndlessStageSelect() {
     const btn = document.createElement('button');
     btn.className = isLocked ? 'btn-secondary' : 'btn-primary';
     const borderColor = (!isLocked && meta) ? meta.color : '';
-    btn.style.cssText = `width:200px;${isLocked ? 'opacity:0.45;cursor:not-allowed;' : `background:linear-gradient(135deg,#1a0a3e,#3a0a6e);${borderColor ? `border-color:${borderColor};box-shadow:0 0 6px ${borderColor}55;` : ''}`}`;
+    const bg = STAGE_REGION_BG[s];
+    const bgStyle = bg
+      ? `background-image:url('${bg}');background-size:cover;background-position:center;`
+      : `background:linear-gradient(135deg,#1a0a3e,#3a0a6e);`;
+    btn.style.cssText = `width:200px;${isLocked ? `opacity:0.45;cursor:not-allowed;${bgStyle}` : `${bgStyle}${borderColor ? `border-color:${borderColor};box-shadow:0 0 6px ${borderColor}55;` : ''}`}`;
     if (isLocked) {
-      btn.innerHTML = `🔒 Stage ${s}`;
+      btn.innerHTML = `<div style="background:rgba(0,0,0,0.55);padding:4px 8px;border-radius:4px;">🔒 ${getStageName(s)}</div>`;
     } else if (meta) {
-      btn.innerHTML = `<div>▶ Stage ${s} — ${meta.label}</div><div style="font-size:5px;opacity:0.75;margin-top:2px;">${meta.gens}</div>`;
+      btn.innerHTML = `<div style="background:rgba(0,0,0,0.5);padding:4px 8px;border-radius:4px;"><div>▶ ${meta.label}</div><div style="font-size:5px;opacity:0.85;margin-top:2px;">${meta.gens}</div></div>`;
     } else {
-      btn.innerHTML = `<div>▶ Stage ${s}</div><div style="font-size:5px;opacity:0.75;margin-top:2px;">All Gens</div>`;
+      btn.innerHTML = `<div style="background:rgba(0,0,0,0.5);padding:4px 8px;border-radius:4px;"><div>▶ ${getStageName(s)}</div><div style="font-size:5px;opacity:0.85;margin-top:2px;">All Gens</div></div>`;
     }
     if (!isLocked) btn.addEventListener('click', () => startEndlessRun(s));
     list.appendChild(btn);
@@ -1866,7 +1945,11 @@ async function continueEndlessRun() {
       state.map = generateMap(fakeMapIndex, false);
     }
     if (endlessState.currentRegion) {
-      showEndlessMapScreen();
+      if (state.currentNode && !state.currentNode.visited) {
+        await onEndlessNodeClick(state.currentNode);
+      } else {
+        showEndlessMapScreen();
+      }
     } else {
       startEndlessRegion();
     }
@@ -1923,7 +2006,7 @@ function showEndlessMapScreen() {
   const mapInfo = document.getElementById('map-info');
   if (mapInfo) {
     const label = isFinalBoss ? 'STAGE FINAL BOSS' : isBoss ? 'BIG BOSS' : `Map ${mapNum}/2`;
-    mapInfo.innerHTML = `<span style="font-size:9px">S${endlessState.stageNumber} R${endlessState.regionNumber} — ${label}: <b>${trainerName}</b></span>`;
+    mapInfo.innerHTML = `<span style="font-size:9px">${getStageName(endlessState.stageNumber)} R${endlessState.regionNumber} — ${label}: <b>${trainerName}</b></span>`;
   }
 
   const badgeCountEl = document.getElementById('badge-count');
@@ -2011,7 +2094,7 @@ async function doEndlessBossNode() {
 
   const isStageFinal = isBigBoss && endlessState.regionNumber === 3;
   const title = isStageFinal
-    ? `Stage ${endlessState.stageNumber} Final Boss: ${trainerData.archetype.name}!`
+    ? `${getStageName(endlessState.stageNumber)} Final Boss: ${trainerData.archetype.name}!`
     : isBigBoss ? `Big Boss: ${trainerData.archetype.name}!`
     : `Trainer: ${trainerData.archetype.name}!`;
   const battleInfoEl = document.getElementById('battle-title');
@@ -2134,6 +2217,7 @@ async function showStatBuffScreen() {
         if (!maxed) {
           row.addEventListener('click', () => {
             applyStatBuff(pokemon, key);
+            checkMaxStatAchievements(pokemon);
             resolve();
           });
         }
@@ -2227,6 +2311,21 @@ function loadBuffsIntoPokemon(p) {
   }
 }
 
+function checkMaxStatAchievements(pokemon) {
+  const BUFF_KEYS = ['hp', 'atk', 'def', 'speed', 'special', 'spdef'];
+  const maxedCount = BUFF_KEYS.filter(k => (pokemon.statBuffs?.[k] ?? 0) >= 10).length;
+  for (const threshold of [1, 2, 3, 4]) {
+    if (maxedCount >= threshold) {
+      const ach = unlockAchievement(`max_stats_${threshold}`);
+      if (ach) showAchievementToast(ach);
+    }
+  }
+  if (maxedCount >= 6) {
+    const ach = unlockAchievement('max_stats_all');
+    if (ach) showAchievementToast(ach);
+  }
+}
+
 function applyStatBuff(pokemon, statKey) {
   if (!pokemon.statBuffs) pokemon.statBuffs = {};
   pokemon.statBuffs[statKey] = Math.min(10, (pokemon.statBuffs[statKey] ?? 0) + 1);
@@ -2252,7 +2351,7 @@ function advanceEndless() {
     if (endlessState.regionNumber > 3) {
       // All 3 regions cleared — the stage final boss was the last big boss, so go to next stage
       const completedStage = endlessState.stageNumber;
-      saveHallOfFameEntry(state.team, completedStage, false, true, completedStage);
+      saveHallOfFameEntry(state.team, completedStage, false, true, completedStage, state.starterSpeciesId);
       unlockNextStage(completedStage);
       [1, 2, 3, 4, 5].forEach(threshold => {
         if (completedStage === threshold) {
@@ -2260,6 +2359,7 @@ function advanceEndless() {
           if (ach) showAchievementToast(ach);
         }
       });
+      checkStarterCollectionAchievements();
       clearEndlessState();
       clearSavedRun();
       renderStageComplete(completedStage, state.team, () => {
