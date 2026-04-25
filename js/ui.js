@@ -3532,6 +3532,36 @@ const PATCH_NOTES = [
         ],
       },
       {
+        heading: 'Metaprogression',
+        entries: [
+          'Stat buffs persist between runs — each buff adds +10% to a stat permanently for that Pokémon\'s evo line',
+          'After clearing a stage you allocate buff points across HP, ATK, DEF, SPD, SP.ATK, and SP.DEF',
+          'Each stat can be buffed up to 10 points (+100%); total points available scales with stage number (up to 50)',
+          'Buffs are shared across the full evolution line — buff Charmander, Charizard gets it too',
+          'Stars on the starter select screen show how many stats have been buffed on each Pokémon',
+        ],
+      },
+      {
+        heading: 'New Achievements',
+        entries: [
+          '🌀 Kanto Champion — clear Stage 1 (defeat Ash)',
+          '🌊 Johto Champion — clear Stage 2 (defeat Lance)',
+          '⚔️ Hoenn Champion — clear Stage 3 (defeat Steven Stone)',
+          '💎 Sinnoh Champion — clear Stage 4 (defeat Cynthia)',
+          '🏅 Unova Champion — clear Stage 5 (defeat N)',
+          '🌿 Kanto Trio — win a Stage 1 run starting with each of the three Kanto starters',
+          '🍃 Johto Trio — win a Stage 2 run starting with each of the three Johto starters',
+          '🌊 Hoenn Trio — win a Stage 3 run starting with each of the three Hoenn starters',
+          '⛰️ Sinnoh Trio — win a Stage 4 run starting with each of the three Sinnoh starters',
+          '🌀 Unova Trio — win a Stage 5 run starting with each of the three Unova starters',
+          '📈 First Peak — max out 1 stat on a single Pokémon',
+          '📊 Double Peak — max out 2 stats on a single Pokémon',
+          '🔝 Triple Peak — max out 3 stats',
+          '💪 Quad Peak — max out 4 stats',
+          '🏅 Perfect Specimen — max out all 6 stats on a single Pokémon',
+        ],
+      },
+      {
         heading: 'Hall of Fame',
         entries: [
           'Battle Tower wins are now labelled "Battle Tower: Kanto" etc. instead of "Endless Mode"',
