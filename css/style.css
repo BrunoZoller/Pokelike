@@ -2060,6 +2060,24 @@ h1, h2, .pixel-font {
   color: #181410;
 }
 
+/* ---- Endless mode: trait preview rows (catch screen) ---- */
+.trait-preview-row {
+  background: #d8d4c8;
+  border-color: #c0bcb0;
+  box-shadow: 2px 2px 0 0 #181410;
+}
+.trait-preview-row-up {
+  border-color: #c8a000;
+  box-shadow: 0 0 0 1px #c8a000, 2px 2px 0 0 #181410;
+}
+.trait-preview-count,
+.trait-preview-desc { color: #504c3c; }
+.trait-preview-new-tag { color: #8a6000; }
+
+/* ---- Endless mode: map trait panel + region panel ---- */
+.trait-count, .trait-desc { color: #504c3c; }
+.region-stage-level { color: #504c3c; }
+
 /* ---- Shared Modal Close Button ---- */
 .ach-modal-close {
   background: #d8d4c8;
@@ -2188,6 +2206,21 @@ body.dark-mode .map-header {
   color: #e0dcd0;
 }
 body.dark-mode .hud-label            { color: #908878; }
+body.dark-mode .trait-count,
+body.dark-mode .trait-desc,
+body.dark-mode .trait-preview-count,
+body.dark-mode .trait-preview-desc,
+body.dark-mode .region-stage-level   { color: #909080; }
+body.dark-mode .trait-preview-new-tag { color: #ffd700; }
+body.dark-mode .trait-preview-row {
+  background: #242424;
+  border-color: #3a3a3a;
+  box-shadow: 2px 2px 0 0 #000;
+}
+body.dark-mode .trait-preview-row-up {
+  border-color: #ffd700;
+  box-shadow: 0 0 0 1px #ffd700, 2px 2px 0 0 #000;
+}
 
 body.dark-mode .item-badge {
   background: #1e1c14;
@@ -2477,15 +2510,15 @@ body.dark-mode #btn-hard-run:hover { box-shadow: 4px 4px 0 0 #cc2222; }
     z-index: 20;
   }
 
-  /* Map first (top, fills available height), panels below */
+  /* Panels on top, map fills remaining space below */
+  .map-panels { order: 1; flex: 0 0 auto; }
   #map-container {
-    order: 1;
+    order: 2;
     flex: 1;
     min-height: 0;
     width: auto;
     max-width: 100%;
   }
-  .map-panels { order: 2; flex: 0 0 auto; }
 
   /* Trait panel: slim horizontal scrollable strip */
   .map-panel-traits {
@@ -2526,8 +2559,12 @@ body.dark-mode #btn-hard-run:hover { box-shadow: 4px 4px 0 0 #cc2222; }
   #team-bar .poke-sprite { width: 52px; height: 52px; }
   #team-bar .poke-name { font-size: 8px; }
 
-  /* Items: compact; region panel: hidden on mobile */
-  .map-panel-right { flex: 1 1 100%; padding: 4px; min-width: 0; }
+  /* Items: icon-only horizontal strip; region panel: hidden on mobile */
+  .map-panel-right { flex: 1 1 100%; padding: 2px 4px; min-width: 0; }
+  .map-panel-right .hud-label { display: none; }
+  #item-bar { display: flex; flex-direction: row; flex-wrap: wrap; gap: 4px; padding: 2px 0; }
+  #item-bar .item-badge { font-size: 0; padding: 3px; line-height: 0; }
+  #item-bar .item-badge .item-sprite-icon { width: 24px !important; height: 24px !important; }
   .map-panel-region { display: none; }
 }
 
