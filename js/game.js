@@ -485,6 +485,12 @@ async function onNodeClick(node) {
   _nodeClickBusy = true;
   try {
   state.currentNode = node;
+  // Lock sibling nodes before saving so F5 can't switch to a different path choice
+  for (const n of Object.values(state.map.nodes)) {
+    if (n.layer === node.layer && n.id !== node.id && n.accessible) {
+      n.accessible = false;
+    }
+  }
   saveRun();
   let resolvedType = node.type;
 
@@ -2014,7 +2020,15 @@ function showEndlessMapScreen() {
 
 async function onEndlessNodeClick(node) {
   state.currentNode = node;
+  // Lock sibling nodes before saving so F5 can't switch to a different path choice
+  for (const n of Object.values(state.map.nodes)) {
+    if (n.layer === node.layer && n.id !== node.id && n.accessible) {
+      n.accessible = false;
+    }
+  }
   if (node.type === NODE_TYPES.BOSS) {
+    saveRun();
+    saveEndlessState();
     await doEndlessBossNode();
     return;
   }
