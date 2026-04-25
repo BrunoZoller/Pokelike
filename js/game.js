@@ -64,7 +64,7 @@ async function initGame() {
 
   const endlessBtn = document.getElementById('btn-endless-run');
   if (endlessBtn) {
-    const hofUnlocked = getHallOfFame().some(e => !e.endless);
+    const hofUnlocked = getHallOfFame().length > 0;
     if (hofUnlocked) {
       endlessBtn.onclick = () => showEndlessStageSelect();
     } else {
