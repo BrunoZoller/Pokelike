@@ -2547,6 +2547,7 @@ body.dark-mode #btn-hard-run:hover { box-shadow: 4px 4px 0 0 #cc2222; }
 
   /* Team panel: compact horizontal scroll strip with smaller cards */
   .map-panel-left { flex: 1 1 100%; padding: 4px; }
+  .map-panel-left .hud-label { display: none; }
   #team-bar {
     display: flex !important;
     flex-direction: row;
