@@ -1,5 +1,4 @@
 name = "pokelike"
-pages_build_output_dir = "."
 compatibility_date = "2026-04-20"
 
 [assets]
