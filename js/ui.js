@@ -3315,6 +3315,28 @@ function openAchievementsModal() {
 
   const unlocked = getUnlockedAchievements();
 
+  const CATEGORIES = [
+    { key: 'normal', label: 'Normal Mode' },
+    { key: 'tower',  label: 'Battle Tower' },
+    { key: 'general', label: 'General' },
+  ];
+
+  const categorySections = CATEGORIES.map(({ key, label }) => {
+    const group = ACHIEVEMENTS.filter(a => a.category === key);
+    const groupUnlocked = group.filter(a => unlocked.has(a.id)).length;
+    const cards = group.map(a => {
+      const done = unlocked.has(a.id);
+      return `<div class="ach-card ${done ? 'unlocked' : 'locked'}">
+        <div class="ach-icon">${a.icon}</div>
+        <div class="ach-name">${a.name}</div>
+        <div class="ach-desc">${a.desc}</div>
+      </div>`;
+    }).join('');
+    return `
+      <div class="ach-category-header">${label} <span class="ach-category-count">${groupUnlocked}/${group.length}</span></div>
+      <div class="ach-modal-grid">${cards}</div>`;
+  }).join('');
+
   const modal = document.createElement('div');
   modal.id = 'achievements-modal';
   modal.innerHTML = `
@@ -3323,16 +3345,7 @@ function openAchievementsModal() {
         <span>Achievements (${unlocked.size}/${ACHIEVEMENTS.length})</span>
         <button class="ach-modal-close" onclick="document.getElementById('achievements-modal').remove()">✕</button>
       </div>
-      <div class="ach-modal-grid">
-        ${ACHIEVEMENTS.map(a => {
-          const done = unlocked.has(a.id);
-          return `<div class="ach-card ${done ? 'unlocked' : 'locked'}">
-            <div class="ach-icon">${a.icon}</div>
-            <div class="ach-name">${a.name}</div>
-            <div class="ach-desc">${a.desc}</div>
-          </div>`;
-        }).join('')}
-      </div>
+      <div class="ach-modal-body">${categorySections}</div>
     </div>`;
   document.body.appendChild(modal);
 }
@@ -3345,12 +3358,12 @@ function openPokedexModal(initialTab = 'normal') {
 
   const BASE = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/';
 
-  const GEN_HEADERS = { 1: 'Generation I', 152: 'Generation II', 252: 'Generation III' };
+  const GEN_HEADERS = { 1: 'Generation I', 152: 'Generation II', 252: 'Generation III', 387: 'Generation IV', 494: 'Generation V' };
 
   function buildNormalGrid() {
     const dex = getPokedex();
     const caughtCount = [...ALL_CATCHABLE_IDS].filter(id => dex[id]?.caught).length;
-    const grid = Array.from({ length: 386 }, (_, i) => {
+    const grid = Array.from({ length: 649 }, (_, i) => {
       const id = i + 1;
       const header = GEN_HEADERS[id] ? `<div class="dex-gen-header">${GEN_HEADERS[id]}</div>` : '';
       const e = dex[id];
@@ -3379,7 +3392,7 @@ function openPokedexModal(initialTab = 'normal') {
     const dex = getShinyDex();
     const BASE_SHINY = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/';
     const count = [...ALL_CATCHABLE_IDS].filter(id => dex[id]).length;
-    const grid = Array.from({ length: 386 }, (_, i) => {
+    const grid = Array.from({ length: 649 }, (_, i) => {
       const id = i + 1;
       const header = GEN_HEADERS[id] ? `<div class="dex-gen-header">${GEN_HEADERS[id]}</div>` : '';
       const e = dex[id];
@@ -3417,13 +3430,19 @@ function openPokedexModal(initialTab = 'normal') {
         <span class="dex-counts" id="dex-count-label"></span>
         <button class="ach-modal-close" onclick="document.getElementById('pokedex-modal').remove()">✕</button>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;padding:8px 12px 4px;">
-        <div style="flex:1;background:#2a0010;height:26px;overflow:hidden;position:relative;border:2px solid #550000;">
-          <div id="dex-progress-bar" style="height:100%;background:repeating-linear-gradient(60deg,#cc1111 0px,#cc1111 16px,#ee3333 16px,#ee3333 32px);transition:width 0.3s;width:0%"></div>
-          <span id="dex-progress-label" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Press Start 2P',monospace;font-size:8px;font-weight:bold;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.8);pointer-events:none;"></span>
+      <div style="padding:8px 12px 4px;display:flex;flex-direction:column;gap:4px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="flex:1;background:#2a0010;height:26px;overflow:hidden;position:relative;border:2px solid #550000;">
+            <div id="dex-progress-bar" style="height:100%;background:repeating-linear-gradient(60deg,#cc1111 0px,#cc1111 16px,#ee3333 16px,#ee3333 32px);transition:width 0.3s;width:0%"></div>
+            <span id="dex-progress-label" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Press Start 2P',monospace;font-size:8px;font-weight:bold;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.8);pointer-events:none;"></span>
+          </div>
+          <div id="dex-charm-icon" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:2px solid #550000;background:#1a0004;flex-shrink:0;" title="Shiny Charm — complete the Gen 1 Pokédex to unlock. Doubles all shiny rates.">
+            <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/shiny-charm.png" alt="Shiny Charm" style="width:24px;height:24px;image-rendering:pixelated;" onerror="this.style.display='none'">
+          </div>
         </div>
-        <div id="dex-charm-icon" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:2px solid #550000;background:#1a0004;flex-shrink:0;" title="Shiny Charm — complete the Pokédex to unlock. Doubles all shiny rates.">
-          <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/shiny-charm.png" alt="Shiny Charm" style="width:24px;height:24px;image-rendering:pixelated;" onerror="this.style.display='none'">
+        <div style="background:#1a1a2e;height:20px;overflow:hidden;position:relative;border:2px solid #333366;">
+          <div id="dex-progress-bar-all" style="height:100%;background:repeating-linear-gradient(60deg,#3344aa 0px,#3344aa 16px,#4455cc 16px,#4455cc 32px);transition:width 0.3s;width:0%"></div>
+          <span id="dex-progress-label-all" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Press Start 2P',monospace;font-size:7px;font-weight:bold;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.8);pointer-events:none;"></span>
         </div>
       </div>
       <div class="dex-grid" id="dex-grid-content"></div>
@@ -3434,11 +3453,25 @@ function openPokedexModal(initialTab = 'normal') {
     modal.querySelector('.dex-modal-box').classList.toggle('shiny-dex-box', tab === 'shiny');
     const { grid, count } = tab === 'shiny' ? buildShinyGrid() : buildNormalGrid();
     document.getElementById('dex-grid-content').innerHTML = grid;
-    const total = ALL_CATCHABLE_IDS.size;
-    const pct = Math.floor(count / total * 100);
-    document.getElementById('dex-count-label').textContent = `${count} / ${total}`;
-    document.getElementById('dex-progress-bar').style.width = `${pct}%`;
-    document.getElementById('dex-progress-label').textContent = `${pct}%`;
+
+    const isShiny = tab === 'shiny';
+    const dexData = isShiny ? getShinyDex() : getPokedex();
+    const isCaught = id => isShiny ? !!dexData[id] : !!dexData[id]?.caught;
+
+    const gen1Ids = [...ALL_CATCHABLE_IDS].filter(id => id <= 151);
+    const gen1Total = gen1Ids.length;
+    const gen1Count = gen1Ids.filter(isCaught).length;
+    const gen1Pct = Math.floor(gen1Count / gen1Total * 100);
+
+    const allTotal = ALL_CATCHABLE_IDS.size;
+    const allPct = Math.floor(count / allTotal * 100);
+
+    document.getElementById('dex-count-label').textContent = `${count} / ${allTotal}`;
+    document.getElementById('dex-progress-bar').style.width = `${gen1Pct}%`;
+    document.getElementById('dex-progress-label').textContent = `Gen 1 — ${gen1Pct}%`;
+    document.getElementById('dex-progress-bar-all').style.width = `${allPct}%`;
+    document.getElementById('dex-progress-label-all').textContent = `All Gens — ${allPct}%`;
+
     const charmEl = document.getElementById('dex-charm-icon');
     if (hasShinyCharm()) {
       charmEl.style.borderColor = 'gold';
@@ -3710,12 +3743,18 @@ function openHallOfFameModal() {
   const entriesHtml = entries.length === 0
     ? '<div style="color:var(--text-dim);text-align:center;padding:24px;font-size:11px;">No championships yet.<br>Defeat the Elite Four to be remembered!</div>'
     : [...entries].reverse().map(e => {
-        const pokemonHtml = e.team.map(p => `
+        const pokemonHtml = e.team.map(p => {
+          const itemHtml = p.heldItem
+            ? `<div style="display:flex;align-items:center;gap:2px;font-size:7px;color:var(--text-dim);">${itemIconHtml(p.heldItem, 12)}</div>`
+            : '';
+          return `
           <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
             <img src="${p.spriteUrl}" style="width:48px;height:48px;image-rendering:pixelated;${p.isShiny ? 'filter:drop-shadow(0 0 4px gold);' : ''}" title="${p.nickname || p.name}">
             <div style="font-size:7px;color:${p.isShiny ? 'gold' : 'var(--text-dim)'};">${p.nickname || p.name}</div>
             <div style="font-size:7px;color:var(--text-dim);">Lv.${p.level}</div>
-          </div>`).join('');
+            ${itemHtml}
+          </div>`;
+        }).join('');
         return `
           <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">

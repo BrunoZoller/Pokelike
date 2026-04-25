@@ -15,7 +15,7 @@ const TYPE_CHART = {
   Psychic:  { Normal:1,   Fire:1,   Water:1,   Electric:1,   Grass:1,   Ice:1,   Fighting:2,   Poison:2,   Ground:1, Flying:1,   Psychic:0.5, Bug:1,   Rock:1,   Ghost:1,   Dragon:1,   Dark:0,   Steel:0.5 },
   Bug:      { Normal:1,   Fire:0.5, Water:1,   Electric:1,   Grass:2,   Ice:1,   Fighting:0.5, Poison:0.5, Ground:1, Flying:0.5, Psychic:2,   Bug:1,   Rock:1,   Ghost:0.5, Dragon:1,   Dark:2,   Steel:0.5 },
   Rock:     { Normal:1,   Fire:2,   Water:1,   Electric:1,   Grass:1,   Ice:2,   Fighting:0.5, Poison:1,   Ground:0.5, Flying:2, Psychic:1,   Bug:2,   Rock:1,   Ghost:1,   Dragon:1,   Dark:1,   Steel:0.5 },
-  Ghost:    { Normal:0,   Fire:1,   Water:1,   Electric:1,   Grass:1,   Ice:1,   Fighting:0,   Poison:1,   Ground:1, Flying:1,   Psychic:2,   Bug:1,   Rock:1,   Ghost:2,   Dragon:1,   Dark:0.5, Steel:0.5 },
+  Ghost:    { Normal:0,   Fire:1,   Water:1,   Electric:1,   Grass:1,   Ice:1,   Fighting:1,   Poison:1,   Ground:1, Flying:1,   Psychic:2,   Bug:1,   Rock:1,   Ghost:2,   Dragon:1,   Dark:0.5, Steel:0.5 },
   Dragon:   { Normal:1,   Fire:1,   Water:1,   Electric:1,   Grass:1,   Ice:1,   Fighting:1,   Poison:1,   Ground:1, Flying:1,   Psychic:1,   Bug:1,   Rock:1,   Ghost:1,   Dragon:2,   Dark:1,   Steel:0.5 },
   Dark:     { Normal:1,   Fire:1,   Water:1,   Electric:1,   Grass:1,   Ice:1,   Fighting:0.5, Poison:1,   Ground:1, Flying:1,   Psychic:2,   Bug:1,   Rock:1,   Ghost:2,   Dragon:1,   Dark:0.5, Steel:0.5 },
   Steel:    { Normal:1,   Fire:0.5, Water:0.5, Electric:0.5, Grass:1,   Ice:2,   Fighting:1,   Poison:1,   Ground:1, Flying:1,   Psychic:1,   Bug:1,   Rock:2,   Ghost:1,   Dragon:1,   Dark:1,   Steel:0.5 },
@@ -85,11 +85,11 @@ const MOVE_POOL = {
                          {name:'Aura Sphere',       power:80,  desc:'Focuses aura energy into a perfect, unavoidable sphere.'},
                          {name:'Focus Blast',       power:120, desc:'Hurls a concentrated blast of energy at the foe.'}] },
   Poison:   { physical: [{name:'Poison Sting',      power:40,  desc:'Stabs the foe with a venomous stinger.'},
-                         {name:'Poison Jab',        power:80,  desc:'Stabs the foe with a toxic spike.'},
-                         {name:'Gunk Shot',         power:120, desc:'Hurls garbage at the foe to inflict damage.'}],
+                         {name:'Poison Jab',        power:90,  desc:'Stabs the foe with a toxic spike.'},
+                         {name:'Gunk Shot',         power:130, desc:'Hurls garbage at the foe to inflict damage.'}],
               special:  [{name:'Acid',              power:40,  desc:'Sprays the foe with a toxic acid liquid.'},
-                         {name:'Sludge Bomb',       power:90,  desc:'Hurls unsanitary sludge at the foe.'},
-                         {name:'Acid Spray',        power:110, desc:'Spits fluid that corrodes and eats away at the foe.'}] },
+                         {name:'Sludge Bomb',       power:100, desc:'Hurls unsanitary sludge at the foe.'},
+                         {name:'Acid Spray',        power:120, desc:'Spits fluid that corrodes and eats away at the foe.'}] },
   Ground:   { physical: [{name:'Mud Shot',           power:55,  desc:'Hurls a blob of mud at the foe.'},
                          {name:'Earthquake',        power:100, desc:'A massive quake shakes everything around.'},
                          {name:'Precipice Blades',  power:120, desc:'Controls the power of nature to attack with sharp blades.'}],
@@ -198,7 +198,7 @@ const GYM_LEADERS = [
     team: [
       { speciesId: 25,  name: 'Pikachu',  types: ['Electric'], baseStats: { hp:35,atk:55,def:40,speed:90,special:50 },  level: 20, heldItem: { id: 'eviolite', name: 'Eviolite', icon: '💎' } },
       { speciesId: 100, name: 'Voltorb',  types: ['Electric'], baseStats: { hp:40,atk:30,def:50,speed:100,special:55 }, level: 23, heldItem: { id: 'magnet',   name: 'Magnet',   icon: '🧲' } },
-      { speciesId: 26,  name: 'Raichu',   types: ['Electric'], baseStats: { hp:60,atk:90,def:55,speed:110,special:90 }, level: 26, heldItem: { id: 'life_orb', name: 'Life Orb', icon: '🔮' } },
+      { speciesId: 26,  name: 'Raichu',   types: ['Electric'], baseStats: { hp:60,atk:90,def:55,speed:110,special:90 }, level: 25, heldItem: { id: 'life_orb', name: 'Life Orb', icon: '🔮' } },
     ]
   },
   {
@@ -599,14 +599,16 @@ const ALL_CATCHABLE_IDS = new Set([
   ...Array.from({ length: 649 }, (_, i) => i + 1).filter(id => !LEGENDARY_ID_SET.has(id)),
 ]);
 
-function isPokedexComplete() {
+function isGenDexComplete(minId, maxId) {
   const dex = getPokedex();
   const caughtIds = new Set(Object.values(dex).filter(e => e.caught).map(e => e.id));
   for (const id of ALL_CATCHABLE_IDS) {
-    if (!caughtIds.has(id)) return false;
+    if (id >= minId && id <= maxId && !caughtIds.has(id)) return false;
   }
   return true;
 }
+
+function isPokedexComplete() { return isGenDexComplete(1, 151); }
 
 function hasShinyCharm() { return isPokedexComplete(); }
 
@@ -1048,35 +1050,57 @@ const EEVEE_EVOLUTIONS = [
 // ---- Achievements ----
 
 const ACHIEVEMENTS = [
-  { id: 'gym_0', name: 'Boulder Basher',    desc: 'Clear Map 1 and defeat Brock',                                           icon: '🪨' },
-  { id: 'gym_1', name: 'Cascade Crusher',   desc: 'Clear Map 2 and defeat Misty',                                           icon: '💧' },
-  { id: 'gym_2', name: 'Thunder Tamer',     desc: 'Clear Map 3 and defeat Lt. Surge',                                       icon: '⚡' },
-  { id: 'gym_3', name: 'Rainbow Ranger',    desc: 'Clear Map 4 and defeat Erika',                                           icon: '🌿' },
-  { id: 'gym_4', name: 'Soul Crusher',      desc: 'Clear Map 5 and defeat Koga',                                            icon: '💜' },
-  { id: 'gym_5', name: 'Mind Breaker',      desc: 'Clear Map 6 and defeat Sabrina',                                         icon: '🔮' },
-  { id: 'gym_6', name: 'Volcano Victor',    desc: 'Clear Map 7 and defeat Blaine',                                          icon: '🌋' },
-  { id: 'gym_7', name: 'Earth Shaker',      desc: 'Clear Map 8 and defeat Giovanni',                                        icon: '🌍' },
-  { id: 'elite_four', name: 'Pokemon Master',    desc: 'Defeat all 4 Elite Four members and the Champion to beat the game', icon: '👑' },
-  { id: 'elite_10',   name: 'Champion League',   desc: 'Beat the game 10 times total',                                      icon: '🏆' },
-  { id: 'elite_100',  name: 'Immortal Champion', desc: 'Beat the game 100 times total',                                     icon: '💎' },
-  { id: 'starter_1', name: 'Grass Champion',  desc: 'Choose Bulbasaur as your starter and beat the game',                   icon: '🌱' },
-  { id: 'starter_4', name: 'Fire Champion',   desc: 'Choose Charmander as your starter and beat the game',                  icon: '🔥' },
-  { id: 'starter_7', name: 'Water Champion',  desc: 'Choose Squirtle as your starter and beat the game',                    icon: '🌊' },
-  { id: 'solo_run',    name: 'One is Enough',        desc: 'Beat the game while keeping only 1 Pokémon on your team',       icon: '⭐' },
-  { id: 'pokedex_complete',  name: 'Gotta Catch \'Em All', desc: 'Encounter all 151 Gen 1 Pokémon across any number of runs', icon: '📖' },
-  { id: 'shinydex_complete', name: 'Shiny Hunter',   desc: 'Encounter a shiny version of all 151 Gen 1 Pokémon',            icon: '✨' },
-  { id: 'nuzlocke_win',      name: 'True Master',    desc: 'Enable Nuzlocke Mode in Settings, then beat the game — if any Pokémon faints, it\'s gone for good', icon: '☠️' },
-  { id: 'three_birds',       name: 'Bird Keeper',    desc: 'Beat the game with Articuno, Zapdos, and Moltres all on your team', icon: '🦅' },
-  { id: 'no_pokecenter',     name: 'No Rest for the Wicked', desc: 'Beat the game without stopping at a Pokémon Center',   icon: '🏃' },
-  { id: 'no_items',          name: 'Minimalist',     desc: 'Beat the game without picking up a single item',                icon: '🎒' },
-  { id: 'type_quartet',      name: 'Type Supremacy', desc: 'Beat the game with at least 4 of your 6 Pokémon sharing the same type', icon: '🔣' },
-  { id: 'all_shiny_win',     name: 'Shiny Squad',    desc: 'Beat the game with every Pokémon on your team being shiny (minimum 3)',             icon: '💫' },
-  { id: 'back_to_back',      name: 'On a Roll',      desc: 'Beat the game twice in a row without losing a run in between',  icon: '🔁' },
-  { id: 'endless_stage_1',  name: 'Kanto Champion',  desc: 'Defeat Ash Ketchum and clear Stage 1 of Battle Tower',   icon: '🌀' },
-  { id: 'endless_stage_2',  name: 'Johto Champion',  desc: 'Defeat Lance and clear Stage 2 of Battle Tower',          icon: '🌊' },
-  { id: 'endless_stage_3',  name: 'Hoenn Champion',  desc: 'Defeat Steven Stone and clear Stage 3 of Battle Tower',   icon: '⚔️' },
-  { id: 'endless_stage_4',  name: 'Sinnoh Champion', desc: 'Defeat Cynthia and clear Stage 4 of Battle Tower',        icon: '💎' },
-  { id: 'endless_stage_5',  name: 'Unova Champion',  desc: 'Defeat N and clear Stage 5 of Battle Tower',              icon: '🏅' },
+  { id: 'gym_0', name: 'Boulder Basher',    desc: 'Clear Map 1 and defeat Brock',                                           icon: '🪨', category: 'normal' },
+  { id: 'gym_1', name: 'Cascade Crusher',   desc: 'Clear Map 2 and defeat Misty',                                           icon: '💧', category: 'normal' },
+  { id: 'gym_2', name: 'Thunder Tamer',     desc: 'Clear Map 3 and defeat Lt. Surge',                                       icon: '⚡', category: 'normal' },
+  { id: 'gym_3', name: 'Rainbow Ranger',    desc: 'Clear Map 4 and defeat Erika',                                           icon: '🌿', category: 'normal' },
+  { id: 'gym_4', name: 'Soul Crusher',      desc: 'Clear Map 5 and defeat Koga',                                            icon: '💜', category: 'normal' },
+  { id: 'gym_5', name: 'Mind Breaker',      desc: 'Clear Map 6 and defeat Sabrina',                                         icon: '🔮', category: 'normal' },
+  { id: 'gym_6', name: 'Volcano Victor',    desc: 'Clear Map 7 and defeat Blaine',                                          icon: '🌋', category: 'normal' },
+  { id: 'gym_7', name: 'Earth Shaker',      desc: 'Clear Map 8 and defeat Giovanni',                                        icon: '🌍', category: 'normal' },
+  { id: 'elite_four', name: 'Pokemon Master',    desc: 'Defeat all 4 Elite Four members and the Champion to beat the game', icon: '👑', category: 'normal' },
+  { id: 'elite_10',   name: 'Champion League',   desc: 'Beat the game 10 times total',                                      icon: '🏆', category: 'normal' },
+  { id: 'elite_100',  name: 'Immortal Champion', desc: 'Beat the game 100 times total',                                     icon: '💎', category: 'normal' },
+  { id: 'starter_1', name: 'Grass Champion',  desc: 'Choose Bulbasaur as your starter and beat the game',                   icon: '🌱', category: 'normal' },
+  { id: 'starter_4', name: 'Fire Champion',   desc: 'Choose Charmander as your starter and beat the game',                  icon: '🔥', category: 'normal' },
+  { id: 'starter_7', name: 'Water Champion',  desc: 'Choose Squirtle as your starter and beat the game',                    icon: '🌊', category: 'normal' },
+  { id: 'solo_run',    name: 'One is Enough',        desc: 'Beat the game while keeping only 1 Pokémon on your team',       icon: '⭐', category: 'normal' },
+  { id: 'nuzlocke_win',      name: 'True Master',    desc: 'Enable Nuzlocke Mode in Settings, then beat the game — if any Pokémon faints, it\'s gone for good', icon: '☠️', category: 'normal' },
+  { id: 'three_birds',       name: 'Bird Keeper',    desc: 'Beat the game with Articuno, Zapdos, and Moltres all on your team', icon: '🦅', category: 'normal' },
+  { id: 'no_pokecenter',     name: 'No Rest for the Wicked', desc: 'Beat the game without stopping at a Pokémon Center',   icon: '🏃', category: 'normal' },
+  { id: 'no_items',          name: 'Minimalist',     desc: 'Beat the game without picking up a single item',                icon: '🎒', category: 'normal' },
+  { id: 'type_quartet',      name: 'Type Supremacy', desc: 'Beat the game with at least 4 of your 6 Pokémon sharing the same type', icon: '🔣', category: 'normal' },
+  { id: 'all_shiny_win',     name: 'Shiny Squad',    desc: 'Beat the game with every Pokémon on your team being shiny (minimum 3)', icon: '💫', category: 'normal' },
+  { id: 'back_to_back',      name: 'On a Roll',        desc: 'Beat the game twice in a row without losing a run in between',       icon: '🔁', category: 'normal' },
+  { id: 'back_3_back',       name: 'Hat Trick',        desc: 'Beat the game three times in a row without losing a run in between',    icon: '🎩', category: 'normal' },
+  { id: 'endless_stage_1',  name: 'Kanto Champion',  desc: 'Defeat Ash Ketchum and clear Stage 1 of Battle Tower',   icon: '🌀', category: 'tower' },
+  { id: 'endless_stage_2',  name: 'Johto Champion',  desc: 'Defeat Lance and clear Stage 2 of Battle Tower',          icon: '🌊', category: 'tower' },
+  { id: 'endless_stage_3',  name: 'Hoenn Champion',  desc: 'Defeat Steven Stone and clear Stage 3 of Battle Tower',   icon: '⚔️', category: 'tower' },
+  { id: 'endless_stage_4',  name: 'Sinnoh Champion', desc: 'Defeat Cynthia and clear Stage 4 of Battle Tower',        icon: '💎', category: 'tower' },
+  { id: 'endless_stage_5',  name: 'Unova Champion',  desc: 'Defeat N and clear Stage 5 of Battle Tower',              icon: '🏅', category: 'tower' },
+  { id: 'starters_stage_1', name: 'Kanto Trio',   desc: 'Win a Stage 1 run starting with each of Bulbasaur, Charmander, and Squirtle',   icon: '🌿', category: 'tower' },
+  { id: 'starters_stage_2', name: 'Johto Trio',   desc: 'Win a Stage 2 run starting with each of Chikorita, Cyndaquil, and Totodile',    icon: '🍃', category: 'tower' },
+  { id: 'starters_stage_3', name: 'Hoenn Trio',   desc: 'Win a Stage 3 run starting with each of Treecko, Torchic, and Mudkip',          icon: '🌊', category: 'tower' },
+  { id: 'starters_stage_4', name: 'Sinnoh Trio',  desc: 'Win a Stage 4 run starting with each of Turtwig, Chimchar, and Piplup',         icon: '⛰️', category: 'tower' },
+  { id: 'starters_stage_5', name: 'Unova Trio',   desc: 'Win a Stage 5 run starting with each of Snivy, Tepig, and Oshawott',            icon: '🌀', category: 'tower' },
+  { id: 'pokedex_complete',  name: 'Gotta Catch \'Em All', desc: 'Catch all Gen 1 Pokémon across any number of runs', icon: '📖', category: 'general' },
+  { id: 'shinydex_complete', name: 'Shiny Hunter',         desc: 'Catch a shiny version of every Gen 1 Pokémon',         icon: '✨', category: 'general' },
+  { id: 'shinydex_all',      name: 'Ultimate Shiny Hunter', desc: 'Catch a shiny version of every Pokémon across all gens', icon: '🌟', category: 'general' },
+  { id: 'pokedex_gen2', name: 'Johto Completionist', desc: 'Catch all Gen 2 Pokémon across any number of runs', icon: '📗', category: 'general' },
+  { id: 'pokedex_gen3', name: 'Hoenn Completionist', desc: 'Catch all Gen 3 Pokémon across any number of runs', icon: '📘', category: 'general' },
+  { id: 'pokedex_gen4', name: 'Sinnoh Completionist', desc: 'Catch all Gen 4 Pokémon across any number of runs', icon: '📙', category: 'general' },
+  { id: 'pokedex_gen5', name: 'Unova Completionist',  desc: 'Catch all Gen 5 Pokémon across any number of runs', icon: '📕', category: 'general' },
+  { id: 'max_stats_1',   name: 'First Peak',       desc: 'Max out 1 stat on a single Pokémon',        icon: '📈', category: 'general' },
+  { id: 'max_stats_2',   name: 'Double Peak',      desc: 'Max out 2 stats on a single Pokémon',       icon: '📊', category: 'general' },
+  { id: 'max_stats_3',   name: 'Triple Peak',      desc: 'Max out 3 stats on a single Pokémon',       icon: '🔝', category: 'general' },
+  { id: 'max_stats_4',   name: 'Quad Peak',        desc: 'Max out 4 stats on a single Pokémon',       icon: '💪', category: 'general' },
+  { id: 'max_stats_all', name: 'Perfect Specimen',  desc: 'Max out all 6 stats on a single Pokémon',   icon: '🏅', category: 'general' },
+  { id: 'shinydex_100', name: 'Shiny Spark',      desc: 'Catch 100 different shiny Pokémon',  icon: '⭐', category: 'general' },
+  { id: 'shinydex_200', name: 'Shiny Flash',      desc: 'Catch 200 different shiny Pokémon',  icon: '💥', category: 'general' },
+  { id: 'shinydex_300', name: 'Shiny Blaze',      desc: 'Catch 300 different shiny Pokémon',  icon: '🔥', category: 'general' },
+  { id: 'shinydex_400', name: 'Shiny Storm',      desc: 'Catch 400 different shiny Pokémon',  icon: '⚡', category: 'general' },
+  { id: 'shinydex_500', name: 'Shiny Legend',     desc: 'Catch 500 different shiny Pokémon',  icon: '💎', category: 'general' },
+  { id: 'shinydex_600', name: 'Shiny Immortal',   desc: 'Catch 600 different shiny Pokémon',  icon: '👑', category: 'general' },
 ];
 
 function getUnlockedAchievements() {
@@ -1148,14 +1172,16 @@ function itemIconHtml(item, size = 24) {
        + `onerror="this.replaceWith(document.createTextNode('${esc}'))">`;
 }
 
-function isShinyDexComplete() {
+function isShinyGenDexComplete(minId, maxId) {
   const dex = getShinyDex();
   const caughtIds = new Set(Object.values(dex).map(e => e.id));
   for (const id of ALL_CATCHABLE_IDS) {
-    if (!caughtIds.has(id)) return false;
+    if (id >= minId && id <= maxId && !caughtIds.has(id)) return false;
   }
   return true;
 }
+
+function isShinyDexComplete() { return isShinyGenDexComplete(1, 151); }
 
 function markShinyDexCaught(id, name, types, shinySpriteUrl) {
   if (!id) return;
@@ -1171,13 +1197,14 @@ function getHallOfFame() {
   catch { return []; }
 }
 
-function saveHallOfFameEntry(team, runNumber, hardMode, endless = false, stageNumber = null) {
+function saveHallOfFameEntry(team, runNumber, hardMode, endless = false, stageNumber = null, starterSpeciesId = null) {
   const entries = getHallOfFame();
   entries.push({
     runNumber,
     hardMode: !!hardMode,
     endless: !!endless,
     stageNumber: stageNumber ?? null,
+    starterSpeciesId: starterSpeciesId ?? null,
     date: new Date().toLocaleDateString(),
     team: team.map(p => ({
       speciesId: p.speciesId,
@@ -1187,6 +1214,7 @@ function saveHallOfFameEntry(team, runNumber, hardMode, endless = false, stageNu
       types: p.types,
       spriteUrl: p.spriteUrl,
       isShiny: !!p.isShiny,
+      heldItem: p.heldItem || null,
     })),
   });
   localStorage.setItem('poke_hall_of_fame', JSON.stringify(entries));
