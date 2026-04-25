@@ -1383,7 +1383,7 @@ async function doTrainerNode(node) {
 
 async function doLegendaryNode(node) {
   const teamLegendIds = state.team.map(p => p.speciesId);
-  const maxLegendId = state.isEndlessMode ? Infinity : 151;
+  const maxLegendId = state.isEndlessMode ? getEndlessMaxGenId(endlessState.stageNumber) : 151;
   const available = LEGENDARY_IDS.filter(id => id <= maxLegendId && !teamLegendIds.includes(id));
   if (available.length === 0) { advanceFromNode(state.map, node.id); showMapScreen(); return; }
   const legendId = available[Math.floor(rng() * available.length)];
