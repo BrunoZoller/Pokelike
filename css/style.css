@@ -2545,19 +2545,20 @@ body.dark-mode #btn-hard-run:hover { box-shadow: 4px 4px 0 0 #cc2222; }
   .trait-row:last-child { border-right: none; padding-right: 0; margin-right: 0; }
   .trait-desc { display: none; }
 
-  /* Team panel: 3-column grid so all 6 slots are always visible */
+  /* Team panel: single row, slots shrink evenly so all 6 always fit */
   .map-panel-left { flex: 1 1 100%; padding: 4px; }
   .map-panel-left .hud-label { display: none; }
   #team-bar {
-    display: grid !important;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 4px;
+    display: flex !important;
+    flex-direction: row;
+    gap: 3px;
     overflow: visible;
     padding-bottom: 0;
   }
-  #team-bar .team-slot { width: auto; }
-  #team-bar .team-slot-name { max-width: 100%; }
-  #team-bar .team-sprite { width: 36px; height: 36px; }
+  #team-bar .team-slot { flex: 1; width: auto; min-width: 0; }
+  #team-bar .team-slot-name { max-width: 100%; font-size: 7px; }
+  #team-bar .team-slot-lv { font-size: 7px; }
+  #team-bar .team-sprite { width: 32px; height: 32px; }
 
   /* Items: icon-only horizontal strip; region panel: hidden on mobile */
   .map-panel-right { flex: 1 1 100%; padding: 2px 4px; min-width: 0; }
