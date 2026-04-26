@@ -1014,11 +1014,7 @@ function doItemNode(node) {
 
   // Usable items: filter out ones that can't be applied to current team
   const canUseMaxRevive = state.team.some(p => p.currentHp <= 0);
-  const canUseEvoStone  = state.team.some(p => {
-    if (p.speciesId === 133) return true;
-    const evo = GEN1_EVOLUTIONS[p.speciesId];
-    return evo && evo.into !== p.speciesId;
-  });
+  const canUseEvoStone  = state.team.some(p => canEvolve(p.speciesId));
   const usableAvailable = USABLE_ITEM_POOL.filter(it => {
     if (it.id === 'max_revive') return canUseMaxRevive;
     if (it.id === 'moon_stone')  return canUseEvoStone;
@@ -1176,11 +1172,7 @@ function openUsableItemModal(item, bagIdx) {
 
   const canTarget = p => {
     if (item.id === 'max_revive') return p.currentHp <= 0;
-    if (item.id === 'moon_stone') {
-      if (p.speciesId === 133) return true;
-      const evo = GEN1_EVOLUTIONS[p.speciesId];
-      return !!(evo && evo.into !== p.speciesId);
-    }
+    if (item.id === 'moon_stone') return canEvolve(p.speciesId);
     return true;
   };
 
@@ -1250,8 +1242,11 @@ function openUsableItemModal(item, bagIdx) {
 
 async function applyEvolution(pokemon) {
   let evo;
-  if (pokemon.speciesId === 133) {
-    evo = await showEeveeChoice(pokemon);
+  const branches = typeof BRANCHING_EVOLUTIONS !== 'undefined' && BRANCHING_EVOLUTIONS[pokemon.speciesId];
+  if (branches) {
+    evo = await showBranchingChoice(pokemon, branches);
+  } else if (pokemon.speciesId === 133) {
+    evo = await showBranchingChoice(pokemon, EEVEE_EVOLUTIONS);
   } else {
     evo = GEN1_EVOLUTIONS[pokemon.speciesId];
     if (!evo) return;
@@ -2279,28 +2274,16 @@ function getEvoLineRoot(speciesId) {
   for (const evo of (typeof EEVEE_EVOLUTIONS !== 'undefined' ? EEVEE_EVOLUTIONS : [])) {
     parentOf[evo.into] = 133;
   }
-  // Branch / trade / friendship evolutions missing from GEN1_EVOLUTIONS
+  // Branching alternate paths not in GEN1_EVOLUTIONS
+  if (typeof BRANCHING_EVOLUTIONS !== 'undefined') {
+    for (const [pre, options] of Object.entries(BRANCHING_EVOLUTIONS)) {
+      for (const evo of options) parentOf[evo.into] = Number(pre);
+    }
+  }
+  // Additional hardcoded parent links (still needed for anything not yet in GEN1_EVOLUTIONS)
   Object.assign(parentOf, {
-    26:  25,   // Raichu ← Pikachu
-    186: 61,   // Politoed ← Poliwhirl
-    199: 79,   // Slowking ← Slowpoke
-    230: 117,  // Kingdra ← Seadra
-    233: 137,  // Porygon2 ← Porygon
-    242: 113,  // Blissey ← Chansey
-    464: 112,  // Rhyperior ← Rhydon
-    465: 114,  // Tangrowth ← Tangela
-    466: 125,  // Electivire ← Electabuzz
-    467: 126,  // Magmortar ← Magmar
-    468: 176,  // Togekiss ← Togetic
-    469: 193,  // Yanmega ← Yanma
-    470: 133,  // Leafeon ← Eevee
-    471: 133,  // Glaceon ← Eevee
-    472: 207,  // Gliscor ← Gligar
-    473: 221,  // Mamoswine ← Piloswine
-    474: 233,  // Porygon-Z ← Porygon2
-    475: 281,  // Gallade ← Kirlia
-    477: 356,  // Dusknoir ← Dusclops
-    143: 446,  // Snorlax ← Munchlax
+    26:  25,   // Raichu ← Pikachu (already in GEN1_EVOLUTIONS, kept for safety)
+    143: 446,  // Snorlax ← Munchlax (already in GEN1_EVOLUTIONS, kept for safety)
   });
   let id = speciesId;
   while (parentOf[id] !== undefined) id = parentOf[id];
