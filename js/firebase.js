@@ -7,19 +7,8 @@ const SYNC_KEYS = [
   'poke_stat_buffs',
 ];
 
-function _getSaveUuid() {
-  let uuid = localStorage.getItem('poke_save_uuid');
-  if (!uuid) {
-    uuid = typeof crypto !== 'undefined' && crypto.randomUUID
-      ? crypto.randomUUID()
-      : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-          const r = Math.random() * 16 | 0;
-          return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
-        });
-    localStorage.setItem('poke_save_uuid', uuid);
-  }
-  return uuid;
-}
+function _getSaveUuid() { return localStorage.getItem('poke_save_uuid'); }
+function _getUsername()  { return localStorage.getItem('poke_username'); }
 
 function _getLocalSave() {
   const save = { lastSaved: Date.now() };
@@ -39,8 +28,9 @@ function _applyCloudSave(save) {
 }
 
 async function syncToCloud() {
+  const uuid = _getSaveUuid();
+  if (!uuid) return;
   try {
-    const uuid = _getSaveUuid();
     const save = _getLocalSave();
     const res = await fetch(`${SAVE_SERVER}/save/${uuid}`, {
       method: 'POST',
@@ -54,13 +44,12 @@ async function syncToCloud() {
 }
 
 async function _loadFromServer() {
+  const uuid = _getSaveUuid();
+  if (!uuid) return;
   try {
-    const uuid = _getSaveUuid();
     const res = await fetch(`${SAVE_SERVER}/save/${uuid}`);
     if (!res.ok) { await syncToCloud(); return; }
     const cloudSave = await res.json();
-    // Cloud is always authoritative on load — no timestamp comparison.
-    // First visit with existing local data: confirm before overwriting.
     const hasLocal = SYNC_KEYS.some(k => localStorage.getItem(k) !== null);
     const firstTime = !localStorage.getItem('poke_last_cloud_sync');
     if (hasLocal && firstTime) {
@@ -78,67 +67,109 @@ async function _loadFromServer() {
 }
 
 function _updateSyncUI() {
-  const btn = document.getElementById('btn-cloud-sync');
+  const btn  = document.getElementById('btn-cloud-sync');
   const info = document.getElementById('cloud-sync-info');
   if (!btn) return;
-  const uuid = _getSaveUuid();
-  btn.textContent = '☁ Save Code';
-  btn.onclick = _showSyncModal;
-  if (info) {
-    info.textContent = `Code: ${uuid.slice(0, 8)}…`;
-    info.style.display = 'block';
+  const username = _getUsername();
+  if (username) {
+    btn.textContent = `☁ ${username}`;
+    btn.onclick = _showAccountModal;
+    if (info) { info.textContent = 'cloud save active'; info.style.display = 'block'; }
+  } else {
+    btn.textContent = '☁ Log In / Register';
+    btn.onclick = _showAuthModal;
+    if (info) info.style.display = 'none';
   }
 }
 
-function _showSyncModal() {
-  document.getElementById('save-sync-modal')?.remove();
-  const uuid = _getSaveUuid();
+function _showAuthModal() {
+  document.getElementById('save-auth-modal')?.remove();
   const modal = document.createElement('div');
-  modal.id = 'save-sync-modal';
+  modal.id = 'save-auth-modal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;z-index:9999;';
   modal.innerHTML = `
-    <div style="background:var(--bg2);border:2px solid var(--border);padding:24px;max-width:420px;width:90%;font-family:monospace;display:flex;flex-direction:column;gap:12px;">
-      <div style="font-family:'Press Start 2P',monospace;font-size:10px;color:var(--accent);">☁ SAVE SYNC</div>
-      <div style="font-size:10px;color:var(--text-dim);">Your save code — use this to load your save on another device.</div>
-      <div style="display:flex;gap:6px;align-items:center;">
-        <input id="sync-uuid-display" readonly value="${uuid}"
-          style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;font-size:10px;font-family:monospace;">
-        <button id="sync-copy-btn" class="btn-secondary" style="white-space:nowrap;font-size:9px;">Copy</button>
+    <div style="background:var(--bg2);border:2px solid var(--border);padding:24px;max-width:360px;width:90%;font-family:monospace;display:flex;flex-direction:column;gap:10px;">
+      <div style="font-family:'Press Start 2P',monospace;font-size:10px;color:var(--accent);">☁ CLOUD SAVE</div>
+      <input id="auth-username" placeholder="Username" autocomplete="username"
+        style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px;font-size:12px;font-family:monospace;">
+      <input id="auth-password" type="password" placeholder="Password" autocomplete="current-password"
+        style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px;font-size:12px;font-family:monospace;">
+      <div id="auth-error" style="color:#e05050;font-size:9px;display:none;"></div>
+      <div style="display:flex;gap:8px;">
+        <button id="auth-login-btn" class="btn-secondary" style="flex:1;">Log In</button>
+        <button id="auth-register-btn" class="btn-secondary" style="flex:1;">Register</button>
       </div>
-      <div style="border-top:1px solid var(--border);padding-top:12px;font-size:10px;color:var(--text-dim);">Import a code from another device:</div>
-      <div style="display:flex;gap:6px;align-items:center;">
-        <input id="sync-import-input" placeholder="Paste code here"
-          style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;font-size:10px;font-family:monospace;">
-        <button id="sync-import-btn" class="btn-secondary" style="white-space:nowrap;font-size:9px;">Import</button>
-      </div>
-      <button id="sync-close-btn" class="btn-secondary" style="width:100%;margin-top:4px;">Close</button>
+      <button id="auth-close-btn" class="btn-secondary" style="width:100%;margin-top:2px;">Cancel</button>
     </div>`;
   document.body.appendChild(modal);
 
-  document.getElementById('sync-copy-btn').onclick = () => {
-    navigator.clipboard?.writeText(uuid).then(() => {
-      document.getElementById('sync-copy-btn').textContent = 'Copied!';
-    });
-  };
+  const errEl = document.getElementById('auth-error');
+  const showErr = msg => { errEl.textContent = msg; errEl.style.display = 'block'; };
 
-  document.getElementById('sync-import-btn').onclick = async () => {
-    const input = document.getElementById('sync-import-input').value.trim();
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(input)) {
-      alert('Invalid save code format.'); return;
+  async function doAuth(endpoint) {
+    const username = document.getElementById('auth-username').value.trim();
+    const password = document.getElementById('auth-password').value;
+    if (!username || !password) { showErr('Enter username and password.'); return; }
+    errEl.style.display = 'none';
+    const btn = document.getElementById(endpoint === '/login' ? 'auth-login-btn' : 'auth-register-btn');
+    btn.disabled = true; btn.textContent = '...';
+    try {
+      const res = await fetch(`${SAVE_SERVER}${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) { showErr(data.error || 'Something went wrong.'); btn.disabled = false; btn.textContent = endpoint === '/login' ? 'Log In' : 'Register'; return; }
+      localStorage.setItem('poke_save_uuid', data.uuid);
+      localStorage.setItem('poke_username', data.username);
+      modal.remove();
+      _updateSyncUI();
+      await _loadFromServer();
+      if (typeof initGame === 'function') initGame();
+    } catch (e) {
+      showErr('Could not reach save server.'); btn.disabled = false; btn.textContent = endpoint === '/login' ? 'Log In' : 'Register';
     }
-    if (!confirm('This will overwrite your current local save. Continue?')) return;
-    localStorage.setItem('poke_save_uuid', input);
+  }
+
+  document.getElementById('auth-login-btn').onclick    = () => doAuth('/login');
+  document.getElementById('auth-register-btn').onclick = () => doAuth('/register');
+  document.getElementById('auth-close-btn').onclick    = () => modal.remove();
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+
+  // Submit on Enter
+  modal.addEventListener('keydown', e => { if (e.key === 'Enter') doAuth('/login'); });
+}
+
+function _showAccountModal() {
+  document.getElementById('save-auth-modal')?.remove();
+  const username = _getUsername();
+  const modal = document.createElement('div');
+  modal.id = 'save-auth-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;z-index:9999;';
+  modal.innerHTML = `
+    <div style="background:var(--bg2);border:2px solid var(--border);padding:24px;max-width:360px;width:90%;font-family:monospace;display:flex;flex-direction:column;gap:10px;">
+      <div style="font-family:'Press Start 2P',monospace;font-size:10px;color:var(--accent);">☁ CLOUD SAVE</div>
+      <div style="font-size:11px;color:var(--text);">Signed in as <b>${username}</b></div>
+      <div style="font-size:9px;color:var(--text-dim);">Saves sync automatically.</div>
+      <button id="account-signout-btn" class="btn-secondary" style="width:100%;margin-top:4px;">Sign Out</button>
+      <button id="account-close-btn" class="btn-secondary" style="width:100%;">Close</button>
+    </div>`;
+  document.body.appendChild(modal);
+
+  document.getElementById('account-signout-btn').onclick = () => {
+    if (!confirm('Sign out? Your local save will remain but won\'t sync until you log back in.')) return;
+    localStorage.removeItem('poke_save_uuid');
+    localStorage.removeItem('poke_username');
     localStorage.removeItem('poke_last_cloud_sync');
     modal.remove();
-    await _loadFromServer();
-    if (typeof initGame === 'function') initGame();
+    _updateSyncUI();
   };
-
-  document.getElementById('sync-close-btn').onclick = () => modal.remove();
+  document.getElementById('account-close-btn').onclick = () => modal.remove();
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
 }
 
 function initFirebase() {
   _updateSyncUI();
-  _loadFromServer();
+  if (_getSaveUuid()) _loadFromServer();
 }
