@@ -1,4 +1,4 @@
-const SAVE_SERVER = 'http://193.26.156.106:3001';
+const SAVE_SERVER = 'https://save.pokelike.xyz';
 
 const SYNC_KEYS = [
   'poke_trainer', 'poke_tutorial_seen', 'poke_settings',
