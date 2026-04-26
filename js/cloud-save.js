@@ -27,12 +27,18 @@ function _applyCloudSave(save) {
       const parse = s => { try { return JSON.parse(s || '[]'); } catch { return []; } };
       const local = parse(localStorage.getItem(key));
       const cloud = parse(save[key]);
-      const seen = new Set();
-      const merged = [];
-      // Local first to preserve insertion order, then append any cloud-only entries
-      for (const e of [...local, ...cloud]) {
-        const k = `${e.endless ? 1 : 0}-${e.runNumber}-${e.date}`;
-        if (!seen.has(k)) { seen.add(k); merged.push(e); }
+      // Pass 1: keep every local entry unconditionally, index by savedAt
+      const merged = [...local];
+      const localSavedAts = new Set(local.map(e => e.savedAt).filter(Boolean).map(String));
+      // Pass 2: append cloud entries that are genuinely absent from local
+      for (const e of cloud) {
+        if (e.savedAt) {
+          if (!localSavedAts.has(String(e.savedAt))) merged.push(e);
+        } else {
+          // Legacy entry (no savedAt): append unless local already has identical runNumber+date+endless
+          const dup = local.some(l => !l.savedAt && l.runNumber === e.runNumber && l.date === e.date && !!l.endless === !!e.endless);
+          if (!dup) merged.push(e);
+        }
       }
       localStorage.setItem(key, JSON.stringify(merged));
       continue;
@@ -42,6 +48,13 @@ function _applyCloudSave(save) {
       const parse = s => { try { return JSON.parse(s || '[]'); } catch { return []; } };
       const merged = [...new Set([...parse(localStorage.getItem(key)), ...parse(save[key])])];
       localStorage.setItem(key, JSON.stringify(merged));
+      continue;
+    }
+
+    if (key === 'poke_elite_wins') {
+      const localVal = parseInt(localStorage.getItem(key) || '0', 10);
+      const cloudVal = parseInt(save[key] || '0', 10);
+      localStorage.setItem(key, String(Math.max(localVal, cloudVal)));
       continue;
     }
 

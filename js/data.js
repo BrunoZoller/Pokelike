@@ -1196,6 +1196,7 @@ function getHallOfFame() {
 function saveHallOfFameEntry(team, runNumber, hardMode, endless = false, stageNumber = null, starterSpeciesId = null) {
   const entries = getHallOfFame();
   entries.push({
+    savedAt: Date.now(),
     runNumber,
     hardMode: !!hardMode,
     endless: !!endless,
