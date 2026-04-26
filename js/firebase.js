@@ -1,25 +1,4 @@
-// Firebase cloud save sync
-// Before deploying: replace FIREBASE_CONFIG with your project's config from
-// Firebase Console → Project Settings → Your apps → SDK setup and configuration
-//
-// Also set Firestore security rules:
-// rules_version = '2';
-// service cloud.firestore {
-//   match /databases/{database}/documents {
-//     match /saves/{userId} {
-//       allow read, write: if request.auth != null && request.auth.uid == userId;
-//     }
-//   }
-// }
-
-const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyC0yX7q8218G1zyIvAMfh1ciObZBuXu6Bc",
-  authDomain: "pokelike-9320b.firebaseapp.com",
-  projectId: "pokelike-9320b",
-  storageBucket: "pokelike-9320b.firebasestorage.app",
-  messagingSenderId: "887999533437",
-  appId: "1:887999533437:web:849c7fbfcd04bf052e3c14"
-};
+const SAVE_SERVER = 'http://193.26.156.106:3001';
 
 const SYNC_KEYS = [
   'poke_trainer', 'poke_tutorial_seen', 'poke_settings',
@@ -28,60 +7,18 @@ const SYNC_KEYS = [
   'poke_stat_buffs',
 ];
 
-let _db = null;
-let _auth = null;
-let _currentUser = null;
-let _firebaseReady = false;
-
-function initFirebase() {
-  if (_firebaseReady) return;
-  _firebaseReady = true;
-  try {
-    firebase.initializeApp(FIREBASE_CONFIG);
-    _db = firebase.firestore();
-    _auth = firebase.auth();
-    _auth.onAuthStateChanged(user => {
-      _currentUser = user;
-      _updateAuthUI(user);
-      if (user) _loadFromCloud();
-    });
-  } catch (e) {
-    console.error('Firebase init failed:', e);
+function _getSaveUuid() {
+  let uuid = localStorage.getItem('poke_save_uuid');
+  if (!uuid) {
+    uuid = typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+          const r = Math.random() * 16 | 0;
+          return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+        });
+    localStorage.setItem('poke_save_uuid', uuid);
   }
-}
-
-function _updateAuthUI(user) {
-  const btn = document.getElementById('btn-cloud-sync');
-  const info = document.getElementById('cloud-sync-info');
-  if (!btn) return;
-  if (user) {
-    btn.textContent = '☁ ' + (user.email || user.displayName || 'Signed in');
-    btn.onclick = signOutCloud;
-    if (info) { info.textContent = 'click to sign out'; info.style.display = 'block'; }
-  } else {
-    btn.textContent = '☁ Sign In to Sync Saves';
-    btn.onclick = signInCloud;
-    if (info) info.style.display = 'none';
-  }
-}
-
-async function signInCloud() {
-  if (!_auth) return;
-  try {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    await _auth.signInWithPopup(provider);
-  } catch (e) {
-    console.error('Sign in failed:', e);
-  }
-}
-
-async function signOutCloud() {
-  if (!_auth) return;
-  try {
-    await _auth.signOut();
-  } catch (e) {
-    console.error('Sign out failed:', e);
-  }
+  return uuid;
 }
 
 function _getLocalSave() {
@@ -102,32 +39,32 @@ function _applyCloudSave(save) {
 }
 
 async function syncToCloud() {
-  if (!_currentUser || !_db) return;
   try {
+    const uuid = _getSaveUuid();
     const save = _getLocalSave();
     localStorage.setItem('poke_last_cloud_sync', String(save.lastSaved));
-    await _db.collection('saves').doc(_currentUser.uid).set(save);
+    await fetch(`${SAVE_SERVER}/save/${uuid}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(save),
+    });
   } catch (e) {
-    console.error('Cloud sync failed:', e);
+    console.warn('Sync failed:', e);
   }
 }
 
-async function _loadFromCloud() {
-  if (!_currentUser || !_db) return;
+async function _loadFromServer() {
   try {
-    const doc = await _db.collection('saves').doc(_currentUser.uid).get();
-    if (!doc.exists) {
-      await syncToCloud();
-      return;
-    }
-    const cloudSave = doc.data();
+    const uuid = _getSaveUuid();
+    const res = await fetch(`${SAVE_SERVER}/save/${uuid}`);
+    if (!res.ok) { await syncToCloud(); return; }
+    const cloudSave = await res.json();
     const localSyncTime = parseInt(localStorage.getItem('poke_last_cloud_sync') || '0');
     const cloudTime = cloudSave.lastSaved || 0;
-
     if (cloudTime > localSyncTime) {
-      const hasLocalData = SYNC_KEYS.some(k => localStorage.getItem(k) !== null);
-      if (hasLocalData && localSyncTime === 0) {
-        if (confirm('A cloud save was found. Load it? (Your local progress will be overwritten)')) {
+      const hasLocal = SYNC_KEYS.some(k => localStorage.getItem(k) !== null);
+      if (hasLocal && localSyncTime === 0) {
+        if (confirm('A cloud save was found. Load it? (Local progress will be overwritten)')) {
           _applyCloudSave(cloudSave);
         } else {
           await syncToCloud();
@@ -139,6 +76,72 @@ async function _loadFromCloud() {
       await syncToCloud();
     }
   } catch (e) {
-    console.error('Load from cloud failed:', e);
+    console.warn('Load from server failed:', e);
   }
+}
+
+function _updateSyncUI() {
+  const btn = document.getElementById('btn-cloud-sync');
+  const info = document.getElementById('cloud-sync-info');
+  if (!btn) return;
+  const uuid = _getSaveUuid();
+  btn.textContent = '☁ Save Code';
+  btn.onclick = _showSyncModal;
+  if (info) {
+    info.textContent = `Code: ${uuid.slice(0, 8)}…`;
+    info.style.display = 'block';
+  }
+}
+
+function _showSyncModal() {
+  document.getElementById('save-sync-modal')?.remove();
+  const uuid = _getSaveUuid();
+  const modal = document.createElement('div');
+  modal.id = 'save-sync-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;z-index:9999;';
+  modal.innerHTML = `
+    <div style="background:var(--bg2);border:2px solid var(--border);padding:24px;max-width:420px;width:90%;font-family:monospace;display:flex;flex-direction:column;gap:12px;">
+      <div style="font-family:'Press Start 2P',monospace;font-size:10px;color:var(--accent);">☁ SAVE SYNC</div>
+      <div style="font-size:10px;color:var(--text-dim);">Your save code — use this to load your save on another device.</div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <input id="sync-uuid-display" readonly value="${uuid}"
+          style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;font-size:10px;font-family:monospace;">
+        <button id="sync-copy-btn" class="btn-secondary" style="white-space:nowrap;font-size:9px;">Copy</button>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:12px;font-size:10px;color:var(--text-dim);">Import a code from another device:</div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <input id="sync-import-input" placeholder="Paste code here"
+          style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;font-size:10px;font-family:monospace;">
+        <button id="sync-import-btn" class="btn-secondary" style="white-space:nowrap;font-size:9px;">Import</button>
+      </div>
+      <button id="sync-close-btn" class="btn-secondary" style="width:100%;margin-top:4px;">Close</button>
+    </div>`;
+  document.body.appendChild(modal);
+
+  document.getElementById('sync-copy-btn').onclick = () => {
+    navigator.clipboard?.writeText(uuid).then(() => {
+      document.getElementById('sync-copy-btn').textContent = 'Copied!';
+    });
+  };
+
+  document.getElementById('sync-import-btn').onclick = async () => {
+    const input = document.getElementById('sync-import-input').value.trim();
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(input)) {
+      alert('Invalid save code format.'); return;
+    }
+    if (!confirm('This will overwrite your current local save. Continue?')) return;
+    localStorage.setItem('poke_save_uuid', input);
+    localStorage.removeItem('poke_last_cloud_sync');
+    modal.remove();
+    await _loadFromServer();
+    if (typeof initGame === 'function') initGame();
+  };
+
+  document.getElementById('sync-close-btn').onclick = () => modal.remove();
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
+
+function initFirebase() {
+  _updateSyncUI();
+  _loadFromServer();
 }
