@@ -58,6 +58,56 @@ function _applyCloudSave(save) {
       continue;
     }
 
+    if (key === 'poke_dex') {
+      const parse = s => { try { return JSON.parse(s || '{}'); } catch { return {}; } };
+      const local = parse(localStorage.getItem(key));
+      const cloud = parse(save[key]);
+      const merged = { ...cloud, ...local };
+      for (const [id, ce] of Object.entries(cloud)) {
+        if (ce.caught && merged[id] && !merged[id].caught) merged[id].caught = true;
+      }
+      localStorage.setItem(key, JSON.stringify(merged));
+      continue;
+    }
+
+    if (key === 'poke_shiny_dex') {
+      const parse = s => { try { return JSON.parse(s || '{}'); } catch { return {}; } };
+      const local = parse(localStorage.getItem(key));
+      const cloud = parse(save[key]);
+      localStorage.setItem(key, JSON.stringify({ ...cloud, ...local }));
+      continue;
+    }
+
+    if (key === 'poke_stat_buffs') {
+      const parse = s => { try { return JSON.parse(s || '{}'); } catch { return {}; } };
+      const local = parse(localStorage.getItem(key));
+      const cloud = parse(save[key]);
+      const merged = { ...local };
+      for (const [specId, cBufs] of Object.entries(cloud)) {
+        if (!merged[specId]) { merged[specId] = cBufs; continue; }
+        for (const stat of ['hp', 'atk', 'def', 'special', 'spdef', 'speed']) {
+          merged[specId][stat] = Math.max(merged[specId][stat] ?? 0, cBufs[stat] ?? 0);
+        }
+      }
+      localStorage.setItem(key, JSON.stringify(merged));
+      continue;
+    }
+
+    if (key === 'poke_tutorial_seen') {
+      if (localStorage.getItem(key) !== 'true') localStorage.setItem(key, save[key]);
+      continue;
+    }
+
+    if (key === 'poke_settings') {
+      if (!localStorage.getItem(key)) localStorage.setItem(key, save[key]);
+      continue;
+    }
+
+    if (key === 'poke_last_run_won') {
+      if (!localStorage.getItem(key)) localStorage.setItem(key, save[key]);
+      continue;
+    }
+
     localStorage.setItem(key, save[key]);
   }
   localStorage.setItem('poke_last_cloud_sync', String(save.lastSaved));
