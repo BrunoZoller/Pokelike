@@ -42,12 +42,12 @@ async function syncToCloud() {
   try {
     const uuid = _getSaveUuid();
     const save = _getLocalSave();
-    localStorage.setItem('poke_last_cloud_sync', String(save.lastSaved));
-    await fetch(`${SAVE_SERVER}/save/${uuid}`, {
+    const res = await fetch(`${SAVE_SERVER}/save/${uuid}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(save),
     });
+    if (res.ok) localStorage.setItem('poke_last_cloud_sync', String(save.lastSaved));
   } catch (e) {
     console.warn('Sync failed:', e);
   }
@@ -59,21 +59,18 @@ async function _loadFromServer() {
     const res = await fetch(`${SAVE_SERVER}/save/${uuid}`);
     if (!res.ok) { await syncToCloud(); return; }
     const cloudSave = await res.json();
-    const localSyncTime = parseInt(localStorage.getItem('poke_last_cloud_sync') || '0');
-    const cloudTime = cloudSave.lastSaved || 0;
-    if (cloudTime > localSyncTime) {
-      const hasLocal = SYNC_KEYS.some(k => localStorage.getItem(k) !== null);
-      if (hasLocal && localSyncTime === 0) {
-        if (confirm('A cloud save was found. Load it? (Local progress will be overwritten)')) {
-          _applyCloudSave(cloudSave);
-        } else {
-          await syncToCloud();
-        }
-      } else {
+    // Cloud is always authoritative on load — no timestamp comparison.
+    // First visit with existing local data: confirm before overwriting.
+    const hasLocal = SYNC_KEYS.some(k => localStorage.getItem(k) !== null);
+    const firstTime = !localStorage.getItem('poke_last_cloud_sync');
+    if (hasLocal && firstTime) {
+      if (confirm('A cloud save was found. Load it? (Local progress will be overwritten)')) {
         _applyCloudSave(cloudSave);
+      } else {
+        await syncToCloud();
       }
     } else {
-      await syncToCloud();
+      _applyCloudSave(cloudSave);
     }
   } catch (e) {
     console.warn('Load from server failed:', e);
