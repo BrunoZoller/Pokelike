@@ -121,6 +121,7 @@ function renderPokemonCard(pokemon, onClick, selected, dexCaught = false) {
           <div class="stat-bar-fill ${cls}" style="width:${grayPct}%"></div>
           ${buffCount > 0 ? `<div class="stat-buff-overlay" style="width:${bluePct}%"></div>` : ''}
         </div>
+        <span class="stat-val">${val}</span>
       </div>`;
     }).join('')}</div>
     <div class="poke-hp">${renderHpBar(pokemon.currentHp, pokemon.maxHp)}</div>

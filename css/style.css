@@ -344,6 +344,7 @@ h1, h2, .pixel-font {
   z-index: 10;
 }
 .stat-lbl { font-family: 'Press Start 2P', monospace; font-size: 6px; color: var(--text-dim); width: 22px; text-align: right; flex-shrink: 0; }
+.stat-val { font-family: 'Press Start 2P', monospace; font-size: 6px; color: var(--text-dim); width: 20px; flex-shrink: 0; }
 .stat-bar-bg { flex: 1; height: 5px; background: var(--bg3); position: relative; }
 .stat-bar-fill { height: 100%; }
 .stat-hp, .stat-atk, .stat-def, .stat-spe, .stat-spa, .stat-spd { background: #888; }
