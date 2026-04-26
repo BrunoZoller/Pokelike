@@ -1727,6 +1727,13 @@ h1, h2, .pixel-font {
   padding: 6px 4px 2px;
   border-bottom: 1px solid #3a1010;
   margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.gen-count {
+  color: #886666;
+  font-size: 7px;
 }
 .dex-card {
   background: #1c0c0c;

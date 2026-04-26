@@ -207,8 +207,9 @@ async function showStarterSelect() {
       for (const species of starterSpecies) {
         const isShiny = rng() < (hasShinyCharm() ? 0.02 : 0.01);
         const inst = createInstance(species, startLevel, isShiny, 0);
+        const starterCaught = !!(getPokedex()[inst.speciesId]?.caught);
         const wrapper = document.createElement('div');
-        wrapper.innerHTML = renderPokemonCard(inst, true, false);
+        wrapper.innerHTML = renderPokemonCard(inst, true, false, starterCaught);
         const card = wrapper.querySelector('.poke-card');
         card.setAttribute('role', 'button');
         card.setAttribute('tabindex', '0');
@@ -333,8 +334,9 @@ async function showStarterSelect() {
       if (!species) continue;
       const isShiny = rng() < (hasShinyCharm() ? 0.02 : 0.01);
       const inst = createInstance(species, startLevel, isShiny, 0);
+      const starterCaught = !!(getPokedex()[inst.speciesId]?.caught);
       const wrapper = document.createElement('div');
-      wrapper.innerHTML = renderPokemonCard(inst, true, false);
+      wrapper.innerHTML = renderPokemonCard(inst, true, false, starterCaught);
       const card = wrapper.querySelector('.poke-card');
       card.setAttribute('role', 'button');
       card.setAttribute('tabindex', '0');
@@ -896,7 +898,8 @@ function showSwapScreen(newPoke, node) {
   const hasRoom = state.team.length < 6;
   const h2 = document.querySelector('#swap-screen h2');
   if (h2) h2.textContent = hasRoom ? 'New Pokémon!' : 'Team Full!';
-  document.getElementById('swap-incoming').innerHTML = `<div style="display:flex;justify-content:center;">${renderPokemonCard(newPoke, true, false)}</div>`;
+  const swapCaught = !!(getPokedex()[newPoke.speciesId]?.caught);
+  document.getElementById('swap-incoming').innerHTML = `<div style="display:flex;justify-content:center;">${renderPokemonCard(newPoke, true, false, swapCaught)}</div>`;
   const el = document.getElementById('swap-choices');
   el.innerHTML = '';
   document.getElementById('swap-prompt').textContent = hasRoom ? 'Add to team or keep team as-is:' : 'Choose a Pokémon to release:';

@@ -3360,12 +3360,26 @@ function openPokedexModal(initialTab = 'normal') {
 
   const GEN_HEADERS = { 1: 'Generation I', 152: 'Generation II', 252: 'Generation III', 387: 'Generation IV', 494: 'Generation V' };
 
+  const GEN_RANGES = { 1: [1,151], 152: [152,251], 252: [252,386], 387: [387,493], 494: [494,649] };
+
+  function buildGenCounts(dex, isCaughtFn) {
+    const counts = {};
+    for (const [startId, [min, max]] of Object.entries(GEN_RANGES)) {
+      let caught = 0;
+      for (let id = min; id <= max; id++) { if (isCaughtFn(dex, id)) caught++; }
+      counts[startId] = { caught, total: max - min + 1 };
+    }
+    return counts;
+  }
+
   function buildNormalGrid() {
     const dex = getPokedex();
-    const caughtCount = [...ALL_CATCHABLE_IDS].filter(id => dex[id]?.caught).length;
+    const caughtCount = Array.from({length: 649}, (_, i) => i + 1).filter(id => dex[id]?.caught).length;
+    const genCounts = buildGenCounts(dex, (d, id) => !!d[id]?.caught);
     const grid = Array.from({ length: 649 }, (_, i) => {
       const id = i + 1;
-      const header = GEN_HEADERS[id] ? `<div class="dex-gen-header">${GEN_HEADERS[id]}</div>` : '';
+      const gc = genCounts[id];
+      const header = GEN_HEADERS[id] ? `<div class="dex-gen-header">${GEN_HEADERS[id]}<span class="gen-count">${gc.caught}/${gc.total}</span></div>` : '';
       const e = dex[id];
       if (e) {
         const types = (e.types || []).map(t =>
@@ -3391,10 +3405,12 @@ function openPokedexModal(initialTab = 'normal') {
   function buildShinyGrid() {
     const dex = getShinyDex();
     const BASE_SHINY = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/';
-    const count = [...ALL_CATCHABLE_IDS].filter(id => dex[id]).length;
+    const count = Array.from({length: 649}, (_, i) => i + 1).filter(id => dex[id]).length;
+    const genCounts = buildGenCounts(dex, (d, id) => !!d[id]);
     const grid = Array.from({ length: 649 }, (_, i) => {
       const id = i + 1;
-      const header = GEN_HEADERS[id] ? `<div class="dex-gen-header">${GEN_HEADERS[id]}</div>` : '';
+      const gc = genCounts[id];
+      const header = GEN_HEADERS[id] ? `<div class="dex-gen-header">${GEN_HEADERS[id]}<span class="gen-count">${gc.caught}/${gc.total}</span></div>` : '';
       const e = dex[id];
       if (e) {
         const types = (e.types || []).map(t =>
@@ -3463,7 +3479,7 @@ function openPokedexModal(initialTab = 'normal') {
     const gen1Count = gen1Ids.filter(isCaught).length;
     const gen1Pct = Math.floor(gen1Count / gen1Total * 100);
 
-    const allTotal = ALL_CATCHABLE_IDS.size;
+    const allTotal = 649;
     const allPct = Math.floor(count / allTotal * 100);
 
     document.getElementById('dex-count-label').textContent = `${count} / ${allTotal}`;
