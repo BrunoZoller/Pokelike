@@ -1725,10 +1725,12 @@ function showBadgeScreen(leader) {
   };
 }
 
-function showGameOver() {
+async function showGameOver() {
   localStorage.setItem('poke_win_streak', '0');
   clearSavedRun();
-  if (typeof syncToCloud === 'function') syncToCloud();
+  if (typeof syncToCloud === 'function') {
+    await Promise.race([syncToCloud(), new Promise(r => setTimeout(r, 3000))]);
+  }
   initGame();
 }
 

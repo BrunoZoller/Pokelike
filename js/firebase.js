@@ -52,14 +52,17 @@ async function _loadFromServer() {
     const cloudSave = await res.json();
     const hasLocal = SYNC_KEYS.some(k => localStorage.getItem(k) !== null);
     const firstTime = !localStorage.getItem('poke_last_cloud_sync');
+    const localLastSync = parseInt(localStorage.getItem('poke_last_cloud_sync') || '0', 10);
     if (hasLocal && firstTime) {
       if (confirm('A cloud save was found. Load it? (Local progress will be overwritten)')) {
         _applyCloudSave(cloudSave);
       } else {
         await syncToCloud();
       }
-    } else {
+    } else if (cloudSave.lastSaved > localLastSync) {
       _applyCloudSave(cloudSave);
+    } else {
+      await syncToCloud();
     }
   } catch (e) {
     console.warn('Load from server failed:', e);
