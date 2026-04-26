@@ -2265,7 +2265,9 @@ function getMaxBuffPoints() {
 }
 
 function getTotalBuffPoints(buffs) {
-  return ['hp','atk','def','speed','special','spdef'].reduce((s, k) => s + (buffs[k] ?? 0), 0);
+  // atk and special always mirror each other, so count only the higher of the two
+  const atkPts = Math.max(buffs.atk ?? 0, buffs.special ?? 0);
+  return atkPts + (buffs.hp ?? 0) + (buffs.def ?? 0) + (buffs.speed ?? 0) + (buffs.spdef ?? 0);
 }
 
 // Returns the base-form species ID for any member of an evolution line.
@@ -2338,6 +2340,9 @@ function checkMaxStatAchievements(pokemon) {
 function applyStatBuff(pokemon, statKey) {
   if (!pokemon.statBuffs) pokemon.statBuffs = {};
   pokemon.statBuffs[statKey] = Math.min(10, (pokemon.statBuffs[statKey] ?? 0) + 1);
+  // Mirror attack buffs so physical/special evolution switches don't lose progress
+  if (statKey === 'atk')     pokemon.statBuffs.special = Math.min(10, (pokemon.statBuffs.special ?? 0) + 1);
+  if (statKey === 'special') pokemon.statBuffs.atk     = Math.min(10, (pokemon.statBuffs.atk     ?? 0) + 1);
   if (statKey === 'hp') {
     const hpGain = Math.floor(calcHp(pokemon.baseStats.hp, pokemon.level) * 0.1);
     pokemon.maxHp += hpGain;

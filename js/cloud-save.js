@@ -21,7 +21,31 @@ function _getLocalSave() {
 
 function _applyCloudSave(save) {
   for (const key of SYNC_KEYS) {
-    if (save[key] !== undefined) localStorage.setItem(key, save[key]);
+    if (save[key] === undefined) continue;
+
+    if (key === 'poke_hall_of_fame') {
+      const parse = s => { try { return JSON.parse(s || '[]'); } catch { return []; } };
+      const local = parse(localStorage.getItem(key));
+      const cloud = parse(save[key]);
+      const seen = new Set();
+      const merged = [];
+      // Local first to preserve insertion order, then append any cloud-only entries
+      for (const e of [...local, ...cloud]) {
+        const k = `${e.endless ? 1 : 0}-${e.runNumber}-${e.date}`;
+        if (!seen.has(k)) { seen.add(k); merged.push(e); }
+      }
+      localStorage.setItem(key, JSON.stringify(merged));
+      continue;
+    }
+
+    if (key === 'poke_achievements') {
+      const parse = s => { try { return JSON.parse(s || '[]'); } catch { return []; } };
+      const merged = [...new Set([...parse(localStorage.getItem(key)), ...parse(save[key])])];
+      localStorage.setItem(key, JSON.stringify(merged));
+      continue;
+    }
+
+    localStorage.setItem(key, save[key]);
   }
   localStorage.setItem('poke_last_cloud_sync', String(save.lastSaved));
   if (typeof applyDarkMode === 'function') applyDarkMode();
