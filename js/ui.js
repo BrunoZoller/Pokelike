@@ -115,9 +115,12 @@ function renderPokemonCard(pokemon, onClick, selected, dexCaught = false) {
       const buffCount = pokemon.statBuffs?.[key] ?? 0;
       const grayPct = Math.round((val / 255) * 100);
       const bluePct = Math.round((buffCount / 10) * grayPct);
-      const effectiveVal = key === 'hp'
+      const baseVal = key === 'hp'
         ? (pokemon.maxHp ?? Math.floor(val * pokemon.level / 50) + pokemon.level + 10)
         : Math.floor(val * pokemon.level / 50) + 5;
+      const effectiveVal = (key !== 'hp' && buffCount > 0)
+        ? Math.floor(baseVal * (1 + 0.1 * buffCount))
+        : baseVal;
       return `<div class="stat-row" data-tooltip="${lbl}: ${effectiveVal}${buffCount > 0 ? ` (+${buffCount*10}%)` : ''}">
         <span class="stat-lbl">${lbl}</span>
         <div class="stat-bar-bg">
