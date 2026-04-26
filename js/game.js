@@ -2301,6 +2301,7 @@ function getEvoLineRoot(speciesId) {
 }
 
 function loadBuffsIntoPokemon(p) {
+  if (!state.isEndlessMode) return;
   const store = loadPersistentBuffs();
   const buffs = store[getEvoLineRoot(p.speciesId)];
   if (!buffs) return;
