@@ -247,14 +247,6 @@ function renderTeamBar(team, el, showTypes = false) {
     };
     document.addEventListener('touchstart', _teamHoverCardDismissListener, { passive: true });
     document.addEventListener('click',      _teamHoverCardDismissListener);
-
-    const popupEl = document.getElementById('team-hover-card');
-    if (popupEl) {
-      popupEl.addEventListener('mouseleave', (e) => {
-        if (document.getElementById('team-bar')?.contains(e.relatedTarget)) return;
-        hideTeamHoverCard();
-      });
-    }
   }
 
   team.forEach((p, i) => {
@@ -272,10 +264,7 @@ function renderTeamBar(team, el, showTypes = false) {
       ${p.heldItem ? `<div class="team-slot-item">${itemIconHtml(p.heldItem, 16)}</div>` : ''}`;
     slot.addEventListener('mouseenter', () => { if (_hoverEnabled) showTeamHoverCard(p, slot); });
     slot.addEventListener('mousemove',  () => { if (_hoverEnabled) showTeamHoverCard(p, slot); });
-    slot.addEventListener('mouseleave', (e) => {
-      if (document.getElementById('team-hover-card')?.contains(e.relatedTarget)) return;
-      hideTeamHoverCard();
-    });
+    slot.addEventListener('mouseleave', () => hideTeamHoverCard());
     if (isMain && p.heldItem) {
       const itemEl = slot.querySelector('.team-slot-item');
       itemEl?.addEventListener('mousemove', e => { if (_hoverEnabled) _itemTooltip.show(`${p.heldItem.name}: ${p.heldItem.desc}`, e.clientX, e.clientY); });
@@ -3082,16 +3071,14 @@ async function playEvoAnimation(pokemon, evoData) {
   spriteEl.style.filter = '';
 }
 
-// Show a branching evolution choice modal and return the chosen evoData
-function showBranchingChoice(pokemon, options) {
+// Show Eevee evolution choice and return the chosen evoData (from EEVEE_EVOLUTIONS)
+function showEeveeChoice(pokemon) {
   return new Promise(resolve => {
-    const overlay   = document.getElementById('eevee-choice-overlay');
-    const titleEl   = document.getElementById('evo-choice-title');
+    const overlay  = document.getElementById('eevee-choice-overlay');
     const choicesEl = document.getElementById('eevee-choices');
-    if (titleEl) titleEl.textContent = `${pokemon.nickname || pokemon.name} is evolving! Choose:`;
     choicesEl.innerHTML = '';
 
-    for (const evoData of options) {
+    for (const evoData of EEVEE_EVOLUTIONS) {
       const spriteUrl = pokemon.isShiny
         ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/${evoData.into}.png`
         : `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${evoData.into}.png`;
@@ -3127,10 +3114,6 @@ function showBranchingChoice(pokemon, options) {
   });
 }
 
-function showEeveeChoice(pokemon) {
-  return showBranchingChoice(pokemon, EEVEE_EVOLUTIONS);
-}
-
 // Check team for pending evolutions after a won battle and play animations
 async function checkAndEvolveTeam() {
   const skipAnim = getSettings().autoSkipEvolve;
@@ -3138,14 +3121,10 @@ async function checkAndEvolveTeam() {
     const wasFainted = pokemon.currentHp <= 0;
 
     let evo;
-    const branches = typeof BRANCHING_EVOLUTIONS !== 'undefined' && BRANCHING_EVOLUTIONS[pokemon.speciesId];
-    if (branches) {
-      const minLevel = branches[0].level;
-      if (pokemon.level < minLevel) continue;
-      evo = await showBranchingChoice(pokemon, branches);
-    } else if (pokemon.speciesId === 133) {
+    if (pokemon.speciesId === 133) {
+      // Eevee — show choice at level 36 (always ask user, even when skipping animation)
       if (pokemon.level < 36) continue;
-      evo = await showBranchingChoice(pokemon, EEVEE_EVOLUTIONS);
+      evo = await showEeveeChoice(pokemon);
     } else {
       evo = GEN1_EVOLUTIONS[pokemon.speciesId];
       if (!evo || pokemon.level < evo.level) continue;

@@ -794,16 +794,6 @@ const GEN1_EVOLUTIONS = {
   129:{ into: 130, level: 20, name: 'Gyarados' },
   147:{ into: 148, level: 30, name: 'Dragonair' },
   148:{ into: 149, level: 55, name: 'Dragonite' },
-  // Gen 1 cross-gen evolutions (friendship / trade / item — levels approximated)
-  108:{ into: 463, level: 33, name: 'Lickilicky' },
-  112:{ into: 464, level: 42, name: 'Rhyperior' },
-  113:{ into: 242, level: 38, name: 'Blissey' },
-  114:{ into: 465, level: 33, name: 'Tangrowth' },
-  117:{ into: 230, level: 40, name: 'Kingdra' },
-  125:{ into: 466, level: 42, name: 'Electivire' },
-  126:{ into: 467, level: 42, name: 'Magmortar' },
-  137:{ into: 233, level: 30, name: 'Porygon2' },
-  233:{ into: 474, level: 40, name: 'Porygon-Z' },
   // Gen 1 -> Gen 2 cross-gen evolutions
   42: { into: 169, level: 30, name: 'Crobat' },
   // Gen 2 starters
@@ -846,16 +836,6 @@ const GEN1_EVOLUTIONS = {
   240:{ into: 126, level: 30, name: 'Magmar' },
   246:{ into: 247, level: 30, name: 'Pupitar' },
   247:{ into: 248, level: 55, name: 'Tyranitar' },
-  176:{ into: 468, level: 32, name: 'Togekiss' },
-  190:{ into: 424, level: 32, name: 'Ambipom' },
-  193:{ into: 469, level: 33, name: 'Yanmega' },
-  198:{ into: 430, level: 38, name: 'Honchkrow' },
-  200:{ into: 429, level: 38, name: 'Mismagius' },
-  207:{ into: 472, level: 38, name: 'Gliscor' },
-  221:{ into: 473, level: 40, name: 'Mamoswine' },
-  299:{ into: 476, level: 36, name: 'Probopass' },
-  315:{ into: 407, level: 36, name: 'Roserade' },
-  356:{ into: 477, level: 42, name: 'Dusknoir' },
   360:{ into: 202, level: 15, name: 'Wobbuffet' },
   // Gen 3 starters
   252:{ into: 253, level: 16, name: 'Grovyle' },
@@ -916,11 +896,6 @@ const GEN1_EVOLUTIONS = {
   372:{ into: 373, level: 50, name: 'Salamence' },
   374:{ into: 375, level: 20, name: 'Metang' },
   375:{ into: 376, level: 45, name: 'Metagross' },
-  // Gen 4 baby Pokémon with missing chains
-  438:{ into: 185, level: 15, name: 'Sudowoodo' },
-  439:{ into: 122, level: 18, name: 'Mr. Mime' },
-  440:{ into: 113, level: 15, name: 'Chansey' },
-  458:{ into: 226, level: 20, name: 'Mantine' },
   // Gen 4
   387:{ into: 388, level: 18, name: 'Grotle' },
   388:{ into: 389, level: 32, name: 'Torterra' },
@@ -1040,8 +1015,7 @@ function minLevelForSpecies(speciesId) {
 
 // Returns true if the species can still evolve (i.e. is not fully evolved)
 function canEvolve(speciesId) {
-  return speciesId in GEN1_EVOLUTIONS || speciesId === 133 ||
-    (typeof BRANCHING_EVOLUTIONS !== 'undefined' && speciesId in BRANCHING_EVOLUTIONS);
+  return speciesId in GEN1_EVOLUTIONS || speciesId === 133; // 133 = Eevee
 }
 
 // Returns the correct species ID for a given level by walking the evolution chain.
@@ -1067,37 +1041,7 @@ const EEVEE_EVOLUTIONS = [
   { into: 135, level: 36, name: 'Jolteon',  types: ['Electric'] },
   { into: 196, level: 25, name: 'Espeon',   types: ['Psychic'] },
   { into: 197, level: 25, name: 'Umbreon',  types: ['Dark'] },
-  { into: 470, level: 36, name: 'Leafeon',  types: ['Grass'] },
-  { into: 471, level: 36, name: 'Glaceon',  types: ['Ice'] },
 ];
-
-// Pokémon with multiple evolution choices shown as a pick-screen (like Eevee)
-const BRANCHING_EVOLUTIONS = {
-  44:  [ // Gloom
-    { into: 45,  level: 36, name: 'Vileplume', types: ['Grass', 'Poison'] },
-    { into: 182, level: 36, name: 'Bellossom', types: ['Grass'] },
-  ],
-  61:  [ // Poliwhirl
-    { into: 62,  level: 40, name: 'Poliwrath', types: ['Water', 'Fighting'] },
-    { into: 186, level: 40, name: 'Politoed',  types: ['Water'] },
-  ],
-  79:  [ // Slowpoke
-    { into: 80,  level: 37, name: 'Slowbro',   types: ['Water', 'Psychic'] },
-    { into: 199, level: 37, name: 'Slowking',  types: ['Water', 'Psychic'] },
-  ],
-  281: [ // Kirlia
-    { into: 282, level: 30, name: 'Gardevoir', types: ['Psychic'] },
-    { into: 475, level: 30, name: 'Gallade',   types: ['Psychic', 'Fighting'] },
-  ],
-  361: [ // Snorunt
-    { into: 362, level: 42, name: 'Glalie',    types: ['Ice'] },
-    { into: 478, level: 42, name: 'Froslass',  types: ['Ice', 'Ghost'] },
-  ],
-  412: [ // Burmy
-    { into: 413, level: 20, name: 'Wormadam',  types: ['Bug', 'Grass'] },
-    { into: 414, level: 20, name: 'Mothim',    types: ['Bug', 'Flying'] },
-  ],
-};
 
 // ---- Achievements ----
 
