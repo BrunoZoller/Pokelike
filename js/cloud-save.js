@@ -169,7 +169,7 @@ function _showAccountModal() {
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
 }
 
-function initFirebase() {
+function initCloudSave() {
   _updateSyncUI();
   if (_getSaveUuid()) _loadFromServer();
 }

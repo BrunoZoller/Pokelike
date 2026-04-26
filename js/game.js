@@ -57,7 +57,7 @@ function clearSavedRun() {
 async function initGame() {
   applyDarkMode();
   showScreen('title-screen');
-  if (typeof initFirebase === 'function') initFirebase();
+  if (typeof initCloudSave === 'function') initCloudSave();
   if (typeof syncToCloud === 'function') syncToCloud();
   document.getElementById('btn-new-run').onclick = () => startNewRun(false);
   document.getElementById('btn-hard-run').onclick = () => startNewRun(true);
