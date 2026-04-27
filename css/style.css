@@ -177,6 +177,17 @@ h1, h2, .pixel-font {
   border-color: #7090d0;
   color: #fff;
 }
+.hof-sort-btn.hof-filter-shiny.active {
+  background: rgba(0,170,255,0.2);
+  border-color: #4af;
+  color: #4af;
+}
+.hof-sort-sep {
+  width: 1px;
+  background: rgba(180,210,255,0.25);
+  margin: 2px 1px;
+  align-self: stretch;
+}
 .pc-box-titlebar span {
   font-family: "Press Start 2P", monospace;
   font-size: 8px;

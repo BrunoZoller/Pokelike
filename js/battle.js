@@ -411,6 +411,8 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog, traitsCon
           if (p.currentHp === 0) {
             addLog(`${p.nickname || p.name} fainted from poison!`, 'log-faint');
             detailedLog.push({ type: 'faint', side: teamSide, idx: i, name: p.nickname || p.name });
+          } else if (traitsConfig?.afterStatusTick) {
+            traitsConfig.afterStatusTick(p, i, teamSide, detailedLog, pTeam, eTeam);
           }
         }
 

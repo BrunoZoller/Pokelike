@@ -491,8 +491,24 @@ function buildTraitsConfig(playerTiers, enemyTiers = {}) {
           log.push({ type: 'confusion', side: aSide, idx: aIdx,
             name: attacker.nickname || attacker.name,
             hpChange: -selfDmg, hpAfter: attacker.currentHp });
-          if (attacker.currentHp === 0)
+          if (attacker.currentHp === 0) {
             log.push({ type: 'faint', side: aSide, idx: aIdx, name: attacker.nickname || attacker.name });
+          } else if (activeFor('Ghost', 'player')) {
+            const ghostTier = tierFor('Ghost', 'player');
+            const threshold = sp([0, 0.15, 0.30, 0.50][ghostTier]);
+            if (attacker.currentHp / attacker.maxHp < threshold) {
+              const execDmg = attacker.currentHp;
+              attacker.currentHp = 0;
+              const ghostActive = pTeam.map((p, i) => ({ p, i })).find(x => x.p.currentHp > 0);
+              if (ghostActive) {
+                log.push({ type: 'trait_trigger', traitType: 'Ghost', side: 'player', idx: ghostActive.i,
+                  name: ghostActive.p.nickname || ghostActive.p.name, description: `Ghost Trait T${ghostTier}: Execute!` });
+              }
+              log.push({ type: 'effect', side: aSide, idx: aIdx, name: attacker.nickname || attacker.name,
+                hpChange: -execDmg, hpAfter: 0, reason: `Ghost Trait: executed!` });
+              log.push({ type: 'faint', side: aSide, idx: aIdx, name: attacker.nickname || attacker.name });
+            }
+          }
           return true;
         }
       }
@@ -612,6 +628,20 @@ function buildTraitsConfig(playerTiers, enemyTiers = {}) {
             hpChange: -splash, hpAfter: targetTeam[i].currentHp, reason: `Psychic Trait: −${splash} HP` });
           if (targetTeam[i].currentHp === 0)
             efx.push({ type: 'faint', side: tSide, idx: i, name: targetTeam[i].nickname || targetTeam[i].name });
+          // Ghost: execute splashed target below threshold
+          if (activeFor('Ghost', aSide) && targetTeam[i].currentHp > 0) {
+            const ghostTier = tierFor('Ghost', aSide);
+            const threshold = sp([0, 0.15, 0.30, 0.50][ghostTier]);
+            if (targetTeam[i].currentHp / targetTeam[i].maxHp < threshold) {
+              const execDmg = targetTeam[i].currentHp;
+              targetTeam[i].currentHp = 0;
+              triggers.push({ type: 'trait_trigger', traitType: 'Ghost', side: aSide, idx: aIdx,
+                name: attacker.nickname || attacker.name, description: `Ghost Trait T${ghostTier}: Execute!` });
+              efx.push({ type: 'effect', side: tSide, idx: i, name: targetTeam[i].nickname || targetTeam[i].name,
+                hpChange: -execDmg, hpAfter: 0, reason: `Ghost Trait: executed!` });
+              efx.push({ type: 'faint', side: tSide, idx: i, name: targetTeam[i].nickname || targetTeam[i].name });
+            }
+          }
           // Grass trait heals off splash damage dealt
           if (activeFor('Grass', aSide) && attacker.currentHp > 0) {
             const grassTier = tierFor('Grass', aSide);
@@ -628,6 +658,27 @@ function buildTraitsConfig(playerTiers, enemyTiers = {}) {
 
       for (const e of triggers) log.push(e);
       for (const e of efx) log.push(e);
+    },
+
+    afterStatusTick(target, tIdx, tSide, log, pTeam, eTeam) {
+      // Ghost: execute target below threshold after a poison tick
+      const oppSide = tSide === 'player' ? 'enemy' : 'player';
+      if (!activeFor('Ghost', oppSide) || target.currentHp <= 0) return;
+      const tier = tierFor('Ghost', oppSide);
+      const threshold = sp([0, 0.15, 0.30, 0.50][tier]);
+      if (target.currentHp / target.maxHp < threshold) {
+        const execDmg = target.currentHp;
+        target.currentHp = 0;
+        const oppTeam = oppSide === 'player' ? pTeam : eTeam;
+        const activeOpp = oppTeam.map((p, i) => ({ p, i })).find(x => x.p.currentHp > 0);
+        if (activeOpp) {
+          log.push({ type: 'trait_trigger', traitType: 'Ghost', side: oppSide, idx: activeOpp.i,
+            name: activeOpp.p.nickname || activeOpp.p.name, description: `Ghost Trait T${tier}: Execute!` });
+        }
+        log.push({ type: 'effect', side: tSide, idx: tIdx, name: target.nickname || target.name,
+          hpChange: -execDmg, hpAfter: 0, reason: `Ghost Trait: executed!` });
+        log.push({ type: 'faint', side: tSide, idx: tIdx, name: target.nickname || target.name });
+      }
     },
 
     beforeDamage(defender, dIdx, dSide, attacker, aIdx, aSide, damage, log) {

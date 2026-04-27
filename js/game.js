@@ -255,7 +255,7 @@ async function showStarterSelect() {
     hofBox.className = 'pc-box';
     const hasEntries = hofSpecies.length > 0;
     const sortBtnsHtml = hasEntries
-      ? `<div class="hof-sort-btns"><button class="hof-sort-btn active" data-sort="stars">★ Stars</button><button class="hof-sort-btn" data-sort="type">Type</button><button class="hof-sort-btn" data-sort="id">#</button></div>`
+      ? `<div class="hof-sort-btns"><button class="hof-sort-btn active" data-sort="stars">★ Stars</button><button class="hof-sort-btn" data-sort="type">Type</button><button class="hof-sort-btn" data-sort="id">#</button><span class="hof-sort-sep"></span><button class="hof-sort-btn hof-filter-shiny" data-filter="shiny">★ Shiny</button></div>`
       : '';
     const hofTitle = hasEntries ? `HALL OF FAME PC (${hofX}/${hofY})` : 'HALL OF FAME PC';
     hofBox.innerHTML = `<div class="pc-box-titlebar${hasEntries ? ' with-sort' : ''}"><span>${hofTitle}</span>${sortBtnsHtml}</div><div class="pc-box-body"><div class="pc-box-grid" style="grid-template-columns:repeat(6,1fr);"></div></div>`;
@@ -319,23 +319,35 @@ async function showStarterSelect() {
       }
     }
 
+    let showOnlyShiny = false;
+    let currentSort = 'stars';
+
     function sortHof(mode) {
-      const sorted = [...hofInstances];
-      if (mode === 'stars') sorted.sort((a, b) => { const d = hofStarScore(b.speciesId) - hofStarScore(a.speciesId); return d !== 0 ? d : a.speciesId - b.speciesId; });
-      else if (mode === 'type') sorted.sort((a, b) => { const ta = (a.types?.[0]||'').toLowerCase(), tb = (b.types?.[0]||'').toLowerCase(); return ta !== tb ? (ta < tb ? -1 : 1) : a.speciesId - b.speciesId; });
-      else sorted.sort((a, b) => a.speciesId - b.speciesId);
-      buildHofGrid(sorted);
+      const pool = showOnlyShiny ? hofInstances.filter(i => i.isShiny) : [...hofInstances];
+      if (mode === 'stars') pool.sort((a, b) => { const d = hofStarScore(b.speciesId) - hofStarScore(a.speciesId); return d !== 0 ? d : a.speciesId - b.speciesId; });
+      else if (mode === 'type') pool.sort((a, b) => { const ta = (a.types?.[0]||'').toLowerCase(), tb = (b.types?.[0]||'').toLowerCase(); return ta !== tb ? (ta < tb ? -1 : 1) : a.speciesId - b.speciesId; });
+      else pool.sort((a, b) => a.speciesId - b.speciesId);
+      buildHofGrid(pool);
     }
 
     if (hasEntries) {
       sortHof('stars');
-      hofBox.querySelectorAll('.hof-sort-btn').forEach(btn => {
+      hofBox.querySelectorAll('.hof-sort-btn:not(.hof-filter-shiny)').forEach(btn => {
         btn.addEventListener('click', () => {
-          hofBox.querySelectorAll('.hof-sort-btn').forEach(b => b.classList.remove('active'));
+          hofBox.querySelectorAll('.hof-sort-btn:not(.hof-filter-shiny)').forEach(b => b.classList.remove('active'));
           btn.classList.add('active');
-          sortHof(btn.dataset.sort);
+          currentSort = btn.dataset.sort;
+          sortHof(currentSort);
         });
       });
+      const shinyFilterBtn = hofBox.querySelector('.hof-filter-shiny');
+      if (shinyFilterBtn) {
+        shinyFilterBtn.addEventListener('click', () => {
+          showOnlyShiny = !showOnlyShiny;
+          shinyFilterBtn.classList.toggle('active', showOnlyShiny);
+          sortHof(currentSort);
+        });
+      }
     }
 
     container.appendChild(hofBox);
