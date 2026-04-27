@@ -66,7 +66,22 @@ async function initGame() {
   if (endlessBtn) {
     if (getHallOfFame().length > 0) {
       endlessBtn.onclick = () => showEndlessStageSelect();
-    } else {
+      endlessBtn.disabled = false;
+      endlessBtn.style.opacity = '';
+      endlessBtn.style.pointerEvents = '';
+      // Remove lock wrapper if it was injected in a previous initGame call
+      const parent = endlessBtn.parentNode;
+      if (parent && parent.id !== 'title-screen' && !parent.classList.contains('screen')) {
+        const grandparent = parent.parentNode;
+        if (grandparent) {
+          if (endlessBtn.style.marginTop === '0' || endlessBtn.style.marginTop === '0px') {
+            endlessBtn.style.marginTop = parent.style.marginTop || '';
+          }
+          grandparent.insertBefore(endlessBtn, parent);
+          parent.remove();
+        }
+      }
+    } else if (!endlessBtn.disabled) {
       endlessBtn.style.opacity = '0.45';
       endlessBtn.disabled = true;
       endlessBtn.style.pointerEvents = 'none';
