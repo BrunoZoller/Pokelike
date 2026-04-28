@@ -3157,6 +3157,8 @@ async function checkAndEvolveTeam() {
     markPokedexCaught(pokemon.speciesId, pokemon.name, pokemon.types, normalUrl);
     if (pokemon.isShiny) markShinyDexCaught(pokemon.speciesId, pokemon.name, pokemon.types, pokemon.spriteUrl);
     checkDexAchievements();
+    renderTeamBar(state.team);
+    saveRun();
   }
 }
 

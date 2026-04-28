@@ -1328,6 +1328,7 @@ async function applyEvolution(pokemon) {
   checkDexAchievements();
   renderItemBadges(state.items);
   renderTeamBar(state.team);
+  saveRun();
 }
 
 function doPokeCenterNode(node) {
