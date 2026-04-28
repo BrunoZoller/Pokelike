@@ -332,7 +332,8 @@ h1, h2, .pixel-font {
   right: -4px;
   width: 20px;
   height: 20px;
-  filter: drop-shadow(0 0 2px rgba(0,0,0,0.8));
+  filter: hue-rotate(220deg) saturate(2) drop-shadow(0 0 2px rgba(0,0,0,0.8));
+  z-index: 5;
 }
 
 .poke-name {
