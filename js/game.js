@@ -848,11 +848,11 @@ async function doCatchNode(node) {
           if (src.length === 0) src = fresh;
         }
         if (src.length === 0) return;
-        const pick = src[Math.floor(Math.random() * src.length)];
+        const pick = src[Math.floor(rng() * src.length)];
         // Remove picked from pool so subsequent rerolls can't get the same pokemon
         const pickIdx = rerollPool.indexOf(pick);
         if (pickIdx !== -1) rerollPool.splice(pickIdx, 1);
-        const newInst = createInstance(pick, level, rng() < (hasShinyCharm() ? 0.02 : 0.01), getMoveТierForMap(state.currentMap));
+        const newInst = createInstance(pick, level, false, getMoveТierForMap(state.currentMap));
         instances[slotIdx] = newInst;
         choicesEl.replaceChild(renderCatchSlot(newInst, slotIdx), choicesEl.children[slotIdx]);
       });
