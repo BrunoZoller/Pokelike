@@ -1881,6 +1881,22 @@ function showWinScreen() {
   if (typeof syncToCloud === 'function') syncToCloud();
 }
 
+function shareRun() {
+  const wins = getEliteWins();
+  const teamLines = state.team.map(p => {
+    const shiny = p.isShiny ? ' ✨' : '';
+    return `${p.nickname || p.name} Lv.${p.level}${shiny}`;
+  }).join('\n');
+  const modeTag = state.nuzlockeMode ? ' (Nuzlocke)' : '';
+  const text = `🏆 Championship #${wins}${modeTag} on Pokelike!\n\nMy team:\n${teamLines}\n\n${window.location.href}`;
+
+  if (navigator.share) {
+    navigator.share({ title: 'Pokelike', text }).catch(() => {});
+  } else {
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
+  }
+}
+
 // ── Endless Mode ─────────────────────────────────────────────────────────────
 
 function getUnlockedStageCount() {
