@@ -810,7 +810,9 @@ async function doCatchNode(node) {
       ? !!(getShinyDex()[inst.speciesId])
       : !!(getPokedex()[inst.speciesId]?.caught);
     const myRoot = getEvoLineRoot(inst.speciesId);
-    const hofStarterBadge = getUsedStarters().some(sid => getEvoLineRoot(sid) === myRoot);
+    const hofStarterBadge = getHallOfFame().some(e =>
+      e.team?.some(p => getEvoLineRoot(p.speciesId) === myRoot)
+    );
     const wrapper = document.createElement('div');
     wrapper.innerHTML = renderPokemonCard(inst, true, false, caught, hofStarterBadge);
     const card = wrapper.querySelector('.poke-card');
