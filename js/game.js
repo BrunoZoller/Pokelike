@@ -805,9 +805,15 @@ async function doCatchNode(node) {
   const rerolled = new Set();
 
   function renderCatchSlot(inst, slotIdx) {
-    const caught = !!(getPokedex()[inst.speciesId]?.caught);
+    const caught = inst.isShiny
+      ? !!(getShinyDex()[inst.speciesId])
+      : !!(getPokedex()[inst.speciesId]?.caught);
+    const myRoot = getEvoLineRoot(inst.speciesId);
+    const hofStarterBadge = getHallOfFame().some(
+      e => e.starterSpeciesId && getEvoLineRoot(e.starterSpeciesId) === myRoot
+    );
     const wrapper = document.createElement('div');
-    wrapper.innerHTML = renderPokemonCard(inst, true, false, caught);
+    wrapper.innerHTML = renderPokemonCard(inst, true, false, caught, hofStarterBadge);
     const card = wrapper.querySelector('.poke-card');
     card.style.cursor = 'pointer';
     card.setAttribute('role', 'button');
@@ -1879,6 +1885,21 @@ function showWinScreen() {
 
   clearSavedRun();
   if (typeof syncToCloud === 'function') syncToCloud();
+}
+
+function shareEndlessRun(stageNum, team) {
+  const stageName = typeof getStageName === 'function' ? getStageName(stageNum) : `Stage ${stageNum}`;
+  const teamLines = team.map(p => {
+    const shiny = p.isShiny ? ' ✨' : '';
+    return `${p.nickname || p.name} Lv.${p.level}${shiny}`;
+  }).join('\n');
+  const text = `🏆 Cleared ${stageName} in Pokelike Battle Tower!\n\nMy team:\n${teamLines}\n\n${window.location.href}`;
+
+  if (navigator.share) {
+    navigator.share({ title: 'Pokelike', text }).catch(() => {});
+  } else {
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
+  }
 }
 
 function shareRun() {

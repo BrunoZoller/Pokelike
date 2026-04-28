@@ -81,7 +81,7 @@ function renderHpBar(current, max) {
           <span class="hp-text">${Math.max(0,current)}/${max}</span>`;
 }
 
-function renderPokemonCard(pokemon, onClick, selected, dexCaught = false) {
+function renderPokemonCard(pokemon, onClick, selected, dexCaught = false, hofStarterBadge = false) {
   const pct = pokemon.currentHp / pokemon.maxHp;
   const typeHtml = (pokemon.types || ['???']).map(t =>
     `<span class="type-badge type-${t.toLowerCase()}">${t}</span>`
@@ -96,6 +96,7 @@ function renderPokemonCard(pokemon, onClick, selected, dexCaught = false) {
            onerror="this.src='';this.style.display='none'">
       ${pokemon.isShiny ? '<span class="shiny-badge">★ Shiny</span>' : ''}
       ${dexCaught ? '<img class="dex-caught-badge" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" alt="Caught" title="Already in Pokédex">' : ''}
+      ${hofStarterBadge ? '<img class="hof-starter-badge" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/great-ball.png" alt="Past Starter" title="Used as a starter in a past run">' : ''}
     </div>
     <div class="poke-name">${pokemon.nickname || pokemon.name}</div>
     <div class="poke-level">Lv. ${pokemon.level}</div>
@@ -2973,10 +2974,12 @@ function renderStageComplete(stageNum, team, onContinue) {
   const unlockEl = document.getElementById('stage-complete-unlock');
   const teamEl   = document.getElementById('stage-complete-team');
   const btnEl    = document.getElementById('btn-stage-continue');
+  const shareEl  = document.getElementById('btn-stage-share');
   if (msgEl)    msgEl.textContent    = `${getStageName(stageNum)} Complete!`;
   if (unlockEl) unlockEl.textContent = `${getStageName(stageNum + 1)} unlocked!`;
   if (teamEl)   teamEl.innerHTML     = team.map(p => renderPokemonCard(p, false, false)).join('');
   if (btnEl)    btnEl.onclick        = onContinue;
+  if (shareEl)  shareEl.onclick      = () => shareEndlessRun(stageNum, team);
   showScreen('endless-stage-complete');
 }
 
