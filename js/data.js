@@ -1061,13 +1061,13 @@ function resolveEvoForLevel(speciesId, level) {
 // Branching evolution options for all multi-path Pokemon (shown as a player choice)
 const BRANCHING_EVOLUTIONS = {
   133: [ // Eevee
-    { into: 136, level: 36, name: 'Flareon',   types: ['Fire'] },
-    { into: 134, level: 36, name: 'Vaporeon',  types: ['Water'] },
-    { into: 135, level: 36, name: 'Jolteon',   types: ['Electric'] },
-    { into: 196, level: 25, name: 'Espeon',    types: ['Psychic'] },
-    { into: 197, level: 25, name: 'Umbreon',   types: ['Dark'] },
-    { into: 470, level: 36, name: 'Leafeon',   types: ['Grass'] },
-    { into: 471, level: 36, name: 'Glaceon',   types: ['Ice'] },
+    { into: 136, level: 20, name: 'Flareon',   types: ['Fire'] },
+    { into: 134, level: 20, name: 'Vaporeon',  types: ['Water'] },
+    { into: 135, level: 20, name: 'Jolteon',   types: ['Electric'] },
+    { into: 196, level: 20, name: 'Espeon',    types: ['Psychic'] },
+    { into: 197, level: 20, name: 'Umbreon',   types: ['Dark'] },
+    { into: 470, level: 20, name: 'Leafeon',   types: ['Grass'] },
+    { into: 471, level: 20, name: 'Glaceon',   types: ['Ice'] },
   ],
   44: [ // Gloom
     { into: 45,  level: 36, name: 'Vileplume', types: ['Grass', 'Poison'] },
