@@ -2192,9 +2192,9 @@ async function showStatBuffScreen() {
       ['hp',      'HP',  'stat-hp'],
       ['atk',     'ATK', 'stat-atk'],
       ['def',     'DEF', 'stat-def'],
-      ['speed',   'SPE', 'stat-spe'],
-      ['special', 'SPA', 'stat-spa'],
-      ['spdef',   'SPD', 'stat-spd'],
+      ['speed',   'SPD', 'stat-spe'],
+      ['special', 'SP.A', 'stat-spa'],
+      ['spdef',   'SP.D', 'stat-spd'],
     ];
 
     function showPhase1() {
