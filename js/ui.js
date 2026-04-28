@@ -3517,6 +3517,21 @@ function openShinyDexModal() { openPokedexModal('shiny'); }
 
 const PATCH_NOTES = [
   {
+    version: '1.4.1',
+    title: 'Bug Fix Patch',
+    date: '2026-04-28',
+    sections: [
+      {
+        heading: 'Bug Fixes',
+        entries: [
+          'Catch nodes now show the same Pokémon after a page refresh — choices are saved when the node is first entered and restored on reload',
+          'Ghost trait now correctly triggers on damage from all sources, not just direct attacks',
+          'Shiny filter in the Hall of Fame PC now works correctly',
+        ],
+      },
+    ],
+  },
+  {
     version: '1.4.0',
     title: 'Battle Tower Update',
     date: '2026-04-25',
