@@ -2292,12 +2292,23 @@ async function showStatBuffScreen() {
 function loadPersistentBuffs() {
   try {
     const store = JSON.parse(localStorage.getItem('poke_stat_buffs') || '{}');
-    // Migrate: Snorlax buffs were stored under 143; now evo-line root is 446 (Munchlax).
-    if (store[143] && !store[446]) {
-      store[446] = store[143];
-      delete store[143];
-      savePersistentBuffs(store);
+    // Migrate old evo-line root IDs whenever a baby-form pre-evolution is added
+    const migrations = [
+      [143, 446],  // Snorlax  → Munchlax
+      [122, 439],  // Mr. Mime → Mime Jr.
+      [113, 440],  // Chansey  → Happiny
+      [185, 438],  // Sudowoodo → Bonsly
+      [226, 458],  // Mantine  → Mantyke
+    ];
+    let dirty = false;
+    for (const [oldKey, newKey] of migrations) {
+      if (store[oldKey] !== undefined && store[newKey] === undefined) {
+        store[newKey] = store[oldKey];
+        delete store[oldKey];
+        dirty = true;
+      }
     }
+    if (dirty) savePersistentBuffs(store);
     return store;
   } catch { return {}; }
 }
