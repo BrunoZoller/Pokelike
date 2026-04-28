@@ -1250,6 +1250,18 @@ function getHallOfFame() {
   catch { return []; }
 }
 
+function getUsedStarters() {
+  try { return JSON.parse(localStorage.getItem('poke_used_starters') || '[]'); }
+  catch { return []; }
+}
+function recordUsedStarter(speciesId) {
+  const list = getUsedStarters();
+  if (!list.includes(speciesId)) {
+    list.push(speciesId);
+    localStorage.setItem('poke_used_starters', JSON.stringify(list));
+  }
+}
+
 function saveHallOfFameEntry(team, runNumber, hardMode, endless = false, stageNumber = null, starterSpeciesId = null) {
   const entries = getHallOfFame();
   entries.push({
