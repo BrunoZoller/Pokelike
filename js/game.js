@@ -1060,7 +1060,7 @@ function doItemNode(node) {
   const canUseMaxRevive = state.team.some(p => p.currentHp <= 0);
   const canUseEvoStone  = state.team.some(p => {
     if (p.speciesId === 133) return true;
-    const evo = GEN1_EVOLUTIONS[p.speciesId];
+    const evo = EVOLUTIONS[p.speciesId];
     return evo && evo.into !== p.speciesId;
   });
   const usableAvailable = USABLE_ITEM_POOL.filter(it => {
@@ -1222,7 +1222,7 @@ function openUsableItemModal(item, bagIdx) {
     if (item.id === 'max_revive') return p.currentHp <= 0;
     if (item.id === 'moon_stone') {
       if (p.speciesId === 133) return true;
-      const evo = GEN1_EVOLUTIONS[p.speciesId];
+      const evo = EVOLUTIONS[p.speciesId];
       return !!(evo && evo.into !== p.speciesId);
     }
     return true;
@@ -1298,7 +1298,7 @@ async function applyEvolution(pokemon) {
   if (branchingChoices) {
     evo = await showBranchingChoice(pokemon, branchingChoices);
   } else {
-    evo = GEN1_EVOLUTIONS[pokemon.speciesId];
+    evo = EVOLUTIONS[pokemon.speciesId];
     if (!evo) return;
   }
 
@@ -2318,35 +2318,12 @@ function getTotalBuffPoints(buffs) {
 // Returns the base-form species ID for any member of an evolution line.
 function getEvoLineRoot(speciesId) {
   const parentOf = {};
-  for (const [from, evo] of Object.entries(GEN1_EVOLUTIONS)) {
+  for (const [from, evo] of Object.entries(EVOLUTIONS)) {
     parentOf[evo.into] = Number(from);
   }
   for (const [fromId, choices] of Object.entries(BRANCHING_EVOLUTIONS)) {
     for (const evo of choices) parentOf[evo.into] = Number(fromId);
   }
-  // Branch / trade / friendship evolutions missing from GEN1_EVOLUTIONS
-  Object.assign(parentOf, {
-    26:  25,   // Raichu ← Pikachu
-    186: 61,   // Politoed ← Poliwhirl
-    199: 79,   // Slowking ← Slowpoke
-    230: 117,  // Kingdra ← Seadra
-    233: 137,  // Porygon2 ← Porygon
-    242: 113,  // Blissey ← Chansey
-    464: 112,  // Rhyperior ← Rhydon
-    465: 114,  // Tangrowth ← Tangela
-    466: 125,  // Electivire ← Electabuzz
-    467: 126,  // Magmortar ← Magmar
-    468: 176,  // Togekiss ← Togetic
-    469: 193,  // Yanmega ← Yanma
-    470: 133,  // Leafeon ← Eevee
-    471: 133,  // Glaceon ← Eevee
-    472: 207,  // Gliscor ← Gligar
-    473: 221,  // Mamoswine ← Piloswine
-    474: 233,  // Porygon-Z ← Porygon2
-    475: 281,  // Gallade ← Kirlia
-    477: 356,  // Dusknoir ← Dusclops
-    143: 446,  // Snorlax ← Munchlax
-  });
   let id = speciesId;
   while (parentOf[id] !== undefined) id = parentOf[id];
   return id;

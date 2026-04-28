@@ -700,8 +700,8 @@ function getTrainerImgHtml(trainerName) {
     onerror="this.src='https://play.pokemonshowdown.com/sprites/trainers/youngster.png';this.onerror=null">`;
 }
 
-// All Gen 1 evolutions — stone/trade converted to sensible levels
-const GEN1_EVOLUTIONS = {
+// All evolutions across supported gens — stone/trade/friendship converted to sensible levels
+const EVOLUTIONS = {
   // Starters
   1:  { into: 2,   level: 16, name: 'Ivysaur' },
   2:  { into: 3,   level: 32, name: 'Venusaur' },
@@ -779,14 +779,24 @@ const GEN1_EVOLUTIONS = {
   // Exeggcute / Cubone / Lickitung / Koffing / Rhyhorn
   102:{ into: 103, level: 36, name: 'Exeggutor' },  // leaf stone → lv 36
   104:{ into: 105, level: 28, name: 'Marowak' },
+  108:{ into: 463, level: 33, name: 'Lickilicky' }, // lv-up with Rollout → lv 33
   109:{ into: 110, level: 35, name: 'Weezing' },
   111:{ into: 112, level: 42, name: 'Rhydon' },
+  112:{ into: 464, level: 42, name: 'Rhyperior' },  // trade → lv 42
+  113:{ into: 242, level: 38, name: 'Blissey' },    // friendship → lv 38
+  114:{ into: 465, level: 36, name: 'Tangrowth' },  // lv-up with AncientPower → lv 36
   // Horsea / Goldeen / Staryu / Scyther / Electabuzz / Magmar / Pinsir
   116:{ into: 117, level: 32, name: 'Seadra' },
+  117:{ into: 230, level: 40, name: 'Kingdra' },    // trade → lv 40
   118:{ into: 119, level: 33, name: 'Seaking' },
   120:{ into: 121, level: 36, name: 'Starmie' },    // water stone → lv 36
   123:{ into: 212, level: 40, name: 'Scizor' },     // trade → lv 40 (Scizor #212)
+  125:{ into: 466, level: 40, name: 'Electivire' }, // trade → lv 40
+  126:{ into: 467, level: 40, name: 'Magmortar' },  // trade → lv 40
   // Eevee — branching, handled separately
+  // Porygon chain
+  137:{ into: 233, level: 30, name: 'Porygon2' },   // trade → lv 30
+  233:{ into: 474, level: 40, name: 'Porygon-Z' },  // trade → lv 40
   // Omanyte / Kabuto / Aerodactyl (fossils — no evolution here)
   138:{ into: 139, level: 40, name: 'Omastar' },
   140:{ into: 141, level: 40, name: 'Kabutops' },
@@ -813,6 +823,7 @@ const GEN1_EVOLUTIONS = {
   173:{ into: 35,  level: 15, name: 'Clefairy' },
   174:{ into: 39,  level: 15, name: 'Jigglypuff' },
   175:{ into: 176, level: 15, name: 'Togetic' },
+  176:{ into: 468, level: 40, name: 'Togekiss' },   // shiny stone → lv 40
   177:{ into: 178, level: 25, name: 'Xatu' },
   179:{ into: 180, level: 15, name: 'Flaaffy' },
   180:{ into: 181, level: 30, name: 'Ampharos' },
@@ -823,10 +834,16 @@ const GEN1_EVOLUTIONS = {
   194:{ into: 195, level: 20, name: 'Quagsire' },
   204:{ into: 205, level: 31, name: 'Forretress' },
   209:{ into: 210, level: 23, name: 'Granbull' },
+  190:{ into: 424, level: 32, name: 'Ambipom' },    // lv-up with Double Hit → lv 32
+  193:{ into: 469, level: 33, name: 'Yanmega' },    // lv-up with AncientPower → lv 33
+  198:{ into: 430, level: 36, name: 'Honchkrow' },  // dusk stone → lv 36
+  200:{ into: 429, level: 36, name: 'Mismagius' },  // dusk stone → lv 36
+  207:{ into: 472, level: 40, name: 'Gliscor' },    // item at night → lv 40
   215:{ into: 461, level: 40, name: 'Weavile' },
   216:{ into: 217, level: 30, name: 'Ursaring' },
   218:{ into: 219, level: 38, name: 'Magcargo' },
   220:{ into: 221, level: 33, name: 'Piloswine' },
+  221:{ into: 473, level: 40, name: 'Mamoswine' },  // lv-up with AncientPower → lv 40
   223:{ into: 224, level: 25, name: 'Octillery' },
   228:{ into: 229, level: 24, name: 'Houndoom' },
   231:{ into: 232, level: 25, name: 'Donphan' },
@@ -867,11 +884,13 @@ const GEN1_EVOLUTIONS = {
   294:{ into: 295, level: 40, name: 'Exploud' },
   296:{ into: 297, level: 24, name: 'Hariyama' },
   298:{ into: 183, level: 15, name: 'Marill' },
+  299:{ into: 476, level: 36, name: 'Probopass' },  // magnetic field → lv 36
   300:{ into: 301, level: 30, name: 'Delcatty' },
   304:{ into: 305, level: 32, name: 'Lairon' },
   305:{ into: 306, level: 42, name: 'Aggron' },
   307:{ into: 308, level: 37, name: 'Medicham' },
   309:{ into: 310, level: 26, name: 'Manectric' },
+  315:{ into: 407, level: 40, name: 'Roserade' },   // shiny stone → lv 40
   316:{ into: 317, level: 26, name: 'Swalot' },
   318:{ into: 319, level: 30, name: 'Sharpedo' },
   320:{ into: 321, level: 40, name: 'Wailord' },
@@ -889,6 +908,7 @@ const GEN1_EVOLUTIONS = {
   349:{ into: 350, level: 35, name: 'Milotic' },
   353:{ into: 354, level: 37, name: 'Banette' },
   355:{ into: 356, level: 37, name: 'Dusclops' },
+  356:{ into: 477, level: 40, name: 'Dusknoir' },   // trade → lv 40
   361:{ into: 362, level: 42, name: 'Glalie' },
   363:{ into: 364, level: 32, name: 'Sealeo' },
   364:{ into: 365, level: 44, name: 'Walrein' },
@@ -923,12 +943,16 @@ const GEN1_EVOLUTIONS = {
   436:{ into: 437, level: 33, name: 'Bronzong' },
   443:{ into: 444, level: 24, name: 'Gabite' },
   444:{ into: 445, level: 48, name: 'Garchomp' },
+  438:{ into: 185, level: 16, name: 'Sudowoodo' },  // lv-up with Mimic → lv 16
+  439:{ into: 122, level: 18, name: 'Mr. Mime' },   // lv-up with Mimic → lv 18
+  440:{ into: 113, level: 12, name: 'Chansey' },    // friendship → lv 12
   446:{ into: 143, level: 32, name: 'Snorlax' },
   447:{ into: 448, level: 32, name: 'Lucario' },
   449:{ into: 450, level: 34, name: 'Hippowdon' },
   451:{ into: 452, level: 40, name: 'Drapion' },
   453:{ into: 454, level: 37, name: 'Toxicroak' },
   456:{ into: 457, level: 31, name: 'Lumineon' },
+  458:{ into: 226, level: 32, name: 'Mantine' },    // lv-up with Remoraid in party → lv 32
   459:{ into: 460, level: 40, name: 'Abomasnow' },
   // Gen 5
   495:{ into: 496, level: 17, name: 'Servine' },
@@ -1007,7 +1031,7 @@ const GEN1_EVOLUTIONS = {
 // Returns the minimum realistic level for a species based on its evolution chain.
 // e.g. Charizard (id 6) evolved from Charmeleon at lv 36, so its min is 36.
 function minLevelForSpecies(speciesId) {
-  for (const evo of Object.values(GEN1_EVOLUTIONS)) {
+  for (const evo of Object.values(EVOLUTIONS)) {
     if (evo.into === speciesId) return evo.level;
   }
   return 1;
@@ -1015,19 +1039,19 @@ function minLevelForSpecies(speciesId) {
 
 // Returns true if the species can still evolve (i.e. is not fully evolved)
 function canEvolve(speciesId) {
-  return speciesId in GEN1_EVOLUTIONS || speciesId in BRANCHING_EVOLUTIONS;
+  return speciesId in EVOLUTIONS || speciesId in BRANCHING_EVOLUTIONS;
 }
 
 // Returns the correct species ID for a given level by walking the evolution chain.
 // Advances forward if level meets thresholds; retreats backward if level is too low.
 function resolveEvoForLevel(speciesId, level) {
   let id = speciesId;
-  while (GEN1_EVOLUTIONS[id] && level >= GEN1_EVOLUTIONS[id].level)
-    id = GEN1_EVOLUTIONS[id].into;
+  while (EVOLUTIONS[id] && level >= EVOLUTIONS[id].level)
+    id = EVOLUTIONS[id].into;
   let changed = true;
   while (changed) {
     changed = false;
-    for (const [pre, evo] of Object.entries(GEN1_EVOLUTIONS)) {
+    for (const [pre, evo] of Object.entries(EVOLUTIONS)) {
       if (evo.into === id && level < evo.level) { id = Number(pre); changed = true; break; }
     }
   }
@@ -1042,6 +1066,8 @@ const BRANCHING_EVOLUTIONS = {
     { into: 135, level: 36, name: 'Jolteon',   types: ['Electric'] },
     { into: 196, level: 25, name: 'Espeon',    types: ['Psychic'] },
     { into: 197, level: 25, name: 'Umbreon',   types: ['Dark'] },
+    { into: 470, level: 36, name: 'Leafeon',   types: ['Grass'] },
+    { into: 471, level: 36, name: 'Glaceon',   types: ['Ice'] },
   ],
   44: [ // Gloom
     { into: 45,  level: 36, name: 'Vileplume', types: ['Grass', 'Poison'] },

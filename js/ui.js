@@ -3128,7 +3128,7 @@ async function checkAndEvolveTeam() {
       if (pokemon.level < branchingChoices[0].level) continue;
       evo = await showBranchingChoice(pokemon, branchingChoices);
     } else {
-      evo = GEN1_EVOLUTIONS[pokemon.speciesId];
+      evo = EVOLUTIONS[pokemon.speciesId];
       if (!evo || pokemon.level < evo.level) continue;
       if (pokemon.speciesId === evo.into) continue;
     }
