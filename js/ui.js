@@ -3525,6 +3525,35 @@ function openShinyDexModal() { openPokedexModal('shiny'); }
 
 const PATCH_NOTES = [
   {
+    version: '1.4.2',
+    title: 'Quality of Life Patch',
+    date: '2026-04-28',
+    sections: [
+      {
+        heading: 'New Features',
+        entries: [
+          'Share button on the win screen and Battle Tower stage clear screen — share your team to X/Twitter or via native share sheet',
+          'Catch screen now shows a Great Ball badge on Pokémon whose evo line is already in your Hall of Fame PC, replacing the Poké Ball badge when applicable',
+          'Professor Challenges: Battle Tower starter achievements renamed after each region\'s professor (Oak\'s, Elm\'s, Birch\'s, Rowan\'s, Juniper\'s Challenge) and now unlock by beating a stage with any one of the three regional starters',
+        ],
+      },
+      {
+        heading: 'Changes',
+        entries: [
+          'Eevee and all its evolutions now evolve at level 20',
+          'Stat labels updated: Speed → SPD, Special Attack → SP.A, Special Defense → SP.D',
+          'Shiny Poké Ball badge in the catch screen now only appears when you own the shiny form specifically',
+        ],
+      },
+      {
+        heading: 'Bug Fixes',
+        entries: [
+          'Shiny Pokémon no longer lose their shiny status after evolving',
+        ],
+      },
+    ],
+  },
+  {
     version: '1.4.1',
     title: 'Bug Fix Patch',
     date: '2026-04-28',
