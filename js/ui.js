@@ -95,8 +95,11 @@ function renderPokemonCard(pokemon, onClick, selected, dexCaught = false, hofSta
       <img src="${pokemon.spriteUrl || ''}" alt="${pokemon.name}" class="poke-sprite${pokemon.isShiny?' shiny':''}"
            onerror="this.src='';this.style.display='none'">
       ${pokemon.isShiny ? '<span class="shiny-badge">★ Shiny</span>' : ''}
-      ${dexCaught ? '<img class="dex-caught-badge" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" alt="Caught" title="Already in Pokédex">' : ''}
-      ${hofStarterBadge ? '<img class="hof-starter-badge" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/great-ball.png" alt="Past Starter" title="Used as a starter in a past run">' : ''}
+      ${hofStarterBadge
+        ? '<img class="dex-caught-badge" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/great-ball.png" alt="HoF Starter" title="Already in your Hall of Fame PC">'
+        : dexCaught
+          ? '<img class="dex-caught-badge" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" alt="Caught" title="Already in Pokédex">'
+          : ''}
     </div>
     <div class="poke-name">${pokemon.nickname || pokemon.name}</div>
     <div class="poke-level">Lv. ${pokemon.level}</div>
