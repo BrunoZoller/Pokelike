@@ -280,10 +280,10 @@
 <!-- ===== EEVEE CHOICE OVERLAY ===== -->
 <div id="eevee-choice-overlay" style="display:none;position:fixed;inset:0;z-index:201;background:rgba(0,0,0,0.88);
      align-items:center;justify-content:center;flex-direction:column;gap:18px;">
-  <div style="font-family:'Press Start 2P',monospace;font-size:10px;color:#fff;text-align:center;line-height:1.8;">
-    Eevee is evolving!<br>Choose its evolution:
+  <div id="evo-choice-title" style="font-family:'Press Start 2P',monospace;font-size:10px;color:#fff;text-align:center;line-height:1.8;">
+    Choose its evolution:
   </div>
-  <div id="eevee-choices" style="display:flex;gap:20px;"></div>
+  <div id="eevee-choices" style="display:flex;flex-wrap:wrap;justify-content:center;gap:16px;max-width:min(90vw,700px);"></div>
 </div>
 
 <!-- Attack animation canvas (fixed over viewport) -->

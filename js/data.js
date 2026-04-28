@@ -1015,7 +1015,7 @@ function minLevelForSpecies(speciesId) {
 
 // Returns true if the species can still evolve (i.e. is not fully evolved)
 function canEvolve(speciesId) {
-  return speciesId in GEN1_EVOLUTIONS || speciesId === 133; // 133 = Eevee
+  return speciesId in GEN1_EVOLUTIONS || speciesId in BRANCHING_EVOLUTIONS;
 }
 
 // Returns the correct species ID for a given level by walking the evolution chain.
@@ -1034,14 +1034,45 @@ function resolveEvoForLevel(speciesId, level) {
   return id;
 }
 
-// Eevee branching evolution options (shown as a choice at level 36)
-const EEVEE_EVOLUTIONS = [
-  { into: 136, level: 36, name: 'Flareon',  types: ['Fire'] },
-  { into: 134, level: 36, name: 'Vaporeon', types: ['Water'] },
-  { into: 135, level: 36, name: 'Jolteon',  types: ['Electric'] },
-  { into: 196, level: 25, name: 'Espeon',   types: ['Psychic'] },
-  { into: 197, level: 25, name: 'Umbreon',  types: ['Dark'] },
-];
+// Branching evolution options for all multi-path Pokemon (shown as a player choice)
+const BRANCHING_EVOLUTIONS = {
+  133: [ // Eevee
+    { into: 136, level: 36, name: 'Flareon',   types: ['Fire'] },
+    { into: 134, level: 36, name: 'Vaporeon',  types: ['Water'] },
+    { into: 135, level: 36, name: 'Jolteon',   types: ['Electric'] },
+    { into: 196, level: 25, name: 'Espeon',    types: ['Psychic'] },
+    { into: 197, level: 25, name: 'Umbreon',   types: ['Dark'] },
+  ],
+  44: [ // Gloom
+    { into: 45,  level: 36, name: 'Vileplume', types: ['Grass', 'Poison'] },
+    { into: 182, level: 36, name: 'Bellossom', types: ['Grass'] },
+  ],
+  79: [ // Slowpoke
+    { into: 80,  level: 37, name: 'Slowbro',   types: ['Water', 'Psychic'] },
+    { into: 199, level: 37, name: 'Slowking',  types: ['Water', 'Psychic'] },
+  ],
+  61: [ // Poliwhirl
+    { into: 62,  level: 40, name: 'Poliwrath', types: ['Water', 'Fighting'] },
+    { into: 186, level: 40, name: 'Politoed',  types: ['Water'] },
+  ],
+  281: [ // Kirlia
+    { into: 282, level: 30, name: 'Gardevoir', types: ['Psychic', 'Fairy'] },
+    { into: 475, level: 30, name: 'Gallade',   types: ['Psychic', 'Fighting'] },
+  ],
+  361: [ // Snorunt
+    { into: 362, level: 42, name: 'Glalie',    types: ['Ice'] },
+    { into: 478, level: 42, name: 'Froslass',  types: ['Ice', 'Ghost'] },
+  ],
+  236: [ // Tyrogue
+    { into: 106, level: 20, name: 'Hitmonlee',  types: ['Fighting'] },
+    { into: 107, level: 20, name: 'Hitmonchan', types: ['Fighting'] },
+    { into: 237, level: 20, name: 'Hitmontop',  types: ['Fighting'] },
+  ],
+  265: [ // Wurmple
+    { into: 266, level: 7, name: 'Silcoon', types: ['Bug'] },
+    { into: 268, level: 7, name: 'Cascoon', types: ['Bug'] },
+  ],
+};
 
 // ---- Achievements ----
 

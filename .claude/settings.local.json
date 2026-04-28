@@ -11,7 +11,22 @@
       "Bash(\"C:/Users/firep/Documents/claude/css/style.css\":*)",
       "Bash(git:*)",
       "WebFetch(domain:play.pokemonshowdown.com)",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/life-orb.png\" && echo \"\" && curl -s -o /dev/null -w \"%{http_code}\" \"https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/sharp-beak.png\" && echo \"\" && curl -s -o /dev/null -w \"%{http_code}\" \"https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/adaptability-band.png\")"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/life-orb.png\" && echo \"\" && curl -s -o /dev/null -w \"%{http_code}\" \"https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/sharp-beak.png\" && echo \"\" && curl -s -o /dev/null -w \"%{http_code}\" \"https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/adaptability-band.png\")",
+      "Bash(start *)",
+      "Bash(echo \"EXIT:$?\")",
+      "Read(//c/Users/firep/Documents/**)",
+      "Read(//c/Users/firep/**)",
+      "Bash(curl -s https://save.pokelike.xyz/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://save.pokelike.xyz/admin)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://save.pokelike.xyz/saves)",
+      "Bash(sed 's/^\\\\s*//')",
+      "Bash(awk -F'into:' '{print $2}')",
+      "Bash(sed 's/,.*$//')",
+      "Bash(python3 *)",
+      "Bash(sed 's/.*into: //')",
+      "Bash(sed 's/,.*//')",
+      "Bash(awk '$1 > 1 {print $2}')",
+      "Bash(sed 's/into: //')"
     ]
   }
 }

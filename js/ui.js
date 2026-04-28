@@ -3071,14 +3071,16 @@ async function playEvoAnimation(pokemon, evoData) {
   spriteEl.style.filter = '';
 }
 
-// Show Eevee evolution choice and return the chosen evoData (from EEVEE_EVOLUTIONS)
-function showEeveeChoice(pokemon) {
+// Show branching evolution choice and return the chosen evoData
+function showBranchingChoice(pokemon, choices) {
   return new Promise(resolve => {
     const overlay  = document.getElementById('eevee-choice-overlay');
     const choicesEl = document.getElementById('eevee-choices');
+    const titleEl   = document.getElementById('evo-choice-title');
+    if (titleEl) titleEl.innerHTML = `${pokemon.nickname || pokemon.name} is evolving!<br>Choose its evolution:`;
     choicesEl.innerHTML = '';
 
-    for (const evoData of EEVEE_EVOLUTIONS) {
+    for (const evoData of choices) {
       const spriteUrl = pokemon.isShiny
         ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/${evoData.into}.png`
         : `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${evoData.into}.png`;
@@ -3121,10 +3123,10 @@ async function checkAndEvolveTeam() {
     const wasFainted = pokemon.currentHp <= 0;
 
     let evo;
-    if (pokemon.speciesId === 133) {
-      // Eevee — show choice at level 36 (always ask user, even when skipping animation)
-      if (pokemon.level < 36) continue;
-      evo = await showEeveeChoice(pokemon);
+    const branchingChoices = BRANCHING_EVOLUTIONS[pokemon.speciesId];
+    if (branchingChoices) {
+      if (pokemon.level < branchingChoices[0].level) continue;
+      evo = await showBranchingChoice(pokemon, branchingChoices);
     } else {
       evo = GEN1_EVOLUTIONS[pokemon.speciesId];
       if (!evo || pokemon.level < evo.level) continue;

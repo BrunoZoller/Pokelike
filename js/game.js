@@ -734,62 +734,74 @@ async function doCatchNode(node) {
   showScreen('catch-screen');
   renderTeamBar(state.team, document.getElementById('catch-team-bar'), true);
   const choicesEl = document.getElementById('catch-choices');
-  choicesEl.innerHTML = '<div class="loading">Finding Pokemon...</div>';
 
-  let choices = await getCatchChoices(getEncounterMapIndex(), 18, state.isEndlessMode ? getEndlessMaxGenId(endlessState.stageNumber) : 151);
-  const isFirstMap = state.currentMap === 0 || (state.isEndlessMode && endlessState.regionNumber === 1 && endlessState.mapIndexInRegion === 0);
-  const level = isFirstMap ? Math.max(4, getLevelForNode(node)) : getLevelForNode(node);
-  const lvlFiltered = choices.filter(sp => minLevelForSpecies(sp.id ?? sp.speciesId) <= level);
-  if (lvlFiltered.length > 0) {
-    // Pad with ineligible choices if filtering drops below 3 so there are always 3 options
-    choices = lvlFiltered.length < 3
-      ? [...lvlFiltered, ...choices.filter(sp => !lvlFiltered.includes(sp))].slice(0, 3)
-      : lvlFiltered;
-  }
+  let instances, rerollPool, level;
 
-  // Nuzlocke map 1: restrict to curated pool
-  if (state.nuzlockeMode && state.currentMap === 0) {
-    const nuzlockeMap1Ids = new Set([10,11,27,54,56,60,69,72,74,79,81,86,96,98,100,102,111,116,118,120,129,133]);
-    const filtered = choices.filter(sp => nuzlockeMap1Ids.has(sp.id ?? sp.speciesId));
-    if (filtered.length > 0) choices = filtered;
-  }
+  if (state.savedCatch?.nodeId === node.id && Array.isArray(state.savedCatch.instances)) {
+    // Restore persisted choices after a page refresh so the same Pokemon are always shown
+    ({ instances, rerollPool, level } = state.savedCatch);
+  } else {
+    choicesEl.innerHTML = '<div class="loading">Finding Pokemon...</div>';
 
-  // Map 1, layer 1: guarantee at least one Grass AND one Water Pokemon (non-nuzlocke only)
-  if (!state.nuzlockeMode && state.currentMap === 0 && node.layer === 1) {
-    const grassIds = [43, 69, 102]; // Oddish, Bellsprout, Exeggcute
-    const waterIds = [54, 60, 72, 79, 86, 98, 116, 118, 120, 129];
-    if (!choices.some(p => p.types?.includes('Grass'))) {
-      const id = grassIds[Math.floor(rng() * grassIds.length)];
-      const r = await fetchPokemonById(id);
-      if (r) choices[0] = r;
+    let choices = await getCatchChoices(getEncounterMapIndex(), 18, state.isEndlessMode ? getEndlessMaxGenId(endlessState.stageNumber) : 151);
+    const isFirstMap = state.currentMap === 0 || (state.isEndlessMode && endlessState.regionNumber === 1 && endlessState.mapIndexInRegion === 0);
+    level = isFirstMap ? Math.max(4, getLevelForNode(node)) : getLevelForNode(node);
+    const lvlFiltered = choices.filter(sp => minLevelForSpecies(sp.id ?? sp.speciesId) <= level);
+    if (lvlFiltered.length > 0) {
+      // Pad with ineligible choices if filtering drops below 3 so there are always 3 options
+      choices = lvlFiltered.length < 3
+        ? [...lvlFiltered, ...choices.filter(sp => !lvlFiltered.includes(sp))].slice(0, 3)
+        : lvlFiltered;
     }
-    if (!choices.some(p => p.types?.includes('Water'))) {
-      const id = waterIds[Math.floor(rng() * waterIds.length)];
-      const r = await fetchPokemonById(id);
-      if (r) {
-        const slot = choices.findIndex(p => !p.types?.includes('Grass'));
-        choices[slot === -1 ? 2 : slot] = r;
+
+    // Nuzlocke map 1: restrict to curated pool
+    if (state.nuzlockeMode && state.currentMap === 0) {
+      const nuzlockeMap1Ids = new Set([10,11,27,54,56,60,69,72,74,79,81,86,96,98,100,102,111,116,118,120,129,133]);
+      const filtered = choices.filter(sp => nuzlockeMap1Ids.has(sp.id ?? sp.speciesId));
+      if (filtered.length > 0) choices = filtered;
+    }
+
+    // Map 1, layer 1: guarantee at least one Grass AND one Water Pokemon (non-nuzlocke only)
+    if (!state.nuzlockeMode && state.currentMap === 0 && node.layer === 1) {
+      const grassIds = [43, 69, 102]; // Oddish, Bellsprout, Exeggcute
+      const waterIds = [54, 60, 72, 79, 86, 98, 116, 118, 120, 129];
+      if (!choices.some(p => p.types?.includes('Grass'))) {
+        const id = grassIds[Math.floor(rng() * grassIds.length)];
+        const r = await fetchPokemonById(id);
+        if (r) choices[0] = r;
+      }
+      if (!choices.some(p => p.types?.includes('Water'))) {
+        const id = waterIds[Math.floor(rng() * waterIds.length)];
+        const r = await fetchPokemonById(id);
+        if (r) {
+          const slot = choices.findIndex(p => !p.types?.includes('Grass'));
+          choices[slot === -1 ? 2 : slot] = r;
+        }
       }
     }
+
+    // Save all level-filtered candidates before team-dup filters (for reroll pool variety)
+    const allCandidates = [...choices];
+
+    const teamRoots = new Set(state.team.map(p => getEvoLineRoot(p.speciesId)));
+    if (state.nuzlockeMode) {
+      const filtered = choices.filter(sp => !teamRoots.has(getEvoLineRoot(sp.id)));
+      choices = (filtered.length > 0 ? filtered : choices).slice(0, 1);
+    }
+    if (state.isEndlessMode) {
+      const filtered = choices.filter(sp => !teamRoots.has(getEvoLineRoot(sp.id ?? sp.speciesId)));
+      if (filtered.length > 0) choices = filtered;
+    }
+    const displayedIds = new Set(choices.slice(0, 3).map(sp => sp.id ?? sp.speciesId));
+    rerollPool = allCandidates.filter(sp => !displayedIds.has(sp.id ?? sp.speciesId));
+    choices = choices.slice(0, 3);
+
+    instances = choices.map(sp => createInstance(sp, sp._legendary ? level + 5 : level, rng() < (hasShinyCharm() ? 0.02 : 0.01), getMoveТierForMap(state.currentMap)));
+
+    state.savedCatch = { nodeId: node.id, instances, rerollPool, level };
+    saveRun();
   }
 
-  // Save all level-filtered candidates before team-dup filters (for reroll pool variety)
-  const allCandidates = [...choices];
-
-  const teamRoots = new Set(state.team.map(p => getEvoLineRoot(p.speciesId)));
-  if (state.nuzlockeMode) {
-    const filtered = choices.filter(sp => !teamRoots.has(getEvoLineRoot(sp.id)));
-    choices = (filtered.length > 0 ? filtered : choices).slice(0, 1);
-  }
-  if (state.isEndlessMode) {
-    const filtered = choices.filter(sp => !teamRoots.has(getEvoLineRoot(sp.id ?? sp.speciesId)));
-    if (filtered.length > 0) choices = filtered;
-  }
-  const displayedIds = new Set(choices.slice(0, 3).map(sp => sp.id ?? sp.speciesId));
-  const rerollPool = allCandidates.filter(sp => !displayedIds.has(sp.id ?? sp.speciesId));
-  choices = choices.slice(0, 3);
-
-const instances = choices.map(sp => createInstance(sp, sp._legendary ? level + 5 : level, rng() < (hasShinyCharm() ? 0.02 : 0.01), getMoveТierForMap(state.currentMap)));
   const rerolled = new Set();
 
   function renderCatchSlot(inst, slotIdx) {
@@ -848,6 +860,7 @@ const instances = choices.map(sp => createInstance(sp, sp._legendary ? level + 5
   }
 
   document.getElementById('btn-skip-catch').onclick = () => {
+    state.savedCatch = null;
     advanceFromNode(state.map, node.id);
     showMapScreen();
   };
@@ -913,6 +926,7 @@ function catchPokemon(pokemon, node) {
     loadBuffsIntoPokemon(pokemon);
     state.team.push(pokemon);
     if (state.team.length > state.maxTeamSize) state.maxTeamSize = state.team.length;
+    state.savedCatch = null;
     advanceFromNode(state.map, node.id);
     showMapScreen();
   } else {
@@ -958,6 +972,7 @@ function showSwapScreen(newPoke, node) {
       loadBuffsIntoPokemon(newPoke);
       state.team.push(newPoke);
       if (state.team.length > state.maxTeamSize) state.maxTeamSize = state.team.length;
+      state.savedCatch = null;
       advanceFromNode(state.map, node.id);
       showMapNotification(`${newPoke.name} joined your team!`);
       showMapScreen();
@@ -982,6 +997,7 @@ function showSwapScreen(newPoke, node) {
       if (released.heldItem) state.items.push(released.heldItem);
       loadBuffsIntoPokemon(newPoke);
       state.team.splice(idx, 1, newPoke);
+      state.savedCatch = null;
       advanceFromNode(state.map, node.id);
       showMapScreen();
     });
@@ -1021,6 +1037,7 @@ function showSwapScreen(newPoke, node) {
 
   document.getElementById('btn-cancel-swap').onclick = () => {
     cleanup();
+    state.savedCatch = null;
     advanceFromNode(state.map, node.id);
     showMapScreen();
   };
@@ -1277,8 +1294,9 @@ function openUsableItemModal(item, bagIdx) {
 
 async function applyEvolution(pokemon) {
   let evo;
-  if (pokemon.speciesId === 133) {
-    evo = await showEeveeChoice(pokemon);
+  const branchingChoices = BRANCHING_EVOLUTIONS[pokemon.speciesId];
+  if (branchingChoices) {
+    evo = await showBranchingChoice(pokemon, branchingChoices);
   } else {
     evo = GEN1_EVOLUTIONS[pokemon.speciesId];
     if (!evo) return;
@@ -2303,8 +2321,8 @@ function getEvoLineRoot(speciesId) {
   for (const [from, evo] of Object.entries(GEN1_EVOLUTIONS)) {
     parentOf[evo.into] = Number(from);
   }
-  for (const evo of (typeof EEVEE_EVOLUTIONS !== 'undefined' ? EEVEE_EVOLUTIONS : [])) {
-    parentOf[evo.into] = 133;
+  for (const [fromId, choices] of Object.entries(BRANCHING_EVOLUTIONS)) {
+    for (const evo of choices) parentOf[evo.into] = Number(fromId);
   }
   // Branch / trade / friendship evolutions missing from GEN1_EVOLUTIONS
   Object.assign(parentOf, {
@@ -2415,6 +2433,77 @@ function advanceEndless() {
     startEndlessMap();
   }
 }
+
+// ---- Keyboard shortcuts ----
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
+  const activeScreen = document.querySelector('.screen.active')?.id;
+
+  // Space = skip/cancel on any screen that has such a button
+  if (e.code === 'Space' && !e.shiftKey) {
+    const skipMap = {
+      'battle-screen': 'btn-auto-battle',
+      'catch-screen':  'btn-skip-catch',
+      'item-screen':   'btn-skip-item',
+      'swap-screen':   'btn-cancel-swap',
+      'trade-screen':  'btn-skip-trade',
+    };
+    const btnId = skipMap[activeScreen];
+    if (btnId) {
+      const btn = document.getElementById(btnId);
+      if (btn && !btn.disabled) { e.preventDefault(); btn.click(); }
+      return;
+    }
+  }
+
+  if (activeScreen === 'catch-screen') {
+    const idx = ['Digit1', 'Digit2', 'Digit3'].indexOf(e.code);
+    if (idx === -1) return;
+    const slot = document.getElementById('catch-choices')?.children[idx];
+    if (!slot) return;
+    e.preventDefault();
+    if (e.shiftKey) {
+      slot.querySelector('.reroll-btn')?.click();
+    } else {
+      slot.querySelector('.poke-card')?.click();
+    }
+    return;
+  }
+
+  if (activeScreen === 'item-screen' && !e.shiftKey) {
+    const idx = ['Digit1', 'Digit2', 'Digit3'].indexOf(e.code);
+    if (idx === -1) return;
+    const slot = document.getElementById('item-choices')?.children[idx];
+    if (!slot) return;
+    e.preventDefault();
+    slot.click();
+    return;
+  }
+
+  if (activeScreen === 'swap-screen' && !e.shiftKey) {
+    const idx = ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6'].indexOf(e.code);
+    if (idx === -1) return;
+    const slot = document.getElementById('swap-choices')?.children[idx];
+    if (!slot) return;
+    e.preventDefault();
+    slot.click();
+    return;
+  }
+
+  if (activeScreen === 'map-screen' && !e.shiftKey) {
+    const idx = ['Digit1', 'Digit2'].indexOf(e.code);
+    if (idx === -1) return;
+    if (!state?.map) return;
+    const accessible = Object.values(state.map.nodes)
+      .filter(n => n.accessible && !n.visited)
+      .sort((a, b) => a.layer !== b.layer ? a.layer - b.layer : a.col - b.col);
+    const node = accessible[idx];
+    if (!node) return;
+    e.preventDefault();
+    if (state.isEndlessMode) onEndlessNodeClick(node);
+    else onNodeClick(node);
+  }
+});
 
 // ---- Boot ----
 window.addEventListener('DOMContentLoaded', initGame);
