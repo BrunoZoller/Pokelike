@@ -1147,7 +1147,7 @@ const ACHIEVEMENTS = [
   { id: 'max_stats_2',   name: 'Double Peak',      desc: 'Max out 2 stats on a single Pokémon',       icon: '📊', category: 'general' },
   { id: 'max_stats_3',   name: 'Triple Peak',      desc: 'Max out 3 stats on a single Pokémon',       icon: '🔝', category: 'general' },
   { id: 'max_stats_4',   name: 'Quad Peak',        desc: 'Max out 4 stats on a single Pokémon',       icon: '💪', category: 'general' },
-  { id: 'max_stats_all', name: 'Perfect Specimen',  desc: 'Max out all 6 stats on a single Pokémon',   icon: '🏅', category: 'general' },
+  { id: 'max_stats_all', name: 'Perfect Specimen',  desc: 'Max out all 5 stats on a single Pokémon',   icon: '🏅', category: 'general' },
   { id: 'shinydex_100', name: 'Shiny Spark',      desc: 'Catch 100 different shiny Pokémon',  icon: '⭐', category: 'general' },
   { id: 'shinydex_200', name: 'Shiny Flash',      desc: 'Catch 200 different shiny Pokémon',  icon: '💥', category: 'general' },
   { id: 'shinydex_300', name: 'Shiny Blaze',      desc: 'Catch 300 different shiny Pokémon',  icon: '🔥', category: 'general' },
