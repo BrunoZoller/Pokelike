@@ -882,7 +882,7 @@ function checkStarterCollectionAchievements() {
         .filter(e => e.endless && e.stageNumber === stage && e.starterSpeciesId)
         .map(e => e.starterSpeciesId)
     );
-    if (starterIds.every(id => used.has(id))) {
+    if (starterIds.some(id => used.has(id))) {
       const ach = unlockAchievement(`starters_stage_${stage}`);
       if (ach) showAchievementToast(ach);
     }
