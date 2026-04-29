@@ -1844,6 +1844,8 @@ h1, h2, .pixel-font {
   align-items: center;
   justify-content: center;
   background: rgba(0,0,0,0.88);
+  padding: 16px;
+  box-sizing: border-box;
 }
 .dex-detail-box {
   width: 100%;
