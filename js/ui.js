@@ -3726,6 +3726,28 @@ function openDexDetailModal(speciesId, name, spriteUrl, shinySpriteUrl, types) {
 
 const PATCH_NOTES = [
   {
+    version: '1.4.3',
+    title: 'Pokédex Update',
+    date: '2026-04-30',
+    sections: [
+      {
+        heading: 'New Features',
+        entries: [
+          'Pokédex detail view — click any Pokémon in the Pokédex (caught or not) to see its sprite, types, Pokédex flavor text, full evolution chain with levels, and where to find it in regular mode and Battle Tower',
+          'Shiny toggle in the detail view — press ★ to preview the shiny sprite',
+        ],
+      },
+      {
+        heading: 'Bug Fixes',
+        entries: [
+          'Rerolled Pokémon in catch nodes can now be shiny',
+          'Catch nodes in Battle Tower now always show 3 options — when the team-duplicate filter reduced the pool below 3, the game now pulls from a lower-tier pool to fill the remaining slots',
+          'Starting a new run no longer shows a stale "Continue Battle Tower" button when a previous Battle Tower save existed',
+        ],
+      },
+    ],
+  },
+  {
     version: '1.4.2',
     title: 'Quality of Life Patch',
     date: '2026-04-28',
