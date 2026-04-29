@@ -126,6 +126,7 @@ async function initGame() {
 }
 
 async function startNewRun(nuzlockeMode = false) {
+  clearEndlessState();
   const savedTrainer = localStorage.getItem('poke_trainer') || null;
   const seed = (Date.now() ^ (Math.random() * 0x100000000 | 0)) >>> 0;
   seedRng(seed);
