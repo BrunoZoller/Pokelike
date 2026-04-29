@@ -3522,7 +3522,7 @@ function openPokedexModal(initialTab = 'normal') {
     modal.onclick = e => {
       const card = e.target.closest('.dex-card');
       if (!card || card.classList.contains('dex-unknown')) return;
-      const id = parseInt(card.querySelector('.dex-num')?.textContent, 10);
+      const id = parseInt(card.querySelector('.dex-num')?.textContent.replace('#', ''), 10);
       if (!id) return;
       const entry = (tab === 'shiny' ? getShinyDex() : getPokedex())[id];
       if (!entry) return;
