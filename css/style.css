@@ -1835,6 +1835,229 @@ h1, h2, .pixel-font {
   margin-top: 2px;
 }
 
+/* ---- Pokédex Detail Modal ---- */
+#dex-detail-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 301;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.88);
+}
+.dex-detail-box {
+  width: 100%;
+  max-width: 520px;
+  max-height: 88vh;
+  border: 3px solid #cc2222;
+  background: #160606;
+  display: flex;
+  flex-direction: column;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.dex-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: #220808;
+  border-bottom: 2px solid #cc2222;
+  flex-shrink: 0;
+}
+.dex-detail-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  color: #ff6666;
+}
+.dex-detail-body {
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.dex-detail-top {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.dex-detail-sprite-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+.dex-detail-sprite {
+  width: 96px;
+  height: 96px;
+  image-rendering: pixelated;
+  display: block;
+}
+.dex-detail-shiny-btn {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  background: rgba(0,0,0,0.7);
+  border: 1px solid #555;
+  color: #888;
+  font-size: 12px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  border-radius: 2px;
+}
+.dex-detail-shiny-btn--active {
+  color: #ffe066;
+  text-shadow: 0 0 6px gold;
+  border-color: gold;
+}
+.dex-detail-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+.dex-detail-name {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  color: #eee;
+}
+.dex-detail-num {
+  font-size: 10px;
+  color: #888;
+}
+.dex-detail-types {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.dex-detail-flavor {
+  font-size: 10px;
+  color: #aaa;
+  font-style: italic;
+  line-height: 1.5;
+  margin-top: 4px;
+}
+.dex-detail-section-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  color: #cc3333;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #330000;
+}
+.dex-detail-evo {
+  overflow-x: auto;
+  padding: 4px 0;
+}
+.dex-evo-forward {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: nowrap;
+}
+.dex-evo-node {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.dex-evo-sprite {
+  width: 54px;
+  height: 54px;
+  image-rendering: pixelated;
+}
+.dex-evo-node--current > .dex-evo-sprite {
+  outline: 2px solid #ffe066;
+  outline-offset: 1px;
+}
+.dex-evo-name {
+  font-size: 7px;
+  color: #ccc;
+  text-align: center;
+  max-width: 60px;
+  word-break: break-word;
+}
+.dex-evo-node--current > .dex-evo-name {
+  color: #ffe066;
+}
+.dex-evo-arrow-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+.dex-evo-arrow {
+  color: #cc3333;
+  font-size: 12px;
+  line-height: 1;
+}
+.dex-evo-level {
+  font-size: 6px;
+  color: #888;
+  white-space: nowrap;
+}
+.dex-evo-children {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.dex-evo-branch {
+  flex-wrap: wrap;
+  flex-direction: row;
+  align-items: flex-start;
+}
+.dex-detail-locations {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.dex-detail-loc-group {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.dex-detail-loc-label {
+  font-size: 8px;
+  color: #888;
+  flex-shrink: 0;
+  padding-top: 3px;
+}
+.dex-detail-loc-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.dex-detail-loc-tag {
+  background: #2a0a0a;
+  border: 1px solid #552222;
+  color: #cc8888;
+  font-size: 8px;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+.dex-detail-loc-tag--tower {
+  background: #0a1a2a;
+  border-color: #224455;
+  color: #88aacc;
+}
+.dex-detail-loc-none {
+  font-size: 8px;
+  color: #555;
+  font-style: italic;
+}
+.dex-card.dex-caught:hover,
+.dex-card.shiny-dex-card:hover {
+  cursor: pointer;
+  border-color: #ff4444;
+}
+
 /* ---- Settings Modal ---- */
 #settings-modal {
   position: fixed;

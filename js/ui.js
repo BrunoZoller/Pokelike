@@ -3518,6 +3518,18 @@ function openPokedexModal(initialTab = 'normal') {
       charmEl.style.boxShadow = '0 0 6px gold';
       charmEl.title = 'Shiny Charm — active! Doubles all shiny rates.';
     }
+
+    modal.onclick = e => {
+      const card = e.target.closest('.dex-card');
+      if (!card || card.classList.contains('dex-unknown')) return;
+      const id = parseInt(card.querySelector('.dex-num')?.textContent, 10);
+      if (!id) return;
+      const entry = (tab === 'shiny' ? getShinyDex() : getPokedex())[id];
+      if (!entry) return;
+      const spriteUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+      const shinySpriteUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/${id}.png`;
+      openDexDetailModal(id, entry.name, spriteUrl, shinySpriteUrl, entry.types || []);
+    };
   }
 
   modal.querySelectorAll('.dex-tab').forEach(b =>
@@ -3527,6 +3539,146 @@ function openPokedexModal(initialTab = 'normal') {
 }
 
 function openShinyDexModal() { openPokedexModal('shiny'); }
+
+function openDexDetailModal(speciesId, name, spriteUrl, shinySpriteUrl, types) {
+  const existing = document.getElementById('dex-detail-modal');
+  if (existing) existing.remove();
+
+  const numStr = `#${String(speciesId).padStart(3, '0')}`;
+  const typeBadges = types.map(t =>
+    `<span class="type-badge type-${t.toLowerCase()}">${t}</span>`
+  ).join('');
+
+  const { regularMaps, towerFloors } = getPokemonLocations(speciesId);
+  const locTags = regularMaps.length
+    ? regularMaps.map(m => `<span class="dex-detail-loc-tag">${m}</span>`).join('')
+    : '<span class="dex-detail-loc-none">Not found in regular mode</span>';
+  const floorTags = towerFloors.length
+    ? towerFloors.map(f => `<span class="dex-detail-loc-tag dex-detail-loc-tag--tower">${f}</span>`).join('')
+    : '<span class="dex-detail-loc-none">Not found in Battle Tower</span>';
+
+  const modal = document.createElement('div');
+  modal.id = 'dex-detail-modal';
+  modal.innerHTML = `
+    <div class="dex-detail-box">
+      <div class="dex-detail-header">
+        <span class="dex-detail-title">${numStr} ${name}</span>
+        <button class="ach-modal-close" id="dex-detail-close">✕</button>
+      </div>
+      <div class="dex-detail-body">
+        <div class="dex-detail-top">
+          <div class="dex-detail-sprite-wrap">
+            <img id="dex-detail-sprite" class="dex-detail-sprite" src="${spriteUrl}" alt="${name}">
+            <button class="dex-detail-shiny-btn" id="dex-detail-shiny-btn" title="Toggle shiny">★</button>
+          </div>
+          <div class="dex-detail-info">
+            <div class="dex-detail-name">${name}</div>
+            <div class="dex-detail-num">${numStr}</div>
+            <div class="dex-detail-types">${typeBadges}</div>
+            <div class="dex-detail-flavor" id="dex-detail-flavor">Loading...</div>
+          </div>
+        </div>
+        <div class="dex-detail-section-title">Evolution Chain</div>
+        <div class="dex-detail-evo" id="dex-detail-evo">Loading...</div>
+        <div class="dex-detail-section-title">Where to Find</div>
+        <div class="dex-detail-locations">
+          <div class="dex-detail-loc-group">
+            <span class="dex-detail-loc-label">Regular:</span>
+            <div class="dex-detail-loc-tags">${locTags}</div>
+          </div>
+          <div class="dex-detail-loc-group">
+            <span class="dex-detail-loc-label">Battle Tower:</span>
+            <div class="dex-detail-loc-tags">${floorTags}</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+
+  const spriteEl = document.getElementById('dex-detail-sprite');
+  const shinyBtn = document.getElementById('dex-detail-shiny-btn');
+  let showingShiny = false;
+  shinyBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    showingShiny = !showingShiny;
+    spriteEl.src = showingShiny ? shinySpriteUrl : spriteUrl;
+    shinyBtn.classList.toggle('dex-detail-shiny-btn--active', showingShiny);
+  });
+
+  const close = () => { const m = document.getElementById('dex-detail-modal'); if (m) m.remove(); };
+  document.getElementById('dex-detail-close').addEventListener('click', close);
+  modal.addEventListener('click', e => { if (e.target === modal) close(); });
+
+  // Async: flavor text
+  fetchPokemonSpecies(speciesId).then(data => {
+    const el = document.getElementById('dex-detail-flavor');
+    if (el) el.textContent = data.flavorText || '—';
+  });
+
+  // Async: evolution chain
+  (async () => {
+    const { chain } = buildEvoChain(speciesId);
+
+    async function renderEvoNode(node) {
+      const poke = await fetchPokemonById(node.id);
+      if (!document.getElementById('dex-detail-evo')) return null;
+      const isCurrent = node.id === speciesId;
+
+      const wrap = document.createElement('div');
+      wrap.className = 'dex-evo-forward';
+
+      const nodeEl = document.createElement('div');
+      nodeEl.className = 'dex-evo-node' + (isCurrent ? ' dex-evo-node--current' : '');
+      const img = document.createElement('img');
+      img.className = 'dex-evo-sprite';
+      img.src = poke?.spriteUrl || `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${node.id}.png`;
+      img.alt = poke?.name || '';
+      const nameEl = document.createElement('div');
+      nameEl.className = 'dex-evo-name';
+      nameEl.textContent = poke?.name || '';
+      nodeEl.appendChild(img);
+      nodeEl.appendChild(nameEl);
+      wrap.appendChild(nodeEl);
+
+      if (node.evolvesInto.length > 0) {
+        const arrow = document.createElement('div');
+        arrow.className = 'dex-evo-arrow';
+        arrow.innerHTML = '▶';
+        const levelEl = document.createElement('div');
+        levelEl.className = 'dex-evo-level';
+        levelEl.textContent = node.evolvesInto[0].level ? `Lv.${node.evolvesInto[0].level}` : '';
+        const arrowWrap = document.createElement('div');
+        arrowWrap.className = 'dex-evo-arrow-wrap';
+        arrowWrap.appendChild(levelEl);
+        arrowWrap.appendChild(arrow);
+        wrap.appendChild(arrowWrap);
+
+        const childrenEl = document.createElement('div');
+        childrenEl.className = 'dex-evo-children' + (node.evolvesInto.length > 1 ? ' dex-evo-branch' : '');
+
+        const childNodes = await Promise.all(node.evolvesInto.map(child => renderEvoNode(child)));
+        if (!document.getElementById('dex-detail-evo')) return null;
+        for (const childEl of childNodes) {
+          if (childEl) childrenEl.appendChild(childEl);
+        }
+        wrap.appendChild(childrenEl);
+      }
+
+      return wrap;
+    }
+
+    const evoEl = document.getElementById('dex-detail-evo');
+    if (!evoEl) return;
+    const chainEl = await renderEvoNode(chain);
+    const evoContainer = document.getElementById('dex-detail-evo');
+    if (evoContainer && chainEl) {
+      evoContainer.innerHTML = '';
+      evoContainer.appendChild(chainEl);
+    } else if (evoContainer) {
+      evoContainer.textContent = '—';
+    }
+  })();
+}
 
 // ---- Patch Notes Modal ----
 

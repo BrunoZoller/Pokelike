@@ -391,6 +391,24 @@ const MAP_LEVEL_RANGES = [
   [29, 37], [37, 43], [43, 47], [47, 52], [53, 64]
 ];
 
+const MAP_NAMES = [
+  'Route 1', 'Mt Moon', 'Nugget Bridge', 'Rock Tunnel',
+  'Silph Co', 'Safari Zone', 'Seafoam Island', 'Viridian City', 'Victory Road',
+];
+
+function getPokemonLocations(speciesId) {
+  const id = Number(speciesId);
+  const BUCKET_INDICES = { low:[0], midLow:[1], mid:[2,3], midHigh:[4,5], high:[6,7], veryHigh:[8] };
+  const mapIndices = [];
+  for (const [bucket, indices] of Object.entries(BUCKET_INDICES)) {
+    if (GEN1_BST_APPROX[bucket].includes(id)) mapIndices.push(...indices);
+  }
+  return {
+    regularMaps: mapIndices.map(i => MAP_NAMES[i]),
+    towerFloors: mapIndices.map(i => `Floor ${i + 1}`),
+  };
+}
+
 // PokeAPI cache helpers
 const CACHE_KEY_SPECIES = 'pkrl_species_list';
 
@@ -479,6 +497,57 @@ async function fetchPokemonById(idOrSlug) {
     console.warn(`Failed to fetch pokemon ${idOrSlug}`, e);
     return null;
   }
+}
+
+async function fetchPokemonSpecies(id) {
+  const key = `pkrl_species_${id}`;
+  const cached = getCached(key);
+  if (cached) return cached;
+  try {
+    const r = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const d = await r.json();
+    const entry = d.flavor_text_entries.find(e => e.language.name === 'en');
+    const flavorText = entry
+      ? entry.flavor_text.replace(/\f|\n|­/g, ' ').replace(/\s{2,}/g, ' ').trim()
+      : '';
+    const result = { id, flavorText };
+    setCached(key, result);
+    return result;
+  } catch { return { id, flavorText: '' }; }
+}
+
+function buildEvoChain(speciesId) {
+  let baseId = Number(speciesId);
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const [pid, evo] of Object.entries(EVOLUTIONS)) {
+      if (evo.into === baseId) { baseId = Number(pid); changed = true; break; }
+    }
+    if (!changed) {
+      for (const [pid, branches] of Object.entries(BRANCHING_EVOLUTIONS)) {
+        if (branches.some(b => b.into === baseId)) { baseId = Number(pid); changed = true; break; }
+      }
+    }
+  }
+
+  function buildNode(id) {
+    const node = { id, evolvesInto: [] };
+    if (BRANCHING_EVOLUTIONS[id]) {
+      node.evolvesInto = BRANCHING_EVOLUTIONS[id].map(b => ({
+        id: b.into, name: b.name, level: b.level,
+        evolvesInto: buildNode(b.into).evolvesInto,
+      }));
+    } else if (EVOLUTIONS[id]) {
+      const e = EVOLUTIONS[id];
+      node.evolvesInto = [{ id: e.into, name: e.name, level: e.level,
+        evolvesInto: buildNode(e.into).evolvesInto }];
+    }
+    return node;
+  }
+
+  return { baseId, chain: buildNode(baseId) };
 }
 
 let _speciesPool = null;

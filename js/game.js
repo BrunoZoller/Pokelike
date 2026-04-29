@@ -797,7 +797,22 @@ async function doCatchNode(node) {
     }
     if (state.isEndlessMode) {
       const filtered = choices.filter(sp => !teamRoots.has(getEvoLineRoot(sp.id ?? sp.speciesId)));
-      if (filtered.length > 0) choices = filtered;
+      if (filtered.length > 0) {
+        choices = filtered;
+        if (choices.length < 3) {
+          const lowerIdx = Math.max(0, getEncounterMapIndex() - 1);
+          if (lowerIdx < getEncounterMapIndex()) {
+            const maxGen = getEndlessMaxGenId(endlessState.stageNumber);
+            const lowerPool = await getCatchChoices(lowerIdx, 18, maxGen);
+            const choiceRoots = new Set(choices.map(sp => getEvoLineRoot(sp.id ?? sp.speciesId)));
+            const extras = lowerPool.filter(sp =>
+              !teamRoots.has(getEvoLineRoot(sp.id ?? sp.speciesId)) &&
+              !choiceRoots.has(getEvoLineRoot(sp.id ?? sp.speciesId))
+            );
+            choices = [...choices, ...extras].slice(0, 3);
+          }
+        }
+      }
     }
     const displayedIds = new Set(choices.slice(0, 3).map(sp => sp.id ?? sp.speciesId));
     rerollPool = allCandidates.filter(sp => !displayedIds.has(sp.id ?? sp.speciesId));
@@ -858,7 +873,7 @@ async function doCatchNode(node) {
         // Remove picked from pool so subsequent rerolls can't get the same pokemon
         const pickIdx = rerollPool.indexOf(pick);
         if (pickIdx !== -1) rerollPool.splice(pickIdx, 1);
-        const newInst = createInstance(pick, level, false, getMoveТierForMap(state.currentMap));
+        const newInst = createInstance(pick, level, rng() < (hasShinyCharm() ? 0.02 : 0.01), getMoveТierForMap(state.currentMap));
         instances[slotIdx] = newInst;
         choicesEl.replaceChild(renderCatchSlot(newInst, slotIdx), choicesEl.children[slotIdx]);
       });
