@@ -523,12 +523,17 @@ async function onNodeClick(node) {
       n.accessible = false;
     }
   }
-  saveRun();
   let resolvedType = node.type;
 
   if (node.type === NODE_TYPES.QUESTION) {
-    resolvedType = resolveQuestionMark();
+    if (state.savedQuestionResolve?.nodeId === node.id) {
+      resolvedType = state.savedQuestionResolve.resolvedType;
+    } else {
+      resolvedType = resolveQuestionMark();
+      state.savedQuestionResolve = { nodeId: node.id, resolvedType };
+    }
   }
+  saveRun();
 
   switch (resolvedType) {
     case NODE_TYPES.BATTLE:
@@ -868,6 +873,7 @@ async function doCatchNode(node) {
 
   document.getElementById('btn-skip-catch').onclick = () => {
     state.savedCatch = null;
+    state.savedQuestionResolve = null;
     advanceFromNode(state.map, node.id);
     showMapScreen();
   };
@@ -934,6 +940,7 @@ function catchPokemon(pokemon, node) {
     state.team.push(pokemon);
     if (state.team.length > state.maxTeamSize) state.maxTeamSize = state.team.length;
     state.savedCatch = null;
+    state.savedQuestionResolve = null;
     advanceFromNode(state.map, node.id);
     showMapScreen();
   } else {
@@ -980,6 +987,7 @@ function showSwapScreen(newPoke, node) {
       state.team.push(newPoke);
       if (state.team.length > state.maxTeamSize) state.maxTeamSize = state.team.length;
       state.savedCatch = null;
+      state.savedQuestionResolve = null;
       advanceFromNode(state.map, node.id);
       showMapNotification(`${newPoke.name} joined your team!`);
       showMapScreen();
@@ -1005,6 +1013,7 @@ function showSwapScreen(newPoke, node) {
       loadBuffsIntoPokemon(newPoke);
       state.team.splice(idx, 1, newPoke);
       state.savedCatch = null;
+      state.savedQuestionResolve = null;
       advanceFromNode(state.map, node.id);
       showMapScreen();
     });
@@ -1045,6 +1054,7 @@ function showSwapScreen(newPoke, node) {
   document.getElementById('btn-cancel-swap').onclick = () => {
     cleanup();
     state.savedCatch = null;
+    state.savedQuestionResolve = null;
     advanceFromNode(state.map, node.id);
     showMapScreen();
   };

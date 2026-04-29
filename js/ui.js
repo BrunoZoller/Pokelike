@@ -3123,7 +3123,11 @@ function showBranchingChoice(pokemon, choices) {
 }
 
 // Check team for pending evolutions after a won battle and play animations
+let _evolveInProgress = false;
 async function checkAndEvolveTeam() {
+  if (_evolveInProgress) return;
+  _evolveInProgress = true;
+  try {
   const skipAnim = getSettings().autoSkipEvolve;
   for (const pokemon of state.team) {
     const wasFainted = pokemon.currentHp <= 0;
@@ -3165,6 +3169,9 @@ async function checkAndEvolveTeam() {
     checkDexAchievements();
     renderTeamBar(state.team);
     saveRun();
+  }
+  } finally {
+    _evolveInProgress = false;
   }
 }
 

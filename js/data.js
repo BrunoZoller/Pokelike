@@ -638,7 +638,11 @@ async function getCatchChoices(mapIndex, count = 3, maxGenId = 151) {
   else bucket = GEN1_BST_APPROX.low;
 
   const filtered = bucket.filter(id => !LEGENDARY_IDS.includes(id) && id <= maxGenId);
-  const shuffled = [...filtered].sort(() => (typeof rng === 'function' ? rng() : Math.random()) - 0.5);
+  const shuffled = [...filtered];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
   const ids = shuffled.slice(0, Math.max(9, count * 3));
 
   const results = await Promise.all(ids.map(id => fetchPokemonById(id)));
