@@ -3558,7 +3558,7 @@ function openDexDetailModal(speciesId, name, spriteUrl, shinySpriteUrl, types) {
     ? (regularMaps.length
         ? regularMaps.map(m => `<span class="dex-detail-loc-tag">${m}</span>`).join('')
         : '<span class="dex-detail-loc-none">Not found in regular mode</span>')
-    : '<span class="dex-detail-loc-none">Not available (Kanto mode is Gen 1 only)</span>';
+    : '<span class="dex-detail-loc-none">Not available</span>';
   const needsFloorAsync = !isGen1 && !cachedPoke?.bst;
   const floorTags = towerFloors.length
     ? towerFloors.map(f => `<span class="dex-detail-loc-tag dex-detail-loc-tag--tower">${f}</span>`).join('')
