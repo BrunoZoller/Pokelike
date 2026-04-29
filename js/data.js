@@ -396,15 +396,28 @@ const MAP_NAMES = [
   'Silph Co', 'Safari Zone', 'Seafoam Island', 'Viridian City', 'Victory Road',
 ];
 
-function getPokemonLocations(speciesId) {
+function getPokemonLocations(speciesId, bst) {
   const id = Number(speciesId);
   const BUCKET_INDICES = { low:[0], midLow:[1], mid:[2,3], midHigh:[4,5], high:[6,7], veryHigh:[8] };
-  const mapIndices = [];
-  for (const [bucket, indices] of Object.entries(BUCKET_INDICES)) {
-    if (GEN1_BST_APPROX[bucket].includes(id)) mapIndices.push(...indices);
+  let mapIndices = [];
+
+  if (id <= 151) {
+    for (const [bucket, indices] of Object.entries(BUCKET_INDICES)) {
+      if (GEN1_BST_APPROX[bucket].includes(id)) mapIndices.push(...indices);
+    }
+  } else if (bst != null) {
+    let bucket;
+    if (bst >= 530) bucket = 'veryHigh';
+    else if (bst >= 460) bucket = 'high';
+    else if (bst >= 400) bucket = 'midHigh';
+    else if (bst >= 340) bucket = 'mid';
+    else if (bst >= 280) bucket = 'midLow';
+    else bucket = 'low';
+    mapIndices = BUCKET_INDICES[bucket];
   }
+
   return {
-    regularMaps: mapIndices.map(i => MAP_NAMES[i]),
+    regularMaps: id <= 151 ? mapIndices.map(i => MAP_NAMES[i]) : [],
     towerFloors: mapIndices.map(i => `Floor ${i + 1}`),
   };
 }

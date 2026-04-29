@@ -2055,7 +2055,8 @@ h1, h2, .pixel-font {
   font-style: italic;
 }
 .dex-card.dex-caught:hover,
-.dex-card.shiny-dex-card:hover {
+.dex-card.shiny-dex-card:hover,
+.dex-card.dex-unknown:hover {
   cursor: pointer;
   border-color: #ff4444;
 }

@@ -3521,14 +3521,16 @@ function openPokedexModal(initialTab = 'normal') {
 
     modal.onclick = e => {
       const card = e.target.closest('.dex-card');
-      if (!card || card.classList.contains('dex-unknown')) return;
+      if (!card) return;
       const id = parseInt(card.querySelector('.dex-num')?.textContent.replace('#', ''), 10);
       if (!id) return;
       const entry = (tab === 'shiny' ? getShinyDex() : getPokedex())[id];
-      if (!entry) return;
+      const cached = getCached(`pkrl_poke_${id}`);
+      const name = entry?.name || cached?.name || '???';
+      const types = entry?.types || cached?.types || [];
       const spriteUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
       const shinySpriteUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/${id}.png`;
-      openDexDetailModal(id, entry.name, spriteUrl, shinySpriteUrl, entry.types || []);
+      openDexDetailModal(id, name, spriteUrl, shinySpriteUrl, types);
     };
   }
 
@@ -3549,13 +3551,20 @@ function openDexDetailModal(speciesId, name, spriteUrl, shinySpriteUrl, types) {
     `<span class="type-badge type-${t.toLowerCase()}">${t}</span>`
   ).join('');
 
-  const { regularMaps, towerFloors } = getPokemonLocations(speciesId);
-  const locTags = regularMaps.length
-    ? regularMaps.map(m => `<span class="dex-detail-loc-tag">${m}</span>`).join('')
-    : '<span class="dex-detail-loc-none">Not found in regular mode</span>';
+  const isGen1 = speciesId <= 151;
+  const cachedPoke = getCached(`pkrl_poke_${speciesId}`);
+  const { regularMaps, towerFloors } = getPokemonLocations(speciesId, cachedPoke?.bst);
+  const locTags = isGen1
+    ? (regularMaps.length
+        ? regularMaps.map(m => `<span class="dex-detail-loc-tag">${m}</span>`).join('')
+        : '<span class="dex-detail-loc-none">Not found in regular mode</span>')
+    : '<span class="dex-detail-loc-none">Not available (Kanto mode is Gen 1 only)</span>';
+  const needsFloorAsync = !isGen1 && !cachedPoke?.bst;
   const floorTags = towerFloors.length
     ? towerFloors.map(f => `<span class="dex-detail-loc-tag dex-detail-loc-tag--tower">${f}</span>`).join('')
-    : '<span class="dex-detail-loc-none">Not found in Battle Tower</span>';
+    : needsFloorAsync
+      ? '<span class="dex-detail-loc-none">Loading...</span>'
+      : '<span class="dex-detail-loc-none">Not found in Battle Tower</span>';
 
   const modal = document.createElement('div');
   modal.id = 'dex-detail-modal';
@@ -3588,7 +3597,7 @@ function openDexDetailModal(speciesId, name, spriteUrl, shinySpriteUrl, types) {
           </div>
           <div class="dex-detail-loc-group">
             <span class="dex-detail-loc-label">Battle Tower:</span>
-            <div class="dex-detail-loc-tags">${floorTags}</div>
+            <div class="dex-detail-loc-tags" id="dex-detail-floors">${floorTags}</div>
           </div>
         </div>
       </div>
@@ -3608,6 +3617,39 @@ function openDexDetailModal(speciesId, name, spriteUrl, shinySpriteUrl, types) {
   const close = () => { const m = document.getElementById('dex-detail-modal'); if (m) m.remove(); };
   document.getElementById('dex-detail-close').addEventListener('click', close);
   modal.addEventListener('click', e => { if (e.target === modal) close(); });
+
+  // If name/types or tower floors need API data, fetch once and fill in both
+  if (name === '???') {
+    fetchPokemonById(speciesId).then(poke => {
+      if (!document.getElementById('dex-detail-modal') || !poke) return;
+      document.querySelector('#dex-detail-modal .dex-detail-title').textContent = `${numStr} ${poke.name}`;
+      document.querySelector('#dex-detail-modal .dex-detail-name').textContent = poke.name;
+      if (poke.types?.length) {
+        document.querySelector('#dex-detail-modal .dex-detail-types').innerHTML =
+          poke.types.map(t => `<span class="type-badge type-${t.toLowerCase()}">${t}</span>`).join('');
+      }
+      if (needsFloorAsync) {
+        const floorsEl = document.getElementById('dex-detail-floors');
+        if (floorsEl) {
+          const { towerFloors: tf } = getPokemonLocations(speciesId, poke.bst);
+          floorsEl.innerHTML = tf.length
+            ? tf.map(f => `<span class="dex-detail-loc-tag dex-detail-loc-tag--tower">${f}</span>`).join('')
+            : '<span class="dex-detail-loc-none">Not found in Battle Tower</span>';
+        }
+      }
+    });
+  } else if (needsFloorAsync) {
+    fetchPokemonById(speciesId).then(poke => {
+      if (!poke) return;
+      const floorsEl = document.getElementById('dex-detail-floors');
+      if (floorsEl) {
+        const { towerFloors: tf } = getPokemonLocations(speciesId, poke.bst);
+        floorsEl.innerHTML = tf.length
+          ? tf.map(f => `<span class="dex-detail-loc-tag dex-detail-loc-tag--tower">${f}</span>`).join('')
+          : '<span class="dex-detail-loc-none">Not found in Battle Tower</span>';
+      }
+    });
+  }
 
   // Async: flavor text
   fetchPokemonSpecies(speciesId).then(data => {
