@@ -831,9 +831,9 @@ async function doCatchNode(node) {
       ? !!(getShinyDex()[inst.speciesId])
       : !!(getPokedex()[inst.speciesId]?.caught);
     const myRoot = getEvoLineRoot(inst.speciesId);
-    const hofStarterBadge = getHallOfFame().some(e =>
-      e.team?.some(p => getEvoLineRoot(p.speciesId) === myRoot)
-    );
+    const hofStarterBadge = inst.isShiny
+      ? (!caught && getUsedStarters().some(id => getEvoLineRoot(id) === myRoot))
+      : getHallOfFame().some(e => e.team?.some(p => getEvoLineRoot(p.speciesId) === myRoot));
     const wrapper = document.createElement('div');
     wrapper.innerHTML = renderPokemonCard(inst, true, false, caught, hofStarterBadge);
     const card = wrapper.querySelector('.poke-card');
@@ -1633,22 +1633,24 @@ async function doShinyNode(node) {
   const shiny = createInstance(species, level, true, getMoveТierForMap(state.currentMap));
 
   const shinyCaught = !!(getShinyDex()[shiny.speciesId]);
+  const shinyRoot = getEvoLineRoot(shiny.speciesId);
+  const shinyStarterBadge = !shinyCaught && getUsedStarters().some(id => getEvoLineRoot(id) === shinyRoot);
   showScreen('shiny-screen');
   document.getElementById('shiny-content').innerHTML = `
     <div class="shiny-title">✨ A Shiny Pokemon appeared!</div>
     <div class="poke-choice-wrap">
-      ${renderPokemonCard(shiny, false, false, shinyCaught)}
+      ${renderPokemonCard(shiny, false, false, shinyCaught, shinyStarterBadge)}
       ${renderTraitPreview(shiny, state.team)}
     </div>
     <button id="btn-take-shiny" class="btn-primary">Take ${shiny.name}!</button>
     <button id="btn-skip-shiny" class="btn-secondary" style="margin-top:6px;">Skip</button>
   `;
   document.getElementById('btn-take-shiny').onclick = () => {
+    const normalUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${shiny.speciesId}.png`;
+    markPokedexCaught(shiny.speciesId, shiny.name, shiny.types, normalUrl);
+    markShinyDexCaught(shiny.speciesId, shiny.name, shiny.types, shiny.spriteUrl);
+    checkDexAchievements();
     if (state.team.length < 6) {
-      const normalUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${shiny.speciesId}.png`;
-      markPokedexCaught(shiny.speciesId, shiny.name, shiny.types, normalUrl);
-      markShinyDexCaught(shiny.speciesId, shiny.name, shiny.types, shiny.spriteUrl);
-      checkDexAchievements();
       loadBuffsIntoPokemon(shiny);
       state.team.push(shiny);
       if (state.team.length > state.maxTeamSize) state.maxTeamSize = state.team.length;

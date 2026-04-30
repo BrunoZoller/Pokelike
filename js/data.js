@@ -401,24 +401,39 @@ function getPokemonLocations(speciesId, bst) {
   const BUCKET_INDICES = { low:[0], midLow:[1], mid:[2,3], midHigh:[4,5], high:[6,7], veryHigh:[8] };
   let mapIndices = [];
 
-  if (id <= 151) {
+  const GEN1_LEGENDARY_INDICES = {
+    144: [6, 7], 145: [6, 7], 146: [6, 7],
+    150: [6, 7, 8], 151: [6, 7, 8],
+  };
+  if (GEN1_LEGENDARY_INDICES[id]) {
+    mapIndices = GEN1_LEGENDARY_INDICES[id];
+  } else {
+    // GEN1_BST_APPROX contains all gens — use it for all IDs since getCatchChoices does too.
     for (const [bucket, indices] of Object.entries(BUCKET_INDICES)) {
       if (GEN1_BST_APPROX[bucket].includes(id)) mapIndices.push(...indices);
     }
-  } else if (bst != null) {
-    let bucket;
-    if (bst >= 530) bucket = 'veryHigh';
-    else if (bst >= 460) bucket = 'high';
-    else if (bst >= 400) bucket = 'midHigh';
-    else if (bst >= 340) bucket = 'mid';
-    else if (bst >= 280) bucket = 'midLow';
-    else bucket = 'low';
-    mapIndices = BUCKET_INDICES[bucket];
+    // Fall back to BST threshold only for Pokemon not listed in GEN1_BST_APPROX.
+    if (mapIndices.length === 0 && bst != null) {
+      let bucket;
+      if (bst >= 530) bucket = 'veryHigh';
+      else if (bst >= 460) bucket = 'high';
+      else if (bst >= 400) bucket = 'midHigh';
+      else if (bst >= 340) bucket = 'mid';
+      else if (bst >= 280) bucket = 'midLow';
+      else bucket = 'low';
+      mapIndices = BUCKET_INDICES[bucket];
+    }
   }
 
+  const TOWER_STAGE_LABEL = { 0: 'Early', 1: 'Early-Middle', 3: 'Middle', 4: 'Middle-Late', 6: 'Late', 7: 'Late' };
+  const seen = new Set();
+  const towerFloors = mapIndices
+    .filter(i => TOWER_STAGE_LABEL[i] !== undefined)
+    .map(i => TOWER_STAGE_LABEL[i])
+    .filter(label => !seen.has(label) && seen.add(label));
   return {
     regularMaps: id <= 151 ? mapIndices.map(i => MAP_NAMES[i]) : [],
-    towerFloors: mapIndices.map(i => `Floor ${i + 1}`),
+    towerFloors,
   };
 }
 
@@ -1051,6 +1066,9 @@ const EVOLUTIONS = {
   506:{ into: 507, level: 16, name: 'Herdier' },
   507:{ into: 508, level: 32, name: 'Stoutland' },
   509:{ into: 510, level: 20, name: 'Liepard' },
+  511:{ into: 512, level: 32, name: 'Simisage' },
+  513:{ into: 514, level: 32, name: 'Simisear' },
+  515:{ into: 516, level: 32, name: 'Simipour' },
   517:{ into: 518, level: 30, name: 'Musharna' },
   519:{ into: 520, level: 21, name: 'Tranquill' },
   520:{ into: 521, level: 32, name: 'Unfezant' },
@@ -1315,6 +1333,9 @@ function isShinyGenDexComplete(minId, maxId) {
   const dex = getShinyDex();
   const caughtIds = new Set(Object.values(dex).map(e => e.id));
   for (const id of ALL_CATCHABLE_IDS) {
+    if (id >= minId && id <= maxId && !caughtIds.has(id)) return false;
+  }
+  for (const id of LEGENDARY_ID_SET) {
     if (id >= minId && id <= maxId && !caughtIds.has(id)) return false;
   }
   return true;

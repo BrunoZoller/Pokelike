@@ -3559,7 +3559,8 @@ function openDexDetailModal(speciesId, name, spriteUrl, shinySpriteUrl, types) {
         ? regularMaps.map(m => `<span class="dex-detail-loc-tag">${m}</span>`).join('')
         : '<span class="dex-detail-loc-none">Not found in regular mode</span>')
     : '<span class="dex-detail-loc-none">Not available</span>';
-  const needsFloorAsync = !isGen1 && !cachedPoke?.bst;
+  const inBstApprox = Object.values(GEN1_BST_APPROX).some(arr => arr.includes(Number(speciesId)));
+  const needsFloorAsync = !isGen1 && !cachedPoke?.bst && !inBstApprox;
   const floorTags = towerFloors.length
     ? towerFloors.map(f => `<span class="dex-detail-loc-tag dex-detail-loc-tag--tower">${f}</span>`).join('')
     : needsFloorAsync
@@ -3725,6 +3726,32 @@ function openDexDetailModal(speciesId, name, spriteUrl, shinySpriteUrl, types) {
 // ---- Patch Notes Modal ----
 
 const PATCH_NOTES = [
+  {
+    version: '1.4.4',
+    title: 'Bug Fix Patch',
+    date: '2026-04-30',
+    sections: [
+      {
+        heading: 'Bug Fixes',
+        entries: [
+          'Catching a shiny from the dedicated shiny node now correctly marks the Pokémon in both the regular Pokédex and the Shiny Dex — previously, taking a shiny with a full team skipped the regular Pokédex entry',
+          'Great Ball badge now correctly appears on the shiny node screen for Pokémon whose evo line matches a used starter',
+          'Great Ball badge on catch nodes now checks used starters instead of Hall of Fame entries when the encounter is shiny',
+          'Gen 1 legendary Pokémon (Articuno, Zapdos, Moltres, Mewtwo, Mew) now show correct locations in the Pokédex detail view instead of "Not found"',
+          'Pokédex location data now uses the actual encounter bucket data for all Pokémon, not raw BST thresholds — locations shown are accurate to what the game actually spawns',
+          'Battle Tower location labels in the Pokédex are now shown as approximate ranges (Early, Early-Middle, Middle, Middle-Late, Late) instead of specific floor numbers that could be misleading',
+          'Shiny Dex completion achievement now requires catching all 5 Gen 1 legendary shinies — they were previously excluded from the check',
+          'Pansage, Pansear, and Panpour now correctly evolve into Simisage, Simisear, and Simipour',
+        ],
+      },
+      {
+        heading: 'New',
+        entries: [
+          'Privacy Policy page added (linked from the title screen)',
+        ],
+      },
+    ],
+  },
   {
     version: '1.4.3',
     title: 'Pokédex Update',
