@@ -144,6 +144,7 @@ function getTypeBoostItem(moveType, items) {
 }
 
 function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog) {
+  const rngSeedAtStart = typeof getRngSeed === 'function' ? getRngSeed() : 0;
   const pTeam = playerTeam.map(p => ({
     ...p,
     statusConditions: [...(p.statusConditions || [])],
@@ -735,7 +736,7 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog) {
     }
   }
 
-  return { playerWon, log, detailedLog, pTeam, eTeam, playerParticipants };
+  return { playerWon, log, detailedLog, pTeam, eTeam, playerParticipants, rngSeedAtStart };
 }
 
 function getLevelGain(team, bagItems) {
