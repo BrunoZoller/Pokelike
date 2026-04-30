@@ -25,11 +25,6 @@ let state = {
   nuzlockeMode: false,
 };
 
-// Anti-cheat: RNG seed captured at the start of the most recent runBattle() call.
-// Updated by runBattleScreen() after each battle so checkpoint/win submissions
-// can send the exact seed needed for server-side replay.
-let _acBattleRngSeed = 0;
-
 // ---- Run persistence ----
 
 function saveRun() {
@@ -135,12 +130,7 @@ async function startNewRun(nuzlockeMode = false) {
   const savedTrainer = localStorage.getItem('poke_trainer') || null;
   const seed = (Date.now() ^ (Math.random() * 0x100000000 | 0)) >>> 0;
   seedRng(seed);
-  state = { currentMap: 0, currentNode: null, team: [], items: [], badges: 0, map: null, eliteIndex: 0, trainer: savedTrainer || 'boy', starterSpeciesId: null, maxTeamSize: 1, nuzlockeMode, usedPokecenter: false, pickedUpItem: false, runSeed: seed, runToken: null, checkpoints: [] };
-  if (typeof acStartRun === 'function') {
-    acStartRun(seed, nuzlockeMode ? 'nuzlocke' : 'normal')
-      .then(token => { if (token && state) { state.runToken = token; saveRun(); } })
-      .catch(() => {});
-  }
+  state = { currentMap: 0, currentNode: null, team: [], items: [], badges: 0, map: null, eliteIndex: 0, trainer: savedTrainer || 'boy', starterSpeciesId: null, maxTeamSize: 1, nuzlockeMode, usedPokecenter: false, pickedUpItem: false, runSeed: seed };
   if (savedTrainer) {
     await showStarterSelect();
   } else {
@@ -688,14 +678,11 @@ async function doBossNode(node) {
     await doElite4();
     return;
   }
-  const gymIdx = state.currentMap;
   const leader = GYM_LEADERS[state.currentMap];
   const enemyTeam = leader.team.map(p => ({
     ...createInstance(p, p.level, false, leader.moveTier ?? 1),
     heldItem: p.heldItem || null,
   }));
-  // Snapshot team before battle for server-side replay verification.
-  const playerTeamSnap = state.team.map(p => ({ ...p }));
 
   showScreen('battle-screen');
   document.getElementById('battle-title').textContent = `Gym Battle vs ${leader.name}!`;
@@ -706,12 +693,6 @@ async function doBossNode(node) {
     showBadgeScreen(leader);
     const ach = unlockAchievement(`gym_${state.currentMap}`);
     if (ach) showAchievementToast(ach);
-    if (typeof acCheckpoint === 'function' && state.runToken) {
-      const rngSnap = _acBattleRngSeed;
-      acCheckpoint(state.runToken, state.checkpoints || [], gymIdx, rngSnap, playerTeamSnap)
-        .then(cp => { if (cp) { (state.checkpoints = state.checkpoints || []).push(cp); saveRun(); } })
-        .catch(() => {});
-    }
   }, () => {
     showGameOver();
   }, leader.name);
@@ -1715,10 +1696,9 @@ function runBattleScreen(enemyTeam, isBoss, onWin, onLose, enemyName = null, ene
     renderBattleField(pTeamCopy, eTeamInit);
 
     // Pre-compute the full battle result
-    const { playerWon, detailedLog, pTeam: resultP, eTeam: resultE, playerParticipants, rngSeedAtStart } = runBattle(
+    const { playerWon, detailedLog, pTeam: resultP, eTeam: resultE, playerParticipants } = runBattle(
       pTeamCopy, enemyTeam, state.items, enemyItems, null, traitsConfig
     );
-    _acBattleRngSeed = rngSeedAtStart;
 
     // Read auto-skip settings
     const settings = getSettings();
@@ -1844,19 +1824,6 @@ function showWinScreen() {
     return `<div style="display:flex;flex-direction:column;align-items:center;">${renderPokemonCard(p, false, false)}${itemHtml}</div>`;
   }).join('');
   document.getElementById('btn-play-again').onclick = () => startNewRun(state.nuzlockeMode);
-
-  // Submit run completion to anti-cheat server (fire-and-forget; game continues regardless).
-  if (typeof acCompleteRun === 'function' && state.runToken) {
-    acCompleteRun(state.runToken, state.checkpoints || [], {
-      nuzlockeMode: state.nuzlockeMode,
-      usedPokecenter: state.usedPokecenter,
-      pickedUpItem: state.pickedUpItem,
-      maxTeamSize: state.maxTeamSize,
-      starterSpeciesId: state.starterSpeciesId,
-      championRngSeed: _acBattleRngSeed,
-      finalTeam: state.team,
-    }).catch(() => {});
-  }
 
   // Track elite four wins
   const wins = incrementEliteWins();

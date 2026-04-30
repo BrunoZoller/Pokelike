@@ -145,7 +145,6 @@ function getTypeBoostItem(moveType, items) {
 }
 
 function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog, traitsConfig = null) {
-  const rngSeedAtStart = typeof getRngSeed === 'function' ? getRngSeed() : 0;
   const items = bagItems; // bag — only used for Lucky Egg check in level gain
   const pTeam = playerTeam.map(p => initBattleState({ ...p }));
   const eTeam = enemyTeam.map(p => initBattleState({
@@ -432,7 +431,7 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog, traitsCon
   addLog(playerWon ? '--- Victory! ---' : '--- Defeat! ---', playerWon ? 'log-win' : 'log-lose');
   detailedLog.push({ type: 'result', playerWon });
 
-  return { playerWon, log, detailedLog, pTeam, eTeam, playerParticipants, rngSeedAtStart };
+  return { playerWon, log, detailedLog, pTeam, eTeam, playerParticipants };
 }
 
 function getLevelGain(team, bagItems) {
