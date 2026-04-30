@@ -896,19 +896,18 @@ async function doCatchNode(node) {
 }
 
 function checkStarterCollectionAchievements() {
+  const stage = endlessState.stageNumber;
+  const starterIds = REGION_STARTERS[stage];
+  if (!starterIds) return;
   const hof = getHallOfFame();
-  for (let stage = 1; stage <= 5; stage++) {
-    const starterIds = REGION_STARTERS[stage];
-    if (!starterIds) continue;
-    const used = new Set(
-      hof
-        .filter(e => e.endless && e.stageNumber === stage && e.starterSpeciesId)
-        .map(e => e.starterSpeciesId)
-    );
-    if (starterIds.some(id => used.has(id))) {
-      const ach = unlockAchievement(`starters_stage_${stage}`);
-      if (ach) showAchievementToast(ach);
-    }
+  const used = new Set(
+    hof
+      .filter(e => e.endless && e.stageNumber === stage && e.starterSpeciesId)
+      .map(e => e.starterSpeciesId)
+  );
+  if (starterIds.some(id => used.has(id))) {
+    const ach = unlockAchievement(`starters_stage_${stage}`);
+    if (ach) showAchievementToast(ach);
   }
 }
 
