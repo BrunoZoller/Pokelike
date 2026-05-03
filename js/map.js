@@ -416,6 +416,31 @@ function renderMap(map, container, onNodeClick) {
         g.appendChild(check);
       }
 
+      if (isBossNode && typeof state !== 'undefined' && state.isEndlessMode) {
+        const trainerData = typeof endlessState !== 'undefined' && endlessState.currentRegion
+          ? endlessState.currentRegion.trainers[endlessState.mapIndexInRegion]
+          : null;
+        if (trainerData?.speciesIds?.length) {
+          const ids = trainerData.speciesIds;
+          const iconSize = 20;
+          const gap = 2;
+          const totalW = ids.length * iconSize + (ids.length - 1) * gap;
+          const startX = -(totalW / 2);
+          const startY = ih / 2 + 4;
+          const BASE = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/';
+          ids.forEach((id, i) => {
+            const icon = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+            icon.setAttribute('href', `${BASE}${id}.png`);
+            icon.setAttribute('x', startX + i * (iconSize + gap));
+            icon.setAttribute('y', startY);
+            icon.setAttribute('width', iconSize);
+            icon.setAttribute('height', iconSize);
+            icon.setAttribute('image-rendering', 'pixelated');
+            g.appendChild(icon);
+          });
+        }
+      }
+
     } else {
       // ---- Circle-based node ----
       const r = isBossNode ? 22 : 18;
