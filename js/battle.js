@@ -172,9 +172,16 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog, traitsCon
 
   let rounds = 0;
   const MAX_ROUNDS = 300;
+  const OVERTIME_ROUND = 100;
+  let overtimeMult = 1;
 
   while (pTeam.some(p => p.currentHp > 0) && eTeam.some(p => p.currentHp > 0) && rounds < MAX_ROUNDS) {
     rounds++;
+    if (rounds === OVERTIME_ROUND + 1) {
+      overtimeMult = 3;
+      addLog('⚡ OVERTIME! All attacks deal 3× damage!', 'log-system');
+      detailedLog.push({ type: 'overtime_start' });
+    }
 
     // Active = first alive on each side
     const pEntry = pTeam.map((p, i) => ({ p, idx: i })).find(x => x.p.currentHp > 0);
@@ -273,9 +280,9 @@ function runBattle(playerTeam, enemyTeam, bagItems, enemyItems, onLog, traitsCon
       }
 
       const { damage: rawDamage, typeEff, moveType, crit } = calcDamage(attacker, target, move, attackerItems, defenderItems);
-      const damage = traitsConfig?.beforeDamage
+      const damage = overtimeMult * (traitsConfig?.beforeDamage
         ? traitsConfig.beforeDamage(target, tIdx, tSide, attacker, aIdx, side, rawDamage, detailedLog)
-        : rawDamage;
+        : rawDamage);
 
       const targetPreHp = target.currentHp;
       target.currentHp = Math.max(0, target.currentHp - damage);

@@ -698,6 +698,9 @@ function isGenDexComplete(minId, maxId) {
   for (const id of ALL_CATCHABLE_IDS) {
     if (id >= minId && id <= maxId && !caughtIds.has(id)) return false;
   }
+  for (const id of LEGENDARY_IDS) {
+    if (id >= minId && id <= maxId && !caughtIds.has(id)) return false;
+  }
   return true;
 }
 
@@ -722,7 +725,7 @@ async function getRandomLegendary(mapIndex, allowAllGens = false) {
 
 // Get random pokemon from the right BST bucket for a given mapIndex.
 // maxGenId restricts to IDs <= that number (151 = Gen 1 only, 649 = all gens).
-async function getCatchChoices(mapIndex, count = 3, maxGenId = 151) {
+async function getCatchChoices(mapIndex, count = 3, maxGenId = 151, excludeStarters = false) {
   const range = MAP_BST_RANGES[Math.min(mapIndex, MAP_BST_RANGES.length - 1)];
   const pool = await getSpeciesPool();
 
@@ -734,7 +737,8 @@ async function getCatchChoices(mapIndex, count = 3, maxGenId = 151) {
   else if (range.min >= 280) bucket = GEN1_BST_APPROX.midLow;
   else bucket = GEN1_BST_APPROX.low;
 
-  const filtered = bucket.filter(id => !LEGENDARY_IDS.includes(id) && id <= maxGenId);
+  const starterSet = excludeStarters ? new Set(STARTER_IDS) : new Set();
+  const filtered = bucket.filter(id => !LEGENDARY_IDS.includes(id) && id <= maxGenId && !starterSet.has(id));
   const shuffled = [...filtered];
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1));
@@ -866,6 +870,7 @@ const EVOLUTIONS = {
   // Slowpoke / Magnemite / Doduo / Seel / Grimer
   79: { into: 80,  level: 37, name: 'Slowbro' },    // water stone in some versions → lv 37
   81: { into: 82,  level: 30, name: 'Magneton' },
+  82: { into: 462, level: 40, name: 'Magnezone' },  // lv-up in magnetic field → lv 40
   84: { into: 85,  level: 31, name: 'Dodrio' },
   86: { into: 87,  level: 34, name: 'Dewgong' },
   88: { into: 89,  level: 38, name: 'Muk' },
@@ -1201,6 +1206,10 @@ const BRANCHING_EVOLUTIONS = {
   265: [ // Wurmple
     { into: 266, level: 7, name: 'Silcoon', types: ['Bug'] },
     { into: 268, level: 7, name: 'Cascoon', types: ['Bug'] },
+  ],
+  412: [ // Burmy
+    { into: 414, level: 20, name: 'Mothim',   types: ['Bug', 'Flying'] },
+    { into: 413, level: 20, name: 'Wormadam', types: ['Bug', 'Grass']  },
   ],
 };
 

@@ -2,6 +2,7 @@
 
 // Speed multiplier for battle animation (1 = normal, SKIP_SPEED = fast/skip)
 const SKIP_SPEED = 3;
+const OVERTIME_SPEED = 5;
 let battleSpeedMultiplier = 1;
 
 let _hoverEnabled = true;
@@ -2664,6 +2665,18 @@ async function animateBattleVisually(detailedLog, pTeamInit, eTeamInit) {
       addLogEntry(event.reason, 'log-item');
       await sleep(100);
 
+    } else if (event.type === 'overtime_start') {
+      const existingBanner = document.getElementById('overtime-banner');
+      if (!existingBanner) {
+        const banner = document.createElement('div');
+        banner.id = 'overtime-banner';
+        banner.className = 'overtime-banner';
+        banner.textContent = '⚡ OVERTIME — 3× Damage!';
+        document.getElementById('battle-screen')?.prepend(banner);
+      }
+      addLogEntry('⚡ OVERTIME! All attacks deal 3× damage!', 'log-system');
+      await sleep(Math.round(800 / battleSpeedMultiplier));
+
     } else if (event.type === 'faint') {
       const sideId = event.side === 'player' ? 'player-side' : 'enemy-side';
       const el = document.querySelector(`#${sideId} .battle-pokemon[data-idx="${event.idx}"]`);
@@ -3726,6 +3739,36 @@ function openDexDetailModal(speciesId, name, spriteUrl, shinySpriteUrl, types) {
 // ---- Patch Notes Modal ----
 
 const PATCH_NOTES = [
+  {
+    version: '1.4.5',
+    title: 'Bug Fix Patch',
+    date: '2026-05-03',
+    sections: [
+      {
+        heading: 'New',
+        entries: [
+          'Long battles now auto-speed up to 5× after 30 seconds',
+          'OVERTIME: if a battle reaches 100 rounds (≈ 2 minutes), all attacks deal 3× damage and a banner is shown — no more infinite stall fights',
+        ],
+      },
+      {
+        heading: 'Bug Fixes',
+        entries: [
+          'Bug trait now correctly triggers evolution after levelling up Pokémon mid-run',
+          'Pokédex completion achievement now requires catching legendary Pokémon as well — they were previously excluded from the check',
+          'Shiny dex count (for shiny achievements) now includes legendary shinies',
+          'Battle Tower blank screen after a specific reload sequence (pick → swap prompt → reload → new run → reload → continue) is fixed',
+          'Shiny node now correctly shows the Great Ball badge if the Pokémon\'s evo line was on any previous team, not just explicitly chosen starters',
+          'EV upgrades are now visible on catch and shiny screens before catching',
+          'Magneton now correctly evolves into Magnezone at level 40',
+          'Burmy now correctly appears in the Hall of Fame PC instead of Mothim or Wormadam',
+          'EV buffs stored under Mothim, Wormadam, Ambipom, Vespiquen, or Roselia are now migrated to the correct prevolution root (Burmy, Aipom, Combee, Budew)',
+          'Stat labels in Pokémon cards are now left-aligned',
+          'Bulbasaur, Charmander, and Squirtle no longer appear as wild encounters in regular and Nuzlocke mode',
+        ],
+      },
+    ],
+  },
   {
     version: '1.4.4',
     title: 'Bug Fix Patch',

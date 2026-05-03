@@ -630,7 +630,7 @@ function getLevelForNode(node) {
 
 async function doBattleNode(node) {
   const level = (!state.isEndlessMode && state.currentMap >= 1) ? getLevelForNode(node) - 1 : getLevelForNode(node);
-  let choices = await getCatchChoices(getEncounterMapIndex(), 3, state.isEndlessMode ? getEndlessMaxGenId(endlessState.stageNumber) : 151);
+  let choices = await getCatchChoices(getEncounterMapIndex(), 3, state.isEndlessMode ? getEndlessMaxGenId(endlessState.stageNumber) : 151, !state.isEndlessMode);
   const lvlFiltered = choices.filter(sp => minLevelForSpecies(sp.id ?? sp.speciesId) <= level);
   if (lvlFiltered.length > 0) choices = lvlFiltered;
 
@@ -750,7 +750,7 @@ async function doCatchNode(node) {
   } else {
     choicesEl.innerHTML = '<div class="loading">Finding Pokemon...</div>';
 
-    let choices = await getCatchChoices(getEncounterMapIndex(), 18, state.isEndlessMode ? getEndlessMaxGenId(endlessState.stageNumber) : 151);
+    let choices = await getCatchChoices(getEncounterMapIndex(), 18, state.isEndlessMode ? getEndlessMaxGenId(endlessState.stageNumber) : 151, !state.isEndlessMode);
     const isFirstMap = state.currentMap === 0 || (state.isEndlessMode && endlessState.regionNumber === 1 && endlessState.mapIndexInRegion === 0);
     level = isFirstMap ? Math.max(4, getLevelForNode(node)) : getLevelForNode(node);
     const lvlFiltered = choices.filter(sp => minLevelForSpecies(sp.id ?? sp.speciesId) <= level);
@@ -827,6 +827,7 @@ async function doCatchNode(node) {
   const rerolled = new Set();
 
   function renderCatchSlot(inst, slotIdx) {
+    loadBuffsIntoPokemon(inst);
     const caught = inst.isShiny
       ? !!(getShinyDex()[inst.speciesId])
       : !!(getPokedex()[inst.speciesId]?.caught);
@@ -860,7 +861,7 @@ async function doCatchNode(node) {
         ]);
         let src = rerollPool.filter(sp => !otherRoots.has(getEvoLineRoot(sp.id ?? sp.speciesId)));
         if (src.length === 0) {
-          const fresh = await getCatchChoices(getEncounterMapIndex(), 6, state.isEndlessMode ? getEndlessMaxGenId(endlessState.stageNumber) : 151);
+          const fresh = await getCatchChoices(getEncounterMapIndex(), 6, state.isEndlessMode ? getEndlessMaxGenId(endlessState.stageNumber) : 151, !state.isEndlessMode);
           const otherRootsPost = new Set([
             ...instances.filter((_, i) => i !== slotIdx).map(i => getEvoLineRoot(i.speciesId)),
             ...state.team.map(p => getEvoLineRoot(p.speciesId)),
@@ -916,7 +917,7 @@ function checkDexAchievements() {
     const ach = unlockAchievement('pokedex_complete');
     if (ach) showAchievementToast(ach);
   }
-  const shinyCount = [...ALL_CATCHABLE_IDS].filter(id => getShinyDex()[id]).length;
+  const shinyCount = [...ALL_CATCHABLE_IDS, ...LEGENDARY_IDS].filter(id => getShinyDex()[id]).length;
   for (const threshold of [100, 200, 300, 400, 500, 600]) {
     if (shinyCount >= threshold) {
       const ach = unlockAchievement(`shinydex_${threshold}`);
@@ -1253,6 +1254,7 @@ function openUsableItemModal(item, bagIdx) {
   const canTarget = p => {
     if (item.id === 'max_revive') return p.currentHp <= 0;
     if (item.id === 'moon_stone') {
+      if (p.currentHp <= 0) return false;
       if (p.speciesId === 133) return true;
       const evo = EVOLUTIONS[p.speciesId];
       return !!(evo && evo.into !== p.speciesId);
@@ -1419,7 +1421,7 @@ async function doTrainerNode(node) {
     const fetched = await Promise.all(ids.map(id => fetchPokemonById(id)));
     speciesList = fetched.filter(Boolean);
   } else {
-    const rawChoices = await getCatchChoices(getEncounterMapIndex(), 3, state.isEndlessMode ? getEndlessMaxGenId(endlessState.stageNumber) : 151);
+    const rawChoices = await getCatchChoices(getEncounterMapIndex(), 3, state.isEndlessMode ? getEndlessMaxGenId(endlessState.stageNumber) : 151, !state.isEndlessMode);
     speciesList = (await Promise.all(rawChoices.slice(0, teamSize).map(async sp => {
       const rawId = sp.id ?? sp.speciesId;
       const evoId = resolveEvoForLevel(rawId, level);
@@ -1586,7 +1588,7 @@ async function doTradeNode(node) {
 
     const idx = i;
     const doTrade = async () => {
-      let pool = await getCatchChoices(getEncounterMapIndex(), 3, state.isEndlessMode ? getEndlessMaxGenId(endlessState.stageNumber) : 151);
+      let pool = await getCatchChoices(getEncounterMapIndex(), 3, state.isEndlessMode ? getEndlessMaxGenId(endlessState.stageNumber) : 151, !state.isEndlessMode);
       const species = pool[Math.floor(rng() * pool.length)];
       if (!species) { advanceFromNode(state.map, node.id); showMapScreen(); return; }
       const offerLevel = Math.min(100, mine.level + 3);
@@ -1624,16 +1626,17 @@ async function doTradeNode(node) {
 }
 
 async function doShinyNode(node) {
-  let choices = await getCatchChoices(getEncounterMapIndex(), 3, state.isEndlessMode ? getEndlessMaxGenId(endlessState.stageNumber) : 151);
+  let choices = await getCatchChoices(getEncounterMapIndex(), 3, state.isEndlessMode ? getEndlessMaxGenId(endlessState.stageNumber) : 151, !state.isEndlessMode);
   const level = getLevelForNode(node);
   const species = choices[0];
   if (!species) { advanceFromNode(state.map, node.id); showMapScreen(); return; }
 
   const shiny = createInstance(species, level, true, getMoveТierForMap(state.currentMap));
+  loadBuffsIntoPokemon(shiny);
 
   const shinyCaught = !!(getShinyDex()[shiny.speciesId]);
   const shinyRoot = getEvoLineRoot(shiny.speciesId);
-  const shinyStarterBadge = !shinyCaught && getUsedStarters().some(id => getEvoLineRoot(id) === shinyRoot);
+  const shinyStarterBadge = !shinyCaught && getHallOfFame().some(e => e.team?.some(p => getEvoLineRoot(p.speciesId) === shinyRoot));
   showScreen('shiny-screen');
   document.getElementById('shiny-content').innerHTML = `
     <div class="shiny-title">✨ A Shiny Pokemon appeared!</div>
@@ -1719,8 +1722,15 @@ function runBattleScreen(enemyTeam, isBoss, onWin, onLose, enemyName = null, ene
     continueEl.textContent = 'Continue';
     continueEl.disabled = false;
 
+    // Auto-speed-up after 30s if the player hasn't already skipped
+    const autoSpeedTimer = setTimeout(() => {
+      if (battleSpeedMultiplier < OVERTIME_SPEED) battleSpeedMultiplier = OVERTIME_SPEED;
+    }, 30_000);
+
     // Auto-start visual animation
     await animateBattleVisually(detailedLog, pTeamCopy, eTeamInit);
+    clearTimeout(autoSpeedTimer);
+    document.getElementById('overtime-banner')?.remove();
 
     // Show final HP state after animation
     renderBattleField(resultP, resultE);
@@ -2023,6 +2033,7 @@ function showEndlessStageSelect() {
 }
 
 async function startEndlessRun(stageNum = 1) {
+  clearSavedRun();
   const seed = (Date.now() ^ (Math.random() * 0x100000000 | 0)) >>> 0;
   seedRng(seed);
   const savedTrainer = localStorage.getItem('poke_trainer') || 'boy';
@@ -2175,6 +2186,7 @@ async function applyEndlessBugTrait() {
   const skipFast = autoSkipAllBattles || autoSkipBattles;
   if (leveled.length) showBugLevelUpBanner(leveled, skipFast ? 250 : 1500);
   await new Promise(r => setTimeout(r, skipFast ? 400 : 1600));
+  await checkAndEvolveTeam();
 }
 
 async function doEndlessBossNode() {
@@ -2360,11 +2372,16 @@ function loadPersistentBuffs() {
     const store = JSON.parse(localStorage.getItem('poke_stat_buffs') || '{}');
     // Migrate old evo-line root IDs whenever a baby-form pre-evolution is added
     const migrations = [
-      [143, 446],  // Snorlax  → Munchlax
-      [122, 439],  // Mr. Mime → Mime Jr.
-      [113, 440],  // Chansey  → Happiny
+      [143, 446],  // Snorlax   → Munchlax
+      [122, 439],  // Mr. Mime  → Mime Jr.
+      [113, 440],  // Chansey   → Happiny
       [185, 438],  // Sudowoodo → Bonsly
-      [226, 458],  // Mantine  → Mantyke
+      [226, 458],  // Mantine   → Mantyke
+      [315, 406],  // Roselia   → Budew
+      [416, 415],  // Vespiquen → Combee
+      [424, 190],  // Ambipom   → Aipom
+      [414, 412],  // Mothim    → Burmy
+      [413, 412],  // Wormadam  → Burmy
     ];
     let dirty = false;
     for (const [oldKey, newKey] of migrations) {
