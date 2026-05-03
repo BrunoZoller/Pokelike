@@ -12,6 +12,7 @@ const NODE_TYPES = {
   LEGENDARY: 'legendary',
   MOVE_TUTOR: 'move_tutor',
   TRADE: 'trade',
+  SILVER: 'silver',
 };
 
 const NODE_WEIGHTS = [
@@ -39,10 +40,12 @@ function weightedRandom(weights) {
   return Object.keys(weights)[0];
 }
 
-function generateMap(mapIndex, nuzlockeMode = false) {
+function generateMap(mapIndex, nuzlockeMode = false, gen2Mode = false) {
   // Layer sizes: start(1), catch/battle(2), 3,4,3,4,3,2, boss(1)
   const CONTENT_SIZES = [3, 4, 3, 4, 3, 2]; // layers 2–7
-  const bossLayerIdx  = 2 + CONTENT_SIZES.length; // = 8
+  // In gen2Mode on Silver maps, a Silver node sits between the last content layer and the boss
+  const hasSilverNode = gen2Mode && [2, 5, 7].includes(mapIndex);
+  const bossLayerIdx  = 2 + CONTENT_SIZES.length + (hasSilverNode ? 1 : 0); // 8 normally, 9 on Silver maps
   const bossId        = `n${bossLayerIdx}_0`;
 
   // ── Helpers ──────────────────────────────────────────────────────
@@ -141,6 +144,12 @@ function generateMap(mapIndex, nuzlockeMode = false) {
     }
 
     layers.push(layer);
+  }
+
+  // Silver pre-boss layer (gen2Mode only on maps 2, 5, 7)
+  if (hasSilverNode) {
+    const silverLayerIdx = bossLayerIdx - 1;
+    layers.push([makeNode(`n${silverLayerIdx}_0`, NODE_TYPES.SILVER, silverLayerIdx, 0)]);
   }
 
   // Boss layer
@@ -256,9 +265,14 @@ function getNodeSprite(node) {
   if (node.type === NODE_TYPES.BOSS) {
     if (typeof state !== 'undefined' && state.isEndlessMode) return 'sprites/misteryTrainer.png';
     const mi = node.mapIndex ?? -1;
+    if (typeof state !== 'undefined' && state.gen2Mode) {
+      if (mi === 8) return 'https://play.pokemonshowdown.com/sprites/trainers/red.png';
+      if (mi >= 0 && mi < GYM_LEADER_SPRITES.length) return GYM_LEADER_SPRITES[mi];
+    }
     if (mi >= 0 && mi < GYM_LEADER_SPRITES.length) return GYM_LEADER_SPRITES[mi];
     return 'sprites/champ.png';
   }
+  if (node.type === NODE_TYPES.SILVER) return 'https://play.pokemonshowdown.com/sprites/trainers/silver.png';
   return null;
 }
 
@@ -296,6 +310,7 @@ function renderMap(map, container, onNodeClick) {
   svg.setAttribute('width', W);
   svg.setAttribute('height', H);
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('overflow', 'visible');
   svg.style.width = '100%';
   svg.style.height = '100%';
 
@@ -360,7 +375,7 @@ function renderMap(map, container, onNodeClick) {
 
       // Sprite image, no circle background
       // Human figures (trainer/boss) are taller than wide; icons are square
-      const isHumanFigure = node.type === NODE_TYPES.TRAINER || node.type === NODE_TYPES.BOSS;
+      const isHumanFigure = node.type === NODE_TYPES.TRAINER || node.type === NODE_TYPES.BOSS || node.type === NODE_TYPES.SILVER;
       const iw = isHumanFigure ? (isBossNode ? 52 : 38) : (isBossNode ? 52 : 40);
       const ih = isHumanFigure ? (isBossNode ? 52 : 52) : (isBossNode ? 52 : 40);
 
@@ -416,19 +431,36 @@ function renderMap(map, container, onNodeClick) {
         g.appendChild(check);
       }
 
-      if (isBossNode && typeof state !== 'undefined' && state.isEndlessMode) {
+      if (isBossNode && typeof state !== 'undefined' && state.isEndlessMode
+          && window.matchMedia('(pointer: coarse)').matches) {
         const trainerData = typeof endlessState !== 'undefined' && endlessState.currentRegion
           ? endlessState.currentRegion.trainers[endlessState.mapIndexInRegion]
           : null;
         if (trainerData?.speciesIds?.length) {
           const ids = trainerData.speciesIds;
-          const iconSize = 20;
-          const gap = 2;
+          const iconSize = 28;
+          const gap = 3;
           const totalW = ids.length * iconSize + (ids.length - 1) * gap;
           const startX = -(totalW / 2);
-          const startY = ih / 2 + 4;
+          const startY = ih / 2 - 24;
           const BASE = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/';
           ids.forEach((id, i) => {
+            const lvl = (trainerData.level ?? 0) + (trainerData.levelOffsets?.[i] ?? i);
+            const cx = startX + i * (iconSize + gap) + iconSize / 2;
+
+            const lvlText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            lvlText.setAttribute('x', cx);
+            lvlText.setAttribute('y', startY - 2);
+            lvlText.setAttribute('text-anchor', 'middle');
+            lvlText.setAttribute('font-family', "'Press Start 2P', monospace");
+            lvlText.setAttribute('font-size', '5');
+            lvlText.setAttribute('fill', '#fff');
+            lvlText.setAttribute('paint-order', 'stroke');
+            lvlText.setAttribute('stroke', '#000');
+            lvlText.setAttribute('stroke-width', '2');
+            lvlText.textContent = `${lvl}`;
+            g.appendChild(lvlText);
+
             const icon = document.createElementNS('http://www.w3.org/2000/svg', 'image');
             icon.setAttribute('href', `${BASE}${id}.png`);
             icon.setAttribute('x', startX + i * (iconSize + gap));
@@ -540,6 +572,7 @@ function getNodeColor(node) {
     [NODE_TYPES.LEGENDARY]:  '#7a6a00',
     [NODE_TYPES.MOVE_TUTOR]: '#3a4a6a',
     [NODE_TYPES.TRADE]:      '#1a5a5a',
+    [NODE_TYPES.SILVER]:     '#5a2a7a',
   };
   return colors[node.type] || '#444';
 }
@@ -558,6 +591,7 @@ function getNodeIcon(node) {
     [NODE_TYPES.LEGENDARY]:  '⚝',
     [NODE_TYPES.MOVE_TUTOR]: '♪',
     [NODE_TYPES.TRADE]:      '⇄',
+    [NODE_TYPES.SILVER]:     '⚔',
   };
   return icons[node.type] || '●';
 }
@@ -566,13 +600,16 @@ function getNodeLabel(node) {
   if (node.visited) return 'Visited';
   if (node.type === NODE_TYPES.BOSS) {
     const mi = node.mapIndex ?? -1;
-    if (typeof GYM_LEADERS !== 'undefined' && mi >= 0 && mi < GYM_LEADERS.length) {
-      const leader = GYM_LEADERS[mi];
+    const isGen2 = typeof state !== 'undefined' && state.gen2Mode;
+    const leaders = isGen2 ? (typeof JOHTO_GYM_LEADERS !== 'undefined' ? JOHTO_GYM_LEADERS : null) : (typeof GYM_LEADERS !== 'undefined' ? GYM_LEADERS : null);
+    if (leaders && mi >= 0 && mi < leaders.length) {
+      const leader = leaders[mi];
       const teamHtml = leader.team.map(p =>
         `<div style="color:#ccc;font-size:9px;">${p.name} <span style="color:#aaa;">Lv${p.level}</span></div>`
       ).join('');
       return `<div style="font-weight:bold;margin-bottom:4px;">${leader.name} — ${leader.type} Gym</div>${teamHtml}`;
     }
+    if (isGen2 && mi === 8) return '<div style="font-weight:bold;">Red — Mt. Silver</div>';
     if (typeof ELITE_4 !== 'undefined' && mi === 8) {
       return '<div style="font-weight:bold;">Elite Four &amp; Champion</div>';
     }
@@ -589,6 +626,7 @@ function getNodeLabel(node) {
     [NODE_TYPES.LEGENDARY]:  'Legendary Pokemon',
     [NODE_TYPES.MOVE_TUTOR]: 'Move Tutor',
     [NODE_TYPES.TRADE]:      'Trade — swap a Pokémon for one 3 levels higher',
+    [NODE_TYPES.SILVER]:     'Rival Silver — Win for +2 levels to all Pokémon!',
   };
   return labels[node.type] || node.type;
 }

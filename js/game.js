@@ -23,6 +23,8 @@ let state = {
   starterSpeciesId: null,
   maxTeamSize: 1,
   nuzlockeMode: false,
+  gen2Mode: false,
+  silverBeaten: 0,
 };
 
 // ---- Run persistence ----
@@ -61,6 +63,8 @@ async function initGame() {
   if (typeof syncToCloud === 'function') syncToCloud();
   document.getElementById('btn-new-run').onclick = () => startNewRun(false);
   document.getElementById('btn-hard-run').onclick = () => startNewRun(true);
+  const gen2Btn = document.getElementById('btn-gen2-run');
+  if (gen2Btn) gen2Btn.onclick = () => startNewRun(false, true);
 
   const endlessBtn = document.getElementById('btn-endless-run');
   if (endlessBtn) {
@@ -125,12 +129,12 @@ async function initGame() {
   }
 }
 
-async function startNewRun(nuzlockeMode = false) {
+async function startNewRun(nuzlockeMode = false, gen2Mode = false) {
   clearEndlessState();
   const savedTrainer = localStorage.getItem('poke_trainer') || null;
   const seed = (Date.now() ^ (Math.random() * 0x100000000 | 0)) >>> 0;
   seedRng(seed);
-  state = { currentMap: 0, currentNode: null, team: [], items: [], badges: 0, map: null, eliteIndex: 0, trainer: savedTrainer || 'boy', starterSpeciesId: null, maxTeamSize: 1, nuzlockeMode, usedPokecenter: false, pickedUpItem: false, runSeed: seed };
+  state = { currentMap: 0, currentNode: null, team: [], items: [], badges: 0, map: null, eliteIndex: 0, trainer: savedTrainer || 'boy', starterSpeciesId: null, maxTeamSize: 1, nuzlockeMode, gen2Mode, silverBeaten: 0, usedPokecenter: false, pickedUpItem: false, runSeed: seed };
   if (savedTrainer) {
     await showStarterSelect();
   } else {
@@ -206,7 +210,8 @@ async function showStarterSelect() {
   }
 
   const startLevel = 5;
-  const starters = state.isEndlessMode ? [] : await Promise.all(STARTER_IDS.map(id => fetchPokemonById(id)));
+  const activeStarterIds = state.gen2Mode ? GEN2_STARTER_IDS : STARTER_IDS;
+  const starters = state.isEndlessMode ? [] : await Promise.all(activeStarterIds.map(id => fetchPokemonById(id)));
 
   container.innerHTML = '';
   container.style.cssText = '';
@@ -395,7 +400,7 @@ async function selectStarter(pokemon) {
 
 function startMap(mapIndex) {
   state.currentMap = mapIndex;
-  state.map = generateMap(mapIndex, state.nuzlockeMode);
+  state.map = generateMap(mapIndex, state.nuzlockeMode, state.gen2Mode);
 
   // Full heal between arenas (skip the very first map)
   if (mapIndex > 0) {
@@ -422,17 +427,20 @@ function showMapScreen() {
   const mapInfo = document.getElementById('map-info');
   if (mapInfo) {
     const isFinal = state.currentMap === 8;
-    const leader = isFinal ? null : GYM_LEADERS[state.currentMap];
+    const leaders = state.gen2Mode ? JOHTO_GYM_LEADERS : GYM_LEADERS;
+    const leader = isFinal ? null : leaders[state.currentMap];
     mapInfo.innerHTML = isFinal
-      ? `<span>Elite Four & Champion</span>`
+      ? `<span>${state.gen2Mode ? 'Mt. Silver — Red' : 'Elite Four & Champion'}</span>`
       : `<span>Map ${state.currentMap+1}: vs <b>${leader.name}</b> (${leader.type})</span>`;
   }
   const BASE = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/';
+  const badgeOffset = state.gen2Mode ? 8 : 0;
+  const badgeLeaders = state.gen2Mode ? JOHTO_GYM_LEADERS : GYM_LEADERS;
   const badgeHtml = Array.from({ length: 8 }, (_, i) => {
     const earned = i < state.badges;
-    const label = GYM_LEADERS[i].badge;
+    const label = badgeLeaders[i].badge;
     return earned
-      ? `<img src="${BASE}${i + 1}.png" alt="${label}" title="${label}" class="badge-icon-img">`
+      ? `<img src="${BASE}${i + 1 + badgeOffset}.png" alt="${label}" title="${label}" class="badge-icon-img">`
       : `<span class="badge-icon-empty" title="${label}"></span>`;
   }).join('');
   const badgeEl = document.getElementById('badge-count');
@@ -565,6 +573,9 @@ async function onNodeClick(node) {
       if (state.isEndlessMode) { advanceFromNode(state.map, node.id); showMapScreen(); }
       else await doTradeNode(node);
       break;
+    case NODE_TYPES.SILVER:
+      await doSilverNode(node);
+      break;
     case 'shiny':
       await doShinyNode(node);
       break;
@@ -590,6 +601,12 @@ function resolveQuestionMark() {
 }
 
 // ---- Node Handlers ----
+
+function getCatchGenRange() {
+  if (state.isEndlessMode) return { minGenId: 1, maxGenId: getEndlessMaxGenId(endlessState.stageNumber) };
+  if (state.gen2Mode) return { minGenId: 152, maxGenId: 251 };
+  return { minGenId: 1, maxGenId: 151 };
+}
 
 // Maps a max level to an appropriate map index for BST bucket selection.
 function levelToMapIndex(maxLevel) {
@@ -630,7 +647,7 @@ function getLevelForNode(node) {
 
 async function doBattleNode(node) {
   const level = (!state.isEndlessMode && state.currentMap >= 1) ? getLevelForNode(node) - 1 : getLevelForNode(node);
-  let choices = await getCatchChoices(getEncounterMapIndex(), 3, state.isEndlessMode ? getEndlessMaxGenId(endlessState.stageNumber) : 151, !state.isEndlessMode);
+  let choices = await getCatchChoices(getEncounterMapIndex(), 3, getCatchGenRange().maxGenId, !state.isEndlessMode, getCatchGenRange().minGenId);
   const lvlFiltered = choices.filter(sp => minLevelForSpecies(sp.id ?? sp.speciesId) <= level);
   if (lvlFiltered.length > 0) choices = lvlFiltered;
 
@@ -674,6 +691,26 @@ async function doBattleNode(node) {
 }
 
 async function doBossNode(node) {
+  if (state.gen2Mode) {
+    if (state.currentMap === 8) { await doRed(); return; }
+    const leader = JOHTO_GYM_LEADERS[state.currentMap];
+    const enemyTeam = leader.team.map(p => ({
+      ...createInstance(p, p.level, false, leader.moveTier ?? 1),
+      heldItem: p.heldItem || null,
+    }));
+    showScreen('battle-screen');
+    document.getElementById('battle-title').textContent = `Gym Battle vs ${leader.name}!`;
+    document.getElementById('battle-subtitle').textContent = `${leader.badge} is on the line!`;
+    await runBattleScreen(enemyTeam, true, () => {
+      state.badges++;
+      advanceFromNode(state.map, node.id);
+      showBadgeScreen(leader);
+      const ach = unlockAchievement(`gym_${state.currentMap}`);
+      if (ach) showAchievementToast(ach);
+    }, () => { showGameOver(); }, leader.name);
+    return;
+  }
+
   if (state.currentMap === 8) {
     await doElite4();
     return;
@@ -722,6 +759,49 @@ async function doElite4() {
   showWinScreen();
 }
 
+async function doRed() {
+  const boss = RED_FINAL;
+  const enemyTeam = boss.team.map(p => ({
+    ...createInstance(p, p.level, false, 2),
+    heldItem: p.heldItem || null,
+  }));
+  showScreen('battle-screen');
+  document.getElementById('battle-title').textContent = '...';
+  document.getElementById('battle-subtitle').textContent = 'Mt. Silver — The Silent Champion';
+  const won = await new Promise(resolve => {
+    runBattleScreen(enemyTeam, true, () => resolve(true), () => resolve(false), 'red');
+  });
+  if (!won) { showGameOver(); return; }
+  const ach = unlockAchievement('gen2_win');
+  if (ach) showAchievementToast(ach);
+  showWinScreen();
+}
+
+async function doSilverNode(node) {
+  const encounterIdx = Math.min(state.silverBeaten || 0, SILVER_ENCOUNTERS.length - 1);
+  const silverData = SILVER_ENCOUNTERS[encounterIdx];
+  const enemyTeam = silverData.team.map(p => ({
+    ...createInstance(p, p.level, false, 2),
+    heldItem: p.heldItem || null,
+  }));
+  showScreen('battle-screen');
+  document.getElementById('battle-title').textContent = 'Silver wants to battle!';
+  document.getElementById('battle-subtitle').textContent = 'Rival Battle — Win for +3 levels to all!';
+  const won = await new Promise(resolve => {
+    runBattleScreen(enemyTeam, true, () => resolve(true), () => resolve(false), 'silver');
+  });
+  if (!won) { showGameOver(); return; }
+  for (const p of state.team) {
+    p.level = Math.min(100, p.level + 2);
+    p.maxHp = calcHp(p.baseStats.hp, p.level);
+    p.currentHp = p.maxHp;
+  }
+  state.silverBeaten = (state.silverBeaten || 0) + 1;
+  showItemFoundToast('🥈', 'Silver defeated! +2 Levels to all!');
+  advanceFromNode(state.map, node.id);
+  showMapScreen();
+}
+
 function showEliteTransition(defeatedName, nextIndex) {
   return new Promise(resolve => {
     const el = document.getElementById('transition-screen');
@@ -750,7 +830,7 @@ async function doCatchNode(node) {
   } else {
     choicesEl.innerHTML = '<div class="loading">Finding Pokemon...</div>';
 
-    let choices = await getCatchChoices(getEncounterMapIndex(), 18, state.isEndlessMode ? getEndlessMaxGenId(endlessState.stageNumber) : 151, !state.isEndlessMode);
+    let choices = await getCatchChoices(getEncounterMapIndex(), 18, getCatchGenRange().maxGenId, !state.isEndlessMode, getCatchGenRange().minGenId);
     const isFirstMap = state.currentMap === 0 || (state.isEndlessMode && endlessState.regionNumber === 1 && endlessState.mapIndexInRegion === 0);
     level = isFirstMap ? Math.max(4, getLevelForNode(node)) : getLevelForNode(node);
     const lvlFiltered = choices.filter(sp => minLevelForSpecies(sp.id ?? sp.speciesId) <= level);
@@ -761,8 +841,8 @@ async function doCatchNode(node) {
         : lvlFiltered;
     }
 
-    // Nuzlocke map 1: restrict to curated pool
-    if (state.nuzlockeMode && state.currentMap === 0) {
+    // Nuzlocke map 1: restrict to curated pool (Gen 1 only)
+    if (state.nuzlockeMode && state.currentMap === 0 && !state.gen2Mode) {
       const nuzlockeMap1Ids = new Set([10,11,27,54,56,60,69,72,74,79,81,86,96,98,100,102,111,116,118,120,129,133]);
       const filtered = choices.filter(sp => nuzlockeMap1Ids.has(sp.id ?? sp.speciesId));
       if (filtered.length > 0) choices = filtered;
@@ -770,8 +850,8 @@ async function doCatchNode(node) {
 
     // Map 1, layer 1: guarantee at least one Grass AND one Water Pokemon (non-nuzlocke only)
     if (!state.nuzlockeMode && state.currentMap === 0 && node.layer === 1) {
-      const grassIds = [43, 69, 102]; // Oddish, Bellsprout, Exeggcute
-      const waterIds = [54, 60, 72, 79, 86, 98, 116, 118, 120, 129];
+      const grassIds = state.gen2Mode ? [187, 191] : [43, 69, 102]; // Gen2: Hoppip, Sunkern | Gen1: Oddish, Bellsprout, Exeggcute
+      const waterIds = state.gen2Mode ? [183, 194, 223] : [54, 60, 72, 79, 86, 98, 116, 118, 120, 129]; // Gen2: Marill, Wooper, Remoraid
       if (!choices.some(p => p.types?.includes('Grass'))) {
         const id = grassIds[Math.floor(rng() * grassIds.length)];
         const r = await fetchPokemonById(id);
@@ -861,7 +941,7 @@ async function doCatchNode(node) {
         ]);
         let src = rerollPool.filter(sp => !otherRoots.has(getEvoLineRoot(sp.id ?? sp.speciesId)));
         if (src.length === 0) {
-          const fresh = await getCatchChoices(getEncounterMapIndex(), 6, state.isEndlessMode ? getEndlessMaxGenId(endlessState.stageNumber) : 151, !state.isEndlessMode);
+          const fresh = await getCatchChoices(getEncounterMapIndex(), 6, getCatchGenRange().maxGenId, !state.isEndlessMode, getCatchGenRange().minGenId);
           const otherRootsPost = new Set([
             ...instances.filter((_, i) => i !== slotIdx).map(i => getEvoLineRoot(i.speciesId)),
             ...state.team.map(p => getEvoLineRoot(p.speciesId)),
@@ -1383,21 +1463,28 @@ function doPokeCenterNode(node) {
 // null = use the map's random BST pool instead.
 const TRAINER_BATTLE_CONFIG = {
   bugCatcher:  { name: 'Bug Catcher',   sprite: 'bugcatcher',
-                 pool: [10,11,12,13,14,15,46,47,48,49,123,127] },
+                 pool: [10,11,12,13,14,15,46,47,48,49,123,127],
+                 gen2Pool: [165,166,167,168,193,204,205,213,214] },
   hiker:       { name: 'Hiker',         sprite: 'hiker',
-                 pool: [27,28,50,51,66,67,68,74,75,76,95,111,112] },
+                 pool: [27,28,50,51,66,67,68,74,75,76,95,111,112],
+                 gen2Pool: [74,75,76,95,194,195,208,220,221] },
   fisher:      { name: 'Fisherman',     sprite: 'fisherman',
-                 pool: [54,55,60,61,62,72,73,86,87,90,91,98,99,116,117,118,119,129,130] },
+                 pool: [54,55,60,61,62,72,73,86,87,90,91,98,99,116,117,118,119,129,130],
+                 gen2Pool: [170,171,183,184,186,194,195,211,222,223,224] },
   Scientist:   { name: 'Scientist',     sprite: 'scientist',
-                 pool: [81,82,88,89,92,93,94,100,101,137] },
+                 pool: [81,82,88,89,92,93,94,100,101,137],
+                 gen2Pool: [81,82,201,205,212,233,239,240] },
   teamRocket:  { name: 'Rocket Grunt',  sprite: 'teamrocket',
-                 pool: [19,20,23,24,41,42,52,53,88,89,109,110] },
+                 pool: [19,20,23,24,41,42,52,53,88,89,109,110],
+                 gen2Pool: [19,20,41,42,88,89,169,215,228,229] },
   policeman:   { name: 'Officer',       sprite: 'policeman',
-                 pool: [58,59] },
+                 pool: [58,59],
+                 gen2Pool: [58,59,228,229] },
   fireSpitter: { name: 'Fire Trainer',  sprite: 'burglar',
-                 pool: [4,5,6,37,38,58,59,77,78,126,136] },
+                 pool: [4,5,6,37,38,58,59,77,78,126,136],
+                 gen2Pool: [37,38,58,59,126,136,228,229,240] },
   aceTrainer:  { name: 'Ace Trainer',   sprite: 'acetrainer', pool: null },
-  oldGuy:      { name: 'Old Man',       sprite: 'gentleman',    pool: null },
+  oldGuy:      { name: 'Old Man',       sprite: 'gentleman',  pool: null },
 };
 
 async function doTrainerNode(node) {
@@ -1415,17 +1502,18 @@ async function doTrainerNode(node) {
   const moveTier = getMoveТierForMap(state.currentMap);
 
   let speciesList;
-  if (config.pool) {
+  const activePool = (state.gen2Mode && config.gen2Pool) ? config.gen2Pool : config.pool;
+  if (activePool) {
     // Dedupe pool, filter out evolved forms the battle level can't reach, then shuffle
-    const eligible = [...new Set(config.pool)]
+    const eligible = [...new Set(activePool)]
       .filter(id => minLevelForSpecies(id) <= level);
-    const pool = eligible.length ? eligible : [...new Set(config.pool)]; // fallback: use full pool
+    const pool = eligible.length ? eligible : [...new Set(activePool)]; // fallback: use full pool
     const shuffled = pool.sort(() => rng() - 0.5);
     const ids = Array.from({ length: teamSize }, (_, i) => resolveEvoForLevel(shuffled[i % shuffled.length], level));
     const fetched = await Promise.all(ids.map(id => fetchPokemonById(id)));
     speciesList = fetched.filter(Boolean);
   } else {
-    const rawChoices = await getCatchChoices(getEncounterMapIndex(), 3, state.isEndlessMode ? getEndlessMaxGenId(endlessState.stageNumber) : 151, !state.isEndlessMode);
+    const rawChoices = await getCatchChoices(getEncounterMapIndex(), 3, getCatchGenRange().maxGenId, !state.isEndlessMode, getCatchGenRange().minGenId);
     speciesList = (await Promise.all(rawChoices.slice(0, teamSize).map(async sp => {
       const rawId = sp.id ?? sp.speciesId;
       const evoId = resolveEvoForLevel(rawId, level);
@@ -1470,8 +1558,9 @@ async function doTrainerNode(node) {
 
 async function doLegendaryNode(node) {
   const teamLegendIds = state.team.map(p => p.speciesId);
-  const maxLegendId = state.isEndlessMode ? getEndlessMaxGenId(endlessState.stageNumber) : 151;
-  const available = LEGENDARY_IDS.filter(id => id <= maxLegendId && !teamLegendIds.includes(id));
+  const maxLegendId = state.isEndlessMode ? getEndlessMaxGenId(endlessState.stageNumber) : (state.gen2Mode ? 251 : 151);
+  const minLegendId = state.gen2Mode ? 152 : 1;
+  const available = LEGENDARY_IDS.filter(id => id >= minLegendId && id <= maxLegendId && !teamLegendIds.includes(id));
   if (available.length === 0) { advanceFromNode(state.map, node.id); showMapScreen(); return; }
   const legendId = available[Math.floor(rng() * available.length)];
   const species = await fetchPokemonById(legendId);
@@ -1592,7 +1681,7 @@ async function doTradeNode(node) {
 
     const idx = i;
     const doTrade = async () => {
-      let pool = await getCatchChoices(getEncounterMapIndex(), 3, state.isEndlessMode ? getEndlessMaxGenId(endlessState.stageNumber) : 151, !state.isEndlessMode);
+      let pool = await getCatchChoices(getEncounterMapIndex(), 3, getCatchGenRange().maxGenId, !state.isEndlessMode, getCatchGenRange().minGenId);
       const species = pool[Math.floor(rng() * pool.length)];
       if (!species) { advanceFromNode(state.map, node.id); showMapScreen(); return; }
       const offerLevel = Math.min(100, mine.level + 3);
@@ -1630,7 +1719,7 @@ async function doTradeNode(node) {
 }
 
 async function doShinyNode(node) {
-  let choices = await getCatchChoices(getEncounterMapIndex(), 3, state.isEndlessMode ? getEndlessMaxGenId(endlessState.stageNumber) : 151, !state.isEndlessMode);
+  let choices = await getCatchChoices(getEncounterMapIndex(), 3, getCatchGenRange().maxGenId, !state.isEndlessMode, getCatchGenRange().minGenId);
   const level = getLevelForNode(node);
   const species = choices[0];
   if (!species) { advanceFromNode(state.map, node.id); showMapScreen(); return; }
@@ -1807,7 +1896,7 @@ function showBadgeScreen(leader) {
   document.getElementById('badge-leader').textContent = '';
   document.getElementById('badge-count-display').textContent = `Badges: ${state.badges}/8`;
   const badgeImg = document.getElementById('badge-icon-img');
-  if (badgeImg) badgeImg.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/${state.badges}.png`;
+  if (badgeImg) badgeImg.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/${state.badges + (state.gen2Mode ? 8 : 0)}.png`;
 
   document.getElementById('btn-next-map').onclick = () => {
     if (state.currentMap >= 7) {
@@ -1836,7 +1925,7 @@ function showWinScreen() {
       : '';
     return `<div style="display:flex;flex-direction:column;align-items:center;">${renderPokemonCard(p, false, false)}${itemHtml}</div>`;
   }).join('');
-  document.getElementById('btn-play-again').onclick = () => startNewRun(state.nuzlockeMode);
+  document.getElementById('btn-play-again').onclick = () => startNewRun(state.nuzlockeMode, state.gen2Mode);
 
   // Track elite four wins
   const wins = incrementEliteWins();
