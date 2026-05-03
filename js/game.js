@@ -1005,6 +1005,7 @@ function showSwapScreen(newPoke, node) {
       state.savedCatch = null;
       state.savedQuestionResolve = null;
       advanceFromNode(state.map, node.id);
+      state.currentNode = null;
       showMapNotification(`${newPoke.name} joined your team!`);
       showMapScreen();
     });
@@ -1031,6 +1032,7 @@ function showSwapScreen(newPoke, node) {
       state.savedCatch = null;
       state.savedQuestionResolve = null;
       advanceFromNode(state.map, node.id);
+      state.currentNode = null;
       showMapScreen();
     });
     if (traitOverlay) {
@@ -1072,6 +1074,7 @@ function showSwapScreen(newPoke, node) {
     state.savedCatch = null;
     state.savedQuestionResolve = null;
     advanceFromNode(state.map, node.id);
+    state.currentNode = null;
     showMapScreen();
   };
 }
@@ -1336,6 +1339,7 @@ async function applyEvolution(pokemon) {
     if (!evo) return;
   }
 
+  if (pokemon.heldItem?.id === 'eviolite') return;
   await playEvoAnimation(pokemon, evo);
 
   const oldHpRatio = pokemon.currentHp / pokemon.maxHp;
@@ -2269,7 +2273,7 @@ async function showStatBuffScreen() {
       ['hp',      'HP',  'stat-hp'],
       ['atk',     'ATK', 'stat-atk'],
       ['def',     'DEF', 'stat-def'],
-      ['speed',   'SPD', 'stat-spe'],
+      ['speed',   'Spe', 'stat-spe'],
       ['special', 'SP.A', 'stat-spa'],
       ['spdef',   'SP.D', 'stat-spd'],
     ];
@@ -2447,7 +2451,7 @@ function checkMaxStatAchievements(pokemon) {
       if (ach) showAchievementToast(ach);
     }
   }
-  if (maxedCount >= 6) {
+  if (maxedCount >= 5) {
     const ach = unlockAchievement('max_stats_all');
     if (ach) showAchievementToast(ach);
   }

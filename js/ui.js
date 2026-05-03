@@ -111,7 +111,7 @@ function renderPokemonCard(pokemon, onClick, selected, dexCaught = false, hofSta
       return [
         ['ATK', pokemon.baseStats.atk,     'stat-atk', 'atk'],
         ['SP.A', pokemon.baseStats.special ?? 0, 'stat-spa', 'special'],
-        ['SPD', pokemon.baseStats.speed,   'stat-spe', 'speed'],
+        ['Spe', pokemon.baseStats.speed,   'stat-spe', 'speed'],
         ['HP',  pokemon.baseStats.hp,      'stat-hp',  'hp'],
         ['DEF', pokemon.baseStats.def,     'stat-def', 'def'],
         ['SP.D', pokemon.baseStats.spdef ?? pokemon.baseStats.special ?? 0, 'stat-spd', 'spdef'],
@@ -2771,7 +2771,7 @@ async function animateBattleVisually(detailedLog, pTeamInit, eTeamInit) {
 function updateBattleStages(pokemonEl, stages) {
   const el = pokemonEl.querySelector('.battle-stages');
   if (!el) return;
-  const labels = { atk: 'ATK', def: 'DEF', speed: 'SPD', special: 'SP.A', spdef: 'SP.D' };
+  const labels = { atk: 'ATK', def: 'DEF', speed: 'Spe', special: 'SP.A', spdef: 'SP.D' };
   el.innerHTML = Object.entries(stages)
     .filter(([, v]) => v !== 0)
     .map(([stat, v]) => {
@@ -2786,7 +2786,7 @@ function animateStatChange(pokemonEl, stat, change) {
     const isUp = change > 0;
     const color = isUp ? '#5af055' : '#f05545';
     const arrow = isUp ? '▲' : '▼';
-    const statLabels = { atk: 'ATK', def: 'DEF', speed: 'SPD', special: 'SP.A', spdef: 'SP.D' };
+    const statLabels = { atk: 'ATK', def: 'DEF', speed: 'Spe', special: 'SP.A', spdef: 'SP.D' };
 
     const popup = document.createElement('div');
     popup.className = 'stat-change-popup';
@@ -3156,6 +3156,7 @@ async function checkAndEvolveTeam() {
       if (pokemon.speciesId === evo.into) continue;
     }
 
+    if (pokemon.heldItem?.id === 'eviolite') continue;
     if (!skipAnim) await playEvoAnimation(pokemon, evo);
 
     const oldHpRatio = pokemon.currentHp / pokemon.maxHp;
